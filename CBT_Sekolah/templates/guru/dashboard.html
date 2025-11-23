@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-4">
+
+    <!-- Selamat Datang -->
+    <div class="text-center mb-5">
+        <h1 class="display-6 fw-bold text-success">
+            Selamat Datang, Guru {{ current_user.nama }}
+        </h1>
+        <p class="lead text-muted">Kelola ujian mata pelajaran Anda</p>
+    </div>
+
+    <!-- Daftar Mapel yang Diajar -->
+    {% if mapel %}
+    <h4 class="mb-4 text-primary">
+        Mata Pelajaran yang Anda Ajar
+    </h4>
+    <div class="row g-4 mb-5">
+        {% for m in mapel %}
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-sm border-0 h-100 hover-card">
+                <div class="card-body text-center p-4">
+                    <i class="bi bi-book fs-1 text-primary mb-3"></i>
+                    <h5 class="fw-bold">{{ m.nama }}</h5>
+                    <p class="text-muted small mb-3">Mata Pelajaran</p>
+                    <a href="/guru/upload_soal/{{ m.id }}" class="btn btn-success rounded-pill px-4">
+                        Upload Soal Baru
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-5">
+        <i class="bi bi-journal-x fs-1 text-muted mb-3"></i>
+        <p class="text-muted">Anda belum mengajar mata pelajaran apapun.</p>
+    </div>
+    {% endif %}
+
+    <!-- Daftar Ujian yang Sudah Dibuat -->
+    {% if ujian %}
+    <h4 class="mb-4 text-primary">
+        Ujian yang Sudah Dibuat
+    </h4>
+    <div class="table-responsive">
+        <table class="table table-hover align-middle">
+            <thead class="table-primary">
+                <tr>
+                    <th>Judul Ujian</th>
+                    <th>Mapel</th>
+                    <th>Waktu Pelaksanaan</th>
+                    <th>Status</th>
+                    <th>Aksi</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in ujian %}
+                <tr>
+                    <td class="fw-semibold">{{ u.judul }}</td>
+                    <td>{{ u.mapel.nama }}</td>
+                    <td>
+                        <small>{{ u.waktu_mulai.strftime('%d %b %Y') }}</small><br>
+                        <small class="text-muted">{{ u.waktu_mulai.strftime('%H:%M') }} - {{ u.waktu_selesai.strftime('%H:%M') }}</small>
+                    </td>
+                    <td>
+                        {% if datetime.now() < u.waktu_mulai %}
+                            <span class="badge bg-warning">Belum Dimulai</span>
+                        {% elif datetime.now() <= u.waktu_selesai %}
+                            <span class="badge bg-success">Sedang Berlangsung</span>
+                        {% else %}
+                            <span class="badge bg-secondary">Selesai</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="/guru/lihat_nilai/{{ u.id }}" class="btn btn-info btn-sm">
+                            Lihat Nilai
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% endif %}
+
+</div>
+
+<!-- Hover Effect -->
+<style>
+.hover-card {
+    transition: all 0.3s ease;
+}
+.hover-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 15px 30px rgba(0,0,0,0.15) !important;
+}
+</style>
+
+{% endblock %}

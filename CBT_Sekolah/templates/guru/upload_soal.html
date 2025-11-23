@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-lg border-0">
+                <div class="card-header bg-success text-white text-center py-4">
+                    <h3 class="mb-0">
+                        Upload Soal — {{ mapel.nama }}
+                    </h3>
+                </div>
+                <div class="card-body p-5">
+
+                    <form method="POST" enctype="multipart/form-data">
+                        <div class="row g-4">
+                            <div class="col-md-8">
+                                <label class="form-label fw-bold">Judul Ujian</label>
+                                <input type="text" name="judul" class="form-control form-control-lg" placeholder="Contoh: Ulangan Harian 1" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label fw-bold">Durasi (menit)</label>
+                                <input type="number" name="durasi" value="60" min="10" max="180" class="form-control form-control-lg" required>
+                            </div>
+                        </div>
+
+                        <div class="row g-4 mt-2">
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Waktu Mulai</label>
+                                <input type="datetime-local" name="waktu_mulai" class="form-control form-control-lg" required>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label fw-bold">Waktu Selesai</label>
+                                <input type="datetime-local" name="waktu_selesai" class="form-control form-control-lg" required>
+                            </div>
+                        </div>
+
+                        <div class="mt-4">
+                            <label class="form-label fw-bold">File Excel Soal (.xlsx)</label>
+                            <input type="file" name="excel" accept=".xlsx" class="form-control form-control-lg" required>
+                            <div class="form-text">
+                                Download contoh format Excel:
+                                <a href="/static/contoh_soal.xlsx" download class="text-decoration-underline">
+                                    contoh_soal.xlsx
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="text-center mt-5">
+                            <button type="submit" class="btn btn-success btn-lg px-5 rounded-pill shadow">
+                                Buat Ujian Sekarang
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Kelola Siswa</h2>
+
+    <!-- Form Tambah Siswa -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <form method="POST" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label">NIS</label>
+                    <input type="text" name="nis" class="form-control" placeholder="Contoh: 21225001" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Nama Lengkap</label>
+                    <input type="text" name="nama" class="form-control" placeholder="Nama siswa" required>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label">Kelas</label>
+                    <select name="kelas_id" class="form-select" required>
+                        <option value="">-- Pilih Kelas --</option>
+                        {% for k in kelas %}
+                        <option value="{{ k.id }}">{{ k.nama_kelas }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button type="submit" name="tambah" class="btn btn-success w-100">Tambah Siswa</button>
+                </div>
+            </form>
+            <small class="text-muted d-block mt-2">Password default = NIS (bisa diganti saat edit)</small>
+        </div>
+    </div>
+
+    <!-- Tabel Daftar Siswa -->
+    <div class="card shadow">
+        <div class="card-body">
+            <table class="table table-hover align-middle">
+                <thead class="table-dark">
+                    <tr>
+                        <th>NIS</th>
+                        <th>Nama</th>
+                        <th>Kelas</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in siswa %}
+                    <tr>
+                        <td>{{ s.username }}</td>
+                        <td>{{ s.nama }}</td>
+                        <td>
+                            {% if s.kelas %}
+                                <span class="badge bg-primary">{{ s.kelas.nama_kelas }}</span>
+                            {% else %}
+                                <span class="text-danger">Belum ada kelas</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#edit{{ s.id }}">Edit</button>
+                            <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#hapus{{ s.id }}">Hapus</button>
+                        </td>
+                    </tr>
+
+                    <!-- Modal Edit -->
+                    <div class="modal fade" id="edit{{ s.id }}">
+                        <div class="modal-dialog">
+                            <form method="POST">
+                                <div class="modal-content">
+                                    <div class="modal-header bg-warning text-dark">
+                                        <h5>Edit Siswa: {{ s.nama }}</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <input type="hidden" name="user_id" value="{{ s.id }}">
+                                        <div class="mb-3">
+                                            <label>Nama Lengkap</label>
+                                            <input type="text" name="nama_edit" value="{{ s.nama }}" class="form-control" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label>Kelas</label>
+                                            <select name="kelas_edit" class="form-select" required>
+                                                <option value="">-- Pilih Kelas --</option>
+                                                {% for k in kelas %}
+                                                <option value="{{ k.id }}" {% if s.kelas and s.kelas.id == k.id %}selected{% endif %}>
+                                                    {{ k.nama_kelas }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label>Password Baru (kosongkan jika tidak diganti)</label>
+                                            <input type="password" name="password_edit" class="form-control" placeholder="Minimal 6 karakter">
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="submit" name="edit" class="btn btn-warning">Update</button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Modal Hapus -->
+                    <div class="modal fade" id="hapus{{ s.id }}">
+                        <div class="modal-dialog">
+                            <form method="POST">
+                                <div class="modal-content">
+                                    <div class="modal-header bg-danger text-white">
+                                        <h5>Hapus Siswa?</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        Yakin ingin menghapus siswa <strong>{{ s.nama }}</strong> (NIS: {{ s.username }})?<br>
+                                        Data tidak bisa dikembalikan!
+                                    </div>
+                                    <div class="modal-footer">
+                                        <input type="hidden" name="user_id_hapus" value="{{ s.id }}">
+                                        <button type="submit" name="hapus" class="btn btn-danger">Ya, Hapus Permanen</button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

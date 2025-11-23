@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container py-4 py-md-5" style="max-width: 1000px;">
+
+    <div class="text-center mb-4">
+        <h3 class="fw-semibold text-primary mb-0">Dashboard Administrator</h3>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm bg-primary text-white text-center h-100">
+                <div class="card-body py-3 d-flex flex-column justify-content-center">
+                    <i class="bi bi-building fs-4 mb-1"></i>
+                    <h4 class="mb-0 fw-bold">{{ total_kelas }}</h4>
+                    <small class="opacity-90 small-label">Kelas</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm bg-success text-white text-center h-100">
+                <div class="card-body py-3 d-flex flex-column justify-content-center">
+                    <i class="bi bi-people fs-4 mb-1"></i>
+                    <h4 class="mb-0 fw-bold">{{ total_siswa }}</h4>
+                    <small class="opacity-90 small-label">Siswa</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm bg-warning text-white text-center h-100">
+                <div class="card-body py-3 d-flex flex-column justify-content-center">
+                    <i class="bi bi-person-workspace fs-4 mb-1"></i>
+                    <h4 class="mb-0 fw-bold">{{ total_guru }}</h4>
+                    <small class="opacity-90 small-label">Guru</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-6 col-md-3">
+            <div class="card border-0 shadow-sm bg-info text-white text-center h-100">
+                <div class="card-body py-3 d-flex flex-column justify-content-center">
+                    <i class="bi bi-journal-text fs-4 mb-1"></i>
+                    <h4 class="mb-0 fw-bold">{{ total_mapel }}</h4>
+                    <small class="opacity-90 small-label">Mapel</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center g-3">
+        <div class="col-12 col-md-3">
+            <div class="card border-0 shadow-sm rounded-3 bg-white h-100">
+                <div class="card-body d-flex flex-column justify-content-center align-items-center py-4 text-center" style="min-height: 140px;">
+
+                    <h2 id="digital-clock" class="fw-bold text-primary mb-1" style="font-size: 2.5rem; letter-spacing: -1px;">
+                        00:00
+                    </h2>
+
+                    <div id="date-text" class="text-secondary fw-medium" style="font-size: 0.9rem;">
+                        Memuat...
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<style>
+    .small-label { font-size: 0.8rem; }
+
+    /* Font angka jam agar tidak 'bergetar' saat detik berubah */
+    #digital-clock {
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const clockEl = document.getElementById('digital-clock');
+    const dateEl = document.getElementById('date-text');
+
+    function updateClock() {
+        const now = new Date();
+
+        // 1. Update Jam (Format: 15:37)
+        // Opsi hour12: false memastikan format 24 jam
+        const timeString = now.toLocaleTimeString('id-ID', {
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+        }).replace('.', ':'); // Pastikan pemisah adalah titik dua
+
+        clockEl.innerText = timeString;
+
+        // 2. Update Tanggal (Format: Minggu, 23 November 2025)
+        const dateString = now.toLocaleDateString('id-ID', {
+            weekday: 'long',
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric'
+        });
+
+        dateEl.innerText = dateString;
+    }
+
+    setInterval(updateClock, 1000);
+    updateClock();
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block content %}
+<h2 class="mt-4">Selamat Datang, {{ current_user.nama }}</h2>
+<h4>Ujian yang Tersedia:</h4>
+<div class="row">
+    {% for u in ujian %}
+    <div class="col-md-6 mb-3">
+        <div class="card shadow">
+            <div class="card-body">
+                <h5>{{ u.judul }}</h5>
+                <p>Waktu: {{ u.waktu_mulai.strftime('%d/%m/%Y %H:%M') }} - {{ u.waktu_selesai.strftime('%H:%M') }}</p>
+                <a href="/siswa/ujian/{{ u.id }}" class="btn btn-primary">Kerjakan Ujian</a>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

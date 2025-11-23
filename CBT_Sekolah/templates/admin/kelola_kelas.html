@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Kelola Kelas</h2>
+    <div class="card shadow">
+        <div class="card-body">
+            <form method="POST" class="mb-4">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <input type="text" name="nama_kelas" class="form-control" placeholder="Nama Kelas (contoh: X IPA 1)" required>
+                    </div>
+                    <div class="col-md-4">
+                        <button type="submit" name="tambah" class="btn btn-success w-100">Tambah Kelas</button>
+                    </div>
+                </div>
+            </form>
+
+            <table class="table table-hover">
+                <thead class="table-primary">
+                    <tr>
+                        <th>No</th>
+                        <th>Nama Kelas</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for k in kelas %}
+                    <tr>
+                        <td>{{ loop.index }}</td>
+                        <td>{{ k.nama_kelas }}</td>
+                        <td>
+                            <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#edit{{ k.id }}">Edit</button>
+                            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#hapus{{ k.id }}">Hapus</button>
+                        </td>
+                    </tr>
+
+                    <!-- Modal Edit -->
+                    <div class="modal fade" id="edit{{ k.id }}">
+                        <div class="modal-dialog">
+                            <form method="POST">
+                                <div class="modal-content">
+                                    <div class="modal-header"><h5>Edit Kelas</h5></div>
+                                    <div class="modal-body">
+                                        <input type="hidden" name="kelas_id" value="{{ k.id }}">
+                                        <input type="text" name="nama_edit" value="{{ k.nama_kelas }}" class="form-control" required>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="submit" name="edit" class="btn btn-warning">Update</button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Modal Hapus -->
+                    <div class="modal fade" id="hapus{{ k.id }}">
+                        <div class="modal-dialog">
+                            <form method="POST">
+                                <div class="modal-content">
+                                    <div class="modal-header"><h5>Hapus Kelas?</h5></div>
+                                    <div class="modal-body">Yakin hapus kelas <strong>{{ k.nama_kelas }}</strong>?</div>
+                                    <div class="modal-footer">
+                                        <input type="hidden" name="kelas_id_hapus" value="{{ k.id }}">
+                                        <button type="submit" name="hapus" class="btn btn-danger">Ya, Hapus</button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

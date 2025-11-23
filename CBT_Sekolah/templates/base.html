@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>CBT Sekolah</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body class="bg-light">
+
+    <!-- NAVBAR DINAMIS SESUAI ROLE -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow fixed-top">
+        <div class="container-fluid px-4">
+
+            <!-- Brand -->
+            <a class="navbar-brand fw-bold d-flex align-items-center" href="/">
+                <i class="bi bi-mortarboard-fill me-2"></i>
+                CBT Sekolah
+            </a>
+
+            <!-- Menu hanya muncul jika sudah login -->
+            {% if current_user.is_authenticated %}
+            <div class="navbar-nav me-auto d-flex flex-row gap-2">
+
+                <!-- MENU ADMIN -->
+                {% if current_user.role == 'admin' %}
+                    <a href="/admin/dashboard" class="nav-link text-white">Dashboard</a>
+                    <div class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-white" href="#" role="button" data-bs-toggle="dropdown">
+                            Kelola Data
+                        </a>
+                        <ul class="dropdown-menu">
+                            <li><a class="dropdown-item" href="/admin/kelola_kelas">Kelas</a></li>
+                            <li><a class="dropdown-item" href="/admin/kelola_siswa">Siswa</a></li>
+                            <li><a class="dropdown-item" href="/admin/kelola_guru">Guru</a></li>
+                            <li><a class="dropdown-item" href="/admin/kelola_mapel">Mapel</a></li>
+                        </ul>
+                    </div>
+                    <a href="/admin/ujian" class="nav-link text-white">Ujian</a>
+                {% endif %}
+
+                <!-- MENU GURU -->
+                {% if current_user.role == 'guru' %}
+                    <a href="/guru/dashboard" class="nav-link text-white">Dashboard</a>
+                    <a href="/guru/buat_ujian" class="nav-link text-white">Buat Ujian</a>
+                    <a href="/guru/nilai_siswa" class="nav-link text-white">Nilai Siswa</a>
+                {% endif %}
+
+                <!-- MENU SISWA -->
+                {% if current_user.role == 'siswa' %}
+                    <a href="/siswa/dashboard" class="nav-link text-white">Dashboard</a>
+                    <a href="/siswa/ujian_tersedia" class="nav-link text-white">Ujian Tersedia</a>
+                    <a href="/siswa/riwayat_nilai" class="nav-link text-white">Riwayat Nilai</a>
+                {% endif %}
+
+            </div>
+
+            <!-- User Info + Logout (paling kanan) -->
+            <div class="d-flex align-items-center text-white">
+                <span class="me-3 small d-none d-md-block">
+                    Halo, <strong>{{ current_user.nama or current_user.username }}</strong>
+                    <span class="text-white-50">({{ current_user.role | capitalize }})</span>
+                </span>
+                <a href="/logout" class="btn btn-danger btn-sm rounded-pill px-4 shadow-sm">
+                    <i class="bi bi-box-arrow-right me-1"></i>
+                    <span class="d-none d-sm-inline">Logout</span>
+                </a>
+            </div>
+            {% endif %}
+
+        </div>
+    </nav>
+
+    <!-- Spacer -->
+    <div style="margin-top: 76px;"></div>
+
+    <!-- Main Content -->
+    <div class="container mt-4">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'danger' if category == 'error' else 'success' }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

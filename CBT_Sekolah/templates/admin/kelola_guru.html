@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <h2>Kelola Guru</h2>
+
+    <!-- Form Tambah Guru -->
+    <div class="card shadow mb-4">
+        <div class="card-body">
+            <form method="POST" class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label">NIP</label>
+                    <input type="text" name="nip" class="form-control" placeholder="Contoh: 198507012" required>
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label">Nama Guru</label>
+                    <input type="text" name="nama" class="form-control" placeholder="Nama lengkap guru" required>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" name="tambah" class="btn btn-success w-100">Tambah Guru</button>
+                </div>
+            </form>
+            <small class="text-muted d-block mt-2">Password default = NIP (bisa diganti saat edit)</small>
+        </div>
+    </div>
+
+    <!-- Tabel Daftar Guru -->
+    <div class="card shadow">
+        <div class="card-body">
+            <table class="table table-hover align-middle">
+                <thead class="table-warning">
+                    <tr>
+                        <th>NIP</th>
+                        <th>Nama Guru</th>
+                        <th>Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for g in guru %}
+                    <tr>
+                        <td><strong>{{ g.username }}</strong></td>
+                        <td>{{ g.nama }}</td>
+                        <td>
+                            <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#edit{{ g.id }}">Edit</button>
+                            <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#hapus{{ g.id }}">Hapus</button>
+                        </td>
+                    </tr>
+
+                    <!-- Modal Edit Guru -->
+                    <div class="modal fade" id="edit{{ g.id }}">
+                        <div class="modal-dialog">
+                            <form method="POST">
+                                <div class="modal-content">
+                                    <div class="modal-header bg-warning text-dark">
+                                        <h5>Edit Guru: {{ g.nama }}</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <input type="hidden" name="user_id" value="{{ g.id }}">
+                                        <div class="mb-3">
+                                            <label>Nama Lengkap</label>
+                                            <input type="text" name="nama_edit" value="{{ g.nama }}" class="form-control" required>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label>Password Baru <small>(kosongkan jika tidak ingin ganti)</small></label>
+                                            <input type="password" name="password_edit" class="form-control" placeholder="Minimal 6 karakter">
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="submit" name="edit" class="btn btn-warning">Update</button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Modal Hapus Guru -->
+                    <div class="modal fade" id="hapus{{ g.id }}">
+                        <div class="modal-dialog">
+                            <form method="POST">
+                                <div class="modal-content">
+                                    <div class="modal-header bg-danger text-white">
+                                        <h5>Hapus Guru?</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        Yakin ingin menghapus guru <strong>{{ g.nama }}</strong> (NIP: {{ g.username }})?<br>
+                                        Semua mapel yang diajar akan kehilangan pengajar!
+                                    </div>
+                                    <div class="modal-footer">
+                                        <input type="hidden" name="user_id_hapus" value="{{ g.id }}">
+                                        <button type="submit" name="hapus" class="btn btn-danger">Ya, Hapus Permanen</button>
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}
