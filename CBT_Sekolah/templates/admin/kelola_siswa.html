@@ -1,10 +1,17 @@
 {% extends "base.html" %}
 {% block content %}
 <div class="container mt-4">
-    <h2>Kelola Siswa</h2>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2>Kelola Siswa</h2>
+        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalImportSiswa">
+            <i class="bi bi-file-earmark-excel"></i> Import Excel
+        </button>
+    </div>
 
-    <!-- Form Tambah Siswa -->
     <div class="card shadow mb-4">
+        <div class="card-header bg-light">
+            <strong>Tambah Siswa Manual</strong>
+        </div>
         <div class="card-body">
             <form method="POST" class="row g-3 align-items-end">
                 <div class="col-md-3">
@@ -25,14 +32,13 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <button type="submit" name="tambah" class="btn btn-success w-100">Tambah Siswa</button>
+                    <button type="submit" name="tambah" class="btn btn-primary w-100">Tambah Siswa</button>
                 </div>
             </form>
             <small class="text-muted d-block mt-2">Password default = NIS (bisa diganti saat edit)</small>
         </div>
     </div>
 
-    <!-- Tabel Daftar Siswa -->
     <div class="card shadow">
         <div class="card-body">
             <table class="table table-hover align-middle">
@@ -62,7 +68,6 @@
                         </td>
                     </tr>
 
-                    <!-- Modal Edit -->
                     <div class="modal fade" id="edit{{ s.id }}">
                         <div class="modal-dialog">
                             <form method="POST">
@@ -102,7 +107,6 @@
                         </div>
                     </div>
 
-                    <!-- Modal Hapus -->
                     <div class="modal fade" id="hapus{{ s.id }}">
                         <div class="modal-dialog">
                             <form method="POST">
@@ -128,6 +132,36 @@
                 </tbody>
             </table>
         </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalImportSiswa">
+    <div class="modal-dialog">
+        <form method="POST" enctype="multipart/form-data">
+            <div class="modal-content">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title">Import Data Siswa</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info small">
+                        <strong>Format Excel:</strong>
+                        <ul class="mb-0 ps-3">
+                            <li>Kolom A: <strong>NIS</strong> (Wajib unik)</li>
+                            <li>Kolom B: <strong>Nama</strong></li>
+                            <li>Kolom C: <strong>Kelas</strong> (Harus sama persis dengan menu Kelas)</li>
+                        </ul>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Upload File (.xlsx)</label>
+                        <input type="file" name="file_excel" class="form-control" accept=".xlsx" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" name="import_siswa" class="btn btn-success">Upload & Proses</button>
+                </div>
+            </div>
+        </form>
     </div>
 </div>
 {% endblock %}

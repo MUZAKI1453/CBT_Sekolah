@@ -1,4 +1,5 @@
 from datetime import datetime
+import pandas as pd  # <--- WAJIB DITAMBAHKAN UNTUK BACA EXCEL
 
 from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import login_required, current_user, login_user
@@ -57,16 +58,63 @@ def kelola_kelas():
     kelas = Kelas.query.all()
     return render_template('admin/kelola_kelas.html', kelas=kelas)
 
-# ==================== KELOLA SISWA ====================
+# ==================== KELOLA SISWA (UPDATED) ====================
 @bp.route('/kelola_siswa', methods=['GET', 'POST'])
 @login_required
 def kelola_siswa():
     if current_user.role != 'admin': return redirect('/')
+    
     if request.method == 'POST':
-        if 'tambah' in request.form:
+        # --- FITUR BARU: IMPORT EXCEL ---
+        if 'import_siswa' in request.form:
+            file = request.files.get('file_excel')
+            if file:
+                try:
+                    df = pd.read_excel(file)
+                    berhasil = 0
+                    gagal = 0
+                    
+                    # Loop setiap baris di Excel
+                    for _, row in df.iterrows():
+                        # Ambil data & bersihkan format angka (misal: 1001.0 -> 1001)
+                        nis = str(row['NIS']).split('.')[0].strip()
+                        nama = str(row['Nama']).strip()
+                        nama_kelas = str(row['Kelas']).strip()
+
+                        # 1. Cek duplikat NIS
+                        if User.query.filter_by(username=nis).first():
+                            gagal += 1
+                            continue # Skip siswa ini
+                        
+                        # 2. Cari ID Kelas berdasarkan Nama Kelas di Excel
+                        kelas_obj = Kelas.query.filter_by(nama_kelas=nama_kelas).first()
+                        if not kelas_obj:
+                            gagal += 1
+                            continue # Skip jika kelas tidak ditemukan di DB
+
+                        # 3. Tambahkan User Baru (Password Default = NIS)
+                        db.session.add(User(
+                            username=nis,
+                            password=generate_password_hash(nis),
+                            role='siswa',
+                            nama=nama,
+                            kelas_id=kelas_obj.id
+                        ))
+                        berhasil += 1
+                    
+                    db.session.commit()
+                    flash(f'Import Selesai! Berhasil: {berhasil}, Gagal: {gagal} (NIS duplikat / Nama Kelas salah)', 'info')
+                
+                except Exception as e:
+                    flash(f'Gagal memproses file: {str(e)}', 'danger')
+            else:
+                flash('File Excel tidak ditemukan!', 'warning')
+
+        # --- FITUR LAMA: TAMBAH MANUAL ---
+        elif 'tambah' in request.form:
             nis = request.form['nis']
             nama = request.form['nama']
-            kelas_id = kelas_id = int(request.form['kelas_id'])
+            kelas_id = int(request.form['kelas_id'])
             pwd = request.form.get('password', nis)
             if User.query.filter_by(username=nis).first():
                 flash('NIS sudah terdaftar!', 'warning')
@@ -80,6 +128,8 @@ def kelola_siswa():
                 ))
                 db.session.commit()
                 flash('Siswa berhasil ditambah!', 'success')
+
+        # --- FITUR LAMA: EDIT ---
         elif 'edit' in request.form:
             user_id = request.form['user_id']
             user = User.query.get_or_404(user_id)
@@ -89,23 +139,62 @@ def kelola_siswa():
                 user.password = generate_password_hash(request.form['password_edit'])
             db.session.commit()
             flash('Data siswa berhasil diupdate!', 'success')
+
+        # --- FITUR LAMA: HAPUS ---
         elif 'hapus' in request.form:
             user_id = request.form['user_id_hapus']
             user = User.query.get_or_404(user_id)
             db.session.delete(user)
             db.session.commit()
             flash('Siswa berhasil dihapus!', 'success')
-    siswa = User.query.filter_by(role='siswa').options(db.joinedload(User.kelas)).all()
+
+    # Load data untuk ditampilkan di tabel
+    siswa = User.query.filter_by(role='siswa').options(joinedload(User.kelas)).all()
     kelas = Kelas.query.all()
     return render_template('admin/kelola_siswa.html', siswa=siswa, kelas=kelas)
 
-# ==================== KELOLA GURU ====================
+# ==================== KELOLA GURU (UPDATED) ====================
 @bp.route('/kelola_guru', methods=['GET', 'POST'])
 @login_required
 def kelola_guru():
     if current_user.role != 'admin': return redirect('/')
+    
     if request.method == 'POST':
-        if 'tambah' in request.form:
+        # --- FITUR BARU: IMPORT EXCEL ---
+        if 'import_guru' in request.form:
+            file = request.files.get('file_excel')
+            if file:
+                try:
+                    df = pd.read_excel(file)
+                    berhasil = 0
+                    skip = 0
+
+                    for _, row in df.iterrows():
+                        nip = str(row['NIP']).split('.')[0].strip()
+                        nama = str(row['Nama']).strip()
+
+                        # Cek duplikat NIP
+                        if User.query.filter_by(username=nip).first():
+                            skip += 1
+                            continue
+                        
+                        # Tambah Guru (Password Default = NIP)
+                        db.session.add(User(
+                            username=nip,
+                            password=generate_password_hash(nip),
+                            role='guru',
+                            nama=nama
+                        ))
+                        berhasil += 1
+                    
+                    db.session.commit()
+                    flash(f'Import Guru Selesai! Berhasil: {berhasil}, Skip (Duplikat): {skip}', 'info')
+                
+                except Exception as e:
+                    flash(f'Gagal memproses file: {str(e)}', 'danger')
+
+        # --- FITUR LAMA: TAMBAH MANUAL ---
+        elif 'tambah' in request.form:
             nip = request.form['nip']
             nama = request.form['nama']
             pwd = request.form.get('password', nip)
@@ -120,6 +209,8 @@ def kelola_guru():
                 ))
                 db.session.commit()
                 flash('Guru berhasil ditambah!', 'success')
+
+        # --- FITUR LAMA: EDIT ---
         elif 'edit' in request.form:
             user = User.query.get_or_404(request.form['user_id'])
             user.nama = request.form['nama_edit']
@@ -127,11 +218,14 @@ def kelola_guru():
                 user.password = generate_password_hash(request.form['password_edit'])
             db.session.commit()
             flash('Data guru berhasil diupdate!', 'success')
+
+        # --- FITUR LAMA: HAPUS ---
         elif 'hapus' in request.form:
             user = User.query.get_or_404(request.form['user_id_hapus'])
             db.session.delete(user)
             db.session.commit()
             flash('Guru berhasil dihapus!', 'success')
+
     guru = User.query.filter_by(role='guru').all()
     return render_template('admin/kelola_guru.html', guru=guru)
 
@@ -165,26 +259,17 @@ def kelola_mapel():
     mapel = Mapel.query.all()
     return render_template('admin/kelola_mapel.html', mapel=mapel, guru_list=guru_list)
 
-# ==================== [BARU] MONITORING UJIAN ====================
+# ==================== MONITORING UJIAN ====================
 @bp.route('/ujian', methods=['GET', 'POST'])
 @login_required
 def ujian():
     if current_user.role != 'admin': return redirect('/')
-
-    # Logic Hapus Ujian
     if request.method == 'POST' and 'hapus' in request.form:
         ujian_id = request.form['ujian_id']
         ujian_obj = Ujian.query.get_or_404(ujian_id)
-        
-        # Hapus ujian (jawaban siswa terkait akan otomatis terhapus jika cascade diatur, 
-        # tapi di code models belum ada cascade, jadi SQLAlchemy akan handle delete biasa)
         db.session.delete(ujian_obj)
         db.session.commit()
         flash('Ujian berhasil dihapus permanen!', 'success')
         return redirect(url_for('admin.ujian'))
-
-    # Tampilkan semua ujian diurutkan dari yang terbaru
-    # Kita join dengan Mapel agar bisa menampilkan nama Mapel & Guru
     data_ujian = Ujian.query.order_by(Ujian.waktu_mulai.desc()).all()
-
     return render_template('admin/ujian.html', ujian=data_ujian, datetime=datetime)
