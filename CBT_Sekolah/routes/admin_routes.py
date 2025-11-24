@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, flash, redirect, url_for
 from flask_login import login_required, current_user, login_user
 from sqlalchemy.orm import joinedload
 
-from models import db, User, Kelas, Mapel
+from models import db, User, Kelas, Mapel, Ujian
 from werkzeug.security import generate_password_hash, check_password_hash
 
 bp = Blueprint('admin', __name__)
@@ -164,3 +164,27 @@ def kelola_mapel():
             flash('Mapel berhasil dihapus!', 'success')
     mapel = Mapel.query.all()
     return render_template('admin/kelola_mapel.html', mapel=mapel, guru_list=guru_list)
+
+# ==================== [BARU] MONITORING UJIAN ====================
+@bp.route('/ujian', methods=['GET', 'POST'])
+@login_required
+def ujian():
+    if current_user.role != 'admin': return redirect('/')
+
+    # Logic Hapus Ujian
+    if request.method == 'POST' and 'hapus' in request.form:
+        ujian_id = request.form['ujian_id']
+        ujian_obj = Ujian.query.get_or_404(ujian_id)
+        
+        # Hapus ujian (jawaban siswa terkait akan otomatis terhapus jika cascade diatur, 
+        # tapi di code models belum ada cascade, jadi SQLAlchemy akan handle delete biasa)
+        db.session.delete(ujian_obj)
+        db.session.commit()
+        flash('Ujian berhasil dihapus permanen!', 'success')
+        return redirect(url_for('admin.ujian'))
+
+    # Tampilkan semua ujian diurutkan dari yang terbaru
+    # Kita join dengan Mapel agar bisa menampilkan nama Mapel & Guru
+    data_ujian = Ujian.query.order_by(Ujian.waktu_mulai.desc()).all()
+
+    return render_template('admin/ujian.html', ujian=data_ujian, datetime=datetime)
