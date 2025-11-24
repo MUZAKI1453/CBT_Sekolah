@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-4 mb-5">
+    <form method="POST">
+        
+        <div class="card shadow-sm border-0 mb-4 bg-light">
+            <div class="card-body d-flex justify-content-between align-items-center">
+                <div>
+                    <h4 class="mb-1 fw-bold">{{ jawaban.siswa.nama }}</h4>
+                    <p class="mb-0 text-muted">
+                        {{ jawaban.siswa.username }} | {{ jawaban.siswa.kelas.nama_kelas }}
+                    </p>
+                </div>
+                <div class="text-end">
+                    <small class="text-muted d-block">Nilai Pilihan Ganda</small>
+                    <h3 class="text-primary fw-bold m-0">{{ jawaban.nilai_pg }}</h3>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="fw-bold"><i class="bi bi-pencil-square"></i> Koreksi Jawaban Essay</h5>
+            <a href="/guru/lihat_nilai/{{ jawaban.ujian_id }}" class="btn btn-secondary">Kembali</a>
+        </div>
+
+        {% if soal_essay %}
+            {% for s in soal_essay %}
+            <div class="card shadow-sm mb-3 border-0">
+                <div class="card-body">
+                    
+                    <div class="mb-3">
+                        <span class="badge bg-primary mb-2">Soal No. {{ loop.index }}</span>
+                        <div class="fw-medium">{{ s.soal }}</div>
+                    </div>
+
+                    <div class="mb-3 p-3 bg-light border rounded">
+                        <label class="small text-muted fw-bold mb-1">Jawaban Siswa:</label>
+                        <div class="text-dark">
+                            {{ jawab_essay[loop.index0|string] if jawab_essay[loop.index0|string] else '<span class="text-danger fst-italic">Tidak dijawab</span>' | safe }}
+                        </div>
+                    </div>
+
+                    <div class="row align-items-center">
+                        <div class="col-md-3">
+                            <label class="fw-bold small text-success">Berikan Nilai (Max: {{ s.bobot }})</label>
+                            <input type="number" name="nilai_{{ loop.index0 }}" 
+                                   class="form-control border-success fw-bold" 
+                                   min="0" max="{{ s.bobot }}" 
+                                   placeholder="0" required>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+            {% endfor %}
+
+            <div class="card shadow-sm border-0 sticky-bottom">
+                <div class="card-body">
+                    <button type="submit" class="btn btn-success btn-lg w-100 fw-bold shadow">
+                        <i class="bi bi-save"></i> SIMPAN NILAI ESSAY
+                    </button>
+                </div>
+            </div>
+
+        {% else %}
+            <div class="alert alert-info text-center">
+                Ujian ini tidak memiliki soal essay.
+            </div>
+        {% endif %}
+
+    </form>
+</div>
+
+<script>
+    document.querySelectorAll('input[type="number"]').forEach(input => {
+        input.addEventListener('input', function() {
+            let max = parseInt(this.getAttribute('max'));
+            let val = parseInt(this.value);
+            if (val > max) {
+                alert('Nilai tidak boleh melebihi bobot soal (' + max + ')');
+                this.value = max;
+            }
+        });
+    });
+</script>
+
+<style>
+    .sticky-bottom {
+        position: sticky;
+        bottom: 20px;
+        z-index: 100;
+    }
+</style>
+
+{% endblock %}

@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, flash, redirect, url_for, send_file
 from flask_login import login_required, current_user
-from models import db, Mapel, Ujian, JawabanSiswa 
+from models import db, Mapel, Ujian, JawabanSiswa, User
+from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 import json
 import re
@@ -406,6 +407,53 @@ def preview(ujian_id):
 
     return render_template('guru/preview_ujian.html', ujian=ujian, pg=pg, essay=essay)
 
+# ==================== KOREKSI ESSAY ====================
+@bp.route('/koreksi/<int:jawaban_id>', methods=['GET', 'POST'])
+@login_required
+def koreksi(jawaban_id):
+    if current_user.role != 'guru': return redirect('/')
+    
+    # Ambil data jawaban siswa
+    jawaban_siswa = JawabanSiswa.query.get_or_404(jawaban_id)
+    ujian = jawaban_siswa.ujian
+    
+    # Validasi Hak Akses
+    if ujian.mapel.guru_id != current_user.id:
+        flash('Akses ditolak!', 'danger')
+        return redirect('/guru/dashboard')
+
+    # Load Soal & Jawaban
+    soal_essay = json.loads(ujian.soal_essay) if ujian.soal_essay else []
+    jawab_essay = json.loads(jawaban_siswa.jawaban_essay) if jawaban_siswa.jawaban_essay else {}
+
+    if request.method == 'POST':
+        total_skor_essay = 0
+        
+        # Loop setiap soal untuk ambil input nilai dari guru
+        for i, soal in enumerate(soal_essay):
+            input_name = f'nilai_{i}'
+            try:
+                # Ambil nilai yang diinput guru, pastikan tidak minus
+                skor = float(request.form.get(input_name, 0))
+                if skor < 0: skor = 0
+                # Opsional: Batasi agar tidak melebihi bobot (skor > soal['bobot'])
+            except:
+                skor = 0
+            
+            total_skor_essay += skor
+        
+        # Update Database
+        jawaban_siswa.nilai_essay = total_skor_essay
+        jawaban_siswa.total_nilai = jawaban_siswa.nilai_pg + total_skor_essay
+        
+        db.session.commit()
+        flash(f'Nilai berhasil disimpan! Total Essay: {total_skor_essay}', 'success')
+        return redirect(url_for('guru.lihat_nilai', ujian_id=ujian.id))
+
+    return render_template('guru/koreksi.html', 
+                           jawaban=jawaban_siswa, 
+                           soal_essay=soal_essay, 
+                           jawab_essay=jawab_essay)
 
 # ==================== LIHAT NILAI & EXPORT EXCEL ====================
 @bp.route('/lihat_nilai/<int:ujian_id>', methods=['GET', 'POST'])
@@ -466,3 +514,35 @@ def lihat_nilai(ujian_id):
         )
 
     return render_template('guru/lihat_nilai.html', ujian=ujian, data_nilai=data_nilai)
+
+# ==================== GANTI PASSWORD (BARU) ====================
+@bp.route('/ganti_password', methods=['GET', 'POST'])
+@login_required
+def ganti_password():
+    if current_user.role != 'guru': return redirect('/')
+
+    if request.method == 'POST':
+        old_pass = request.form['old_pass']
+        new_pass = request.form['new_pass']
+        confirm_pass = request.form['confirm_pass']
+
+        # 1. Validasi Password Lama
+        if not check_password_hash(current_user.password, old_pass):
+            flash('Password lama salah!', 'danger')
+        
+        # 2. Validasi Konfirmasi
+        elif new_pass != confirm_pass:
+            flash('Konfirmasi password baru tidak cocok!', 'warning')
+        
+        # 3. Validasi Panjang
+        elif len(new_pass) < 6:
+            flash('Password baru minimal 6 karakter!', 'warning')
+        
+        else:
+            # 4. Simpan
+            current_user.password = generate_password_hash(new_pass)
+            db.session.commit()
+            flash('Password berhasil diubah! Silakan login ulang.', 'success')
+            return redirect('/guru/dashboard')
+
+    return render_template('guru/ganti_password.html')
