@@ -1,0 +1,167 @@
+{% extends "base.html" %}
+{% block content %}
+
+<div class="container mt-4 mb-5">
+    <form method="POST" enctype="multipart/form-data">
+        
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h2>Edit Ujian: {{ ujian.judul }}</h2>
+            <div>
+                <a href="/guru/dashboard" class="btn btn-secondary">Batal</a>
+                <button type="submit" class="btn btn-primary px-4">Simpan Perubahan</button>
+            </div>
+        </div>
+
+        <div class="card shadow mb-4">
+            <div class="card-header bg-light fw-bold">Pengaturan Umum</div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label>Judul Ujian</label>
+                        <input type="text" name="judul" value="{{ ujian.judul }}" class="form-control" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label>Durasi (Menit)</label>
+                        <input type="number" name="durasi" value="{{ ujian.durasi_menit }}" class="form-control" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label>Mulai</label>
+                        <input type="datetime-local" name="waktu_mulai" value="{{ ujian.waktu_mulai.strftime('%Y-%m-%dT%H:%M') }}" class="form-control" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label>Selesai</label>
+                        <input type="datetime-local" name="waktu_selesai" value="{{ ujian.waktu_selesai.strftime('%Y-%m-%dT%H:%M') }}" class="form-control" required>
+                    </div>
+                </div>
+                <div class="mt-3 p-3 bg-warning bg-opacity-10 border border-warning rounded">
+                    <label class="small fw-bold text-warning">Timpa dengan Upload PDF Baru (Opsional)</label>
+                    <input type="file" name="file_pdf" accept=".pdf" class="form-control form-control-sm">
+                    <small class="text-muted fst-italic">Biarkan kosong jika hanya ingin mengedit manual di bawah ini.</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow mb-4">
+            <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                <span>Soal Pilihan Ganda</span>
+                <button type="button" class="btn btn-sm btn-light text-primary fw-bold" onclick="tambahPG()">
+                    <i class="bi bi-plus-circle"></i> Tambah Soal
+                </button>
+            </div>
+            <div class="card-body" id="container-pg">
+                {% for s in pg_list %}
+                <div class="border rounded p-3 mb-3 position-relative item-pg">
+                    <button type="button" class="btn-close position-absolute top-0 end-0 m-2" onclick="hapusElemen(this)"></button>
+                    
+                    <div class="mb-2">
+                        <label class="fw-bold small">Pertanyaan</label>
+                        <textarea name="pg_soal[]" class="form-control mb-2" rows="2" required>{{ s.soal }}</textarea>
+                    </div>
+                    
+                    <div class="row g-2 align-items-center">
+                        {% for opt in ['a','b','c','d','e'] %}
+                        <div class="col-md-2">
+                            <div class="input-group input-group-sm">
+                                <span class="input-group-text fw-bold">{{ opt|upper }}</span>
+                                <input type="text" name="pg_{{ opt }}[]" value="{{ s[opt] }}" class="form-control">
+                            </div>
+                        </div>
+                        {% endfor %}
+                        
+                        <div class="col-md-2">
+                            <select name="pg_kunci[]" class="form-select form-select-sm bg-success text-white fw-bold">
+                                {% for k in ['A','B','C','D','E'] %}
+                                <option value="{{ k }}" {% if s.kunci == k %}selected{% endif %}>Kunci: {{ k }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="card shadow">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <span>Soal Essay</span>
+                <button type="button" class="btn btn-sm btn-light text-success fw-bold" onclick="tambahEssay()">
+                    <i class="bi bi-plus-circle"></i> Tambah Essay
+                </button>
+            </div>
+            <div class="card-body" id="container-essay">
+                {% for e in essay_list %}
+                <div class="border rounded p-3 mb-3 position-relative item-essay">
+                    <button type="button" class="btn-close position-absolute top-0 end-0 m-2" onclick="hapusElemen(this)"></button>
+                    <div class="row">
+                        <div class="col-md-10">
+                            <label class="fw-bold small">Pertanyaan Essay</label>
+                            <textarea name="essay_soal[]" class="form-control" rows="2" required>{{ e.soal }}</textarea>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="fw-bold small">Bobot Nilai</label>
+                            <input type="number" name="essay_bobot[]" value="{{ e.bobot }}" class="form-control" required>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+    </form>
+</div>
+
+<script>
+    function hapusElemen(btn) {
+        if(confirm('Hapus soal ini?')) {
+            btn.parentElement.remove();
+        }
+    }
+
+    function tambahPG() {
+        const html = `
+        <div class="border rounded p-3 mb-3 position-relative item-pg">
+            <button type="button" class="btn-close position-absolute top-0 end-0 m-2" onclick="hapusElemen(this)"></button>
+            <div class="mb-2">
+                <label class="fw-bold small">Pertanyaan Baru</label>
+                <textarea name="pg_soal[]" class="form-control mb-2" rows="2" required></textarea>
+            </div>
+            <div class="row g-2 align-items-center">
+                <div class="col-md-2"><div class="input-group input-group-sm"><span class="input-group-text fw-bold">A</span><input type="text" name="pg_a[]" class="form-control"></div></div>
+                <div class="col-md-2"><div class="input-group input-group-sm"><span class="input-group-text fw-bold">B</span><input type="text" name="pg_b[]" class="form-control"></div></div>
+                <div class="col-md-2"><div class="input-group input-group-sm"><span class="input-group-text fw-bold">C</span><input type="text" name="pg_c[]" class="form-control"></div></div>
+                <div class="col-md-2"><div class="input-group input-group-sm"><span class="input-group-text fw-bold">D</span><input type="text" name="pg_d[]" class="form-control"></div></div>
+                <div class="col-md-2"><div class="input-group input-group-sm"><span class="input-group-text fw-bold">E</span><input type="text" name="pg_e[]" class="form-control"></div></div>
+                <div class="col-md-2">
+                    <select name="pg_kunci[]" class="form-select form-select-sm bg-success text-white fw-bold">
+                        <option value="A">Kunci: A</option>
+                        <option value="B">Kunci: B</option>
+                        <option value="C">Kunci: C</option>
+                        <option value="D">Kunci: D</option>
+                        <option value="E">Kunci: E</option>
+                    </select>
+                </div>
+            </div>
+        </div>`;
+        document.getElementById('container-pg').insertAdjacentHTML('beforeend', html);
+    }
+
+    function tambahEssay() {
+        const html = `
+        <div class="border rounded p-3 mb-3 position-relative item-essay">
+            <button type="button" class="btn-close position-absolute top-0 end-0 m-2" onclick="hapusElemen(this)"></button>
+            <div class="row">
+                <div class="col-md-10">
+                    <label class="fw-bold small">Pertanyaan Essay Baru</label>
+                    <textarea name="essay_soal[]" class="form-control" rows="2" required></textarea>
+                </div>
+                <div class="col-md-2">
+                    <label class="fw-bold small">Bobot Nilai</label>
+                    <input type="number" name="essay_bobot[]" value="10" class="form-control" required>
+                </div>
+            </div>
+        </div>`;
+        document.getElementById('container-essay').insertAdjacentHTML('beforeend', html);
+    }
+</script>
+
+{% endblock %}

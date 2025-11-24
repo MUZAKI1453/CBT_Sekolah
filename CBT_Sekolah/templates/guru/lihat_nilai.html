@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="fw-bold text-primary mb-0">{{ ujian.judul }}</h2>
+            <p class="text-muted mb-0">
+                <i class="bi bi-book"></i> {{ ujian.mapel.nama }} &nbsp;|&nbsp; 
+                <i class="bi bi-clock"></i> {{ ujian.waktu_mulai.strftime('%d %b %Y') }}
+            </p>
+        </div>
+        <div>
+            <a href="/guru/dashboard" class="btn btn-secondary me-2">
+                <i class="bi bi-arrow-left"></i> Kembali
+            </a>
+            <form method="POST" class="d-inline">
+                <button type="submit" name="download_excel" class="btn btn-success">
+                    <i class="bi bi-file-earmark-excel"></i> Download Excel
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped align-middle mb-0">
+                    <thead class="bg-primary text-white">
+                        <tr>
+                            <th class="py-3 ps-4">No</th>
+                            <th class="py-3">Nama Siswa</th>
+                            <th class="py-3">Kelas</th>
+                            <th class="py-3 text-center">Nilai PG</th>
+                            <th class="py-3 text-center">Nilai Essay</th>
+                            <th class="py-3 text-center">Total Akhir</th>
+                            <th class="py-3">Waktu Kumpul</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if data_nilai %}
+                            {% for n in data_nilai %}
+                            <tr>
+                                <td class="ps-4">{{ loop.index }}</td>
+                                <td>
+                                    <strong>{{ n.siswa.nama }}</strong><br>
+                                    <small class="text-muted">{{ n.siswa.username }}</small>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info text-dark">
+                                        {{ n.siswa.kelas.nama_kelas if n.siswa.kelas else 'Tanpa Kelas' }}
+                                    </span>
+                                </td>
+                                <td class="text-center">{{ n.nilai_pg }}</td>
+                                <td class="text-center text-secondary">
+                                    {{ n.nilai_essay }}
+                                    </td>
+                                <td class="text-center fw-bold fs-5 text-primary">
+                                    {{ n.total_nilai }}
+                                </td>
+                                <td>
+                                    {{ n.waktu_submit.strftime('%H:%M') }}<br>
+                                    <small class="text-muted">{{ n.waktu_submit.strftime('%d/%m') }}</small>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-muted">
+                                    <i class="bi bi-people-fill display-4 d-block mb-3"></i>
+                                    Belum ada siswa yang mengerjakan ujian ini.
+                                </td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

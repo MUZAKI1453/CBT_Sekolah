@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container mt-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0">{{ ujian.judul }}</h2>
+            <p class="text-muted">{{ ujian.mapel.nama }} ({{ ujian.durasi_menit }} Menit)</p>
+        </div>
+        <a href="/guru/dashboard" class="btn btn-secondary">Kembali ke Dashboard</a>
+    </div>
+
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">I. Pilihan Ganda ({{ pg|length }} Soal)</h5>
+        </div>
+        <div class="card-body">
+            {% if pg %}
+                {% for s in pg %}
+                <div class="mb-4 border-bottom pb-3">
+                    <div class="d-flex">
+                        <span class="fw-bold me-2">{{ loop.index }}.</span>
+                        <div>{{ s.soal }}</div>
+                    </div>
+                    
+                    <div class="ms-4 mt-2 row">
+                        {% for opt in ['a', 'b', 'c', 'd', 'e'] %}
+                            {% if s[opt] %} <div class="col-md-6 mb-1">
+                                <div class="p-2 border rounded 
+                                    {% if s.kunci == opt|upper %} bg-success text-white fw-bold {% endif %}">
+                                    {{ opt|upper }}. {{ s[opt] }}
+                                    {% if s.kunci == opt|upper %} <i class="bi bi-check-circle-fill ms-2"></i>{% endif %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-muted fst-italic">Tidak ada soal pilihan ganda.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">II. Essay ({{ essay|length }} Soal)</h5>
+        </div>
+        <div class="card-body">
+            {% if essay %}
+                {% for e in essay %}
+                <div class="mb-3">
+                    <p class="mb-1">
+                        <strong>{{ loop.index }}.</strong> {{ e.soal }}
+                    </p>
+                    <span class="badge bg-warning text-dark">Bobot Poin: {{ e.bobot }}</span>
+                </div>
+                {% endfor %}
+            {% else %}
+                <p class="text-muted fst-italic">Tidak ada soal essay.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

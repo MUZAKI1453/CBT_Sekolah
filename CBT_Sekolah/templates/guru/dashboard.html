@@ -73,10 +73,43 @@
                             <span class="badge bg-secondary">Selesai</span>
                         {% endif %}
                     </td>
-                    <td>
-                        <a href="/guru/lihat_nilai/{{ u.id }}" class="btn btn-info btn-sm">
-                            Lihat Nilai
+                    <td class="text-nowrap">
+                        <a href="/guru/preview/{{ u.id }}" class="btn btn-warning btn-sm" title="Lihat Soal">
+                            <i class="bi bi-eye"></i>
                         </a>
+
+                        <a href="/guru/edit_ujian/{{ u.id }}" class="btn btn-primary btn-sm" title="Edit Ujian">
+                            <i class="bi bi-pencil-square"></i>
+                        </a>
+
+                        <a href="/guru/lihat_nilai/{{ u.id }}" class="btn btn-info btn-sm" title="Lihat Nilai">
+                            <i class="bi bi-bar-chart-line"></i>
+                        </a>
+
+                        <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#hapusUjian{{ u.id }}" title="Hapus">
+                            <i class="bi bi-trash"></i>
+                        </button>
+
+                        <div class="modal fade" id="hapusUjian{{ u.id }}" tabindex="-1">
+                            <div class="modal-dialog">
+                                <form action="/guru/hapus_ujian/{{ u.id }}" method="POST">
+                                    <div class="modal-content">
+                                        <div class="modal-header bg-danger text-white">
+                                            <h5 class="modal-title">Hapus Ujian?</h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                        </div>
+                                        <div class="modal-body text-wrap" style="white-space: normal;">
+                                            Apakah Anda yakin ingin menghapus ujian <strong>{{ u.judul }}</strong>?<br>
+                                            <small class="text-danger">Semua nilai siswa terkait ujian ini juga akan hilang permanen!</small>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                            <button type="submit" class="btn btn-danger">Ya, Hapus</button>
+                                        </div>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
                     </td>
                 </tr>
                 {% endfor %}

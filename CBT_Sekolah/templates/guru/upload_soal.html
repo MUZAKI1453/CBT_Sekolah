@@ -6,49 +6,50 @@
         <div class="col-lg-8">
             <div class="card shadow-lg border-0">
                 <div class="card-header bg-success text-white text-center py-4">
-                    <h3 class="mb-0">
-                        Upload Soal — {{ mapel.nama }}
-                    </h3>
+                    <h3 class="mb-0">Buat Ujian Baru — {{ mapel.nama }}</h3>
                 </div>
                 <div class="card-body p-5">
+
+                    <div class="alert alert-info">
+                        <strong><i class="bi bi-info-circle"></i> Petunjuk Format PDF:</strong><br>
+                        <ul class="mb-0 mt-2 small">
+                            <li><strong>Pilihan Ganda:</strong> Akhiri soal dengan <code>(Jawaban: A)</code></li>
+                            <li><strong>Opsi Jawaban:</strong> Format PG: <code>A. Isi jawaban...</code></li>
+                            <li><strong>Essay:</strong> Akhiri soal dengan <code>(Poin: 20)</code></li>
+                        </ul>
+                    </div>
 
                     <form method="POST" enctype="multipart/form-data">
                         <div class="row g-4">
                             <div class="col-md-8">
                                 <label class="form-label fw-bold">Judul Ujian</label>
-                                <input type="text" name="judul" class="form-control form-control-lg" placeholder="Contoh: Ulangan Harian 1" required>
+                                <input type="text" name="judul" class="form-control" placeholder="Contoh: UTS Semester Ganjil" required>
                             </div>
                             <div class="col-md-4">
-                                <label class="form-label fw-bold">Durasi (menit)</label>
-                                <input type="number" name="durasi" value="60" min="10" max="180" class="form-control form-control-lg" required>
+                                <label class="form-label fw-bold">Durasi (Menit)</label>
+                                <input type="number" name="durasi" id="durasi" value="90" min="10" max="180" class="form-control" required>
                             </div>
                         </div>
 
                         <div class="row g-4 mt-2">
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Waktu Mulai</label>
-                                <input type="datetime-local" name="waktu_mulai" class="form-control form-control-lg" required>
+                                <input type="datetime-local" name="waktu_mulai" id="waktu_mulai" class="form-control" required>
                             </div>
                             <div class="col-md-6">
                                 <label class="form-label fw-bold">Waktu Selesai</label>
-                                <input type="datetime-local" name="waktu_selesai" class="form-control form-control-lg" required>
+                                <input type="datetime-local" name="waktu_selesai" id="waktu_selesai" class="form-control" required>
                             </div>
                         </div>
 
                         <div class="mt-4">
-                            <label class="form-label fw-bold">File Excel Soal (.xlsx)</label>
-                            <input type="file" name="excel" accept=".xlsx" class="form-control form-control-lg" required>
-                            <div class="form-text">
-                                Download contoh format Excel:
-                                <a href="/static/contoh_soal.xlsx" download class="text-decoration-underline">
-                                    contoh_soal.xlsx
-                                </a>
-                            </div>
+                            <label class="form-label fw-bold">Upload File Soal (.pdf)</label>
+                            <input type="file" name="file_pdf" accept=".pdf" class="form-control form-control-lg" required>
                         </div>
 
                         <div class="text-center mt-5">
                             <button type="submit" class="btn btn-success btn-lg px-5 rounded-pill shadow">
-                                Buat Ujian Sekarang
+                                <i class="bi bi-cloud-upload"></i> Proses & Simpan Ujian
                             </button>
                         </div>
                     </form>
@@ -57,5 +58,25 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const now = new Date();
+    // Koreksi Timezone agar sesuai WIB/WITA/WIT user
+    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+    
+    // Format ke string: YYYY-MM-DDTHH:MM
+    const nowString = now.toISOString().slice(0, 16);
+    
+    // Set Waktu Mulai = SEKARANG
+    document.getElementById('waktu_mulai').value = nowString;
+
+    // Set Waktu Selesai = SEKARANG + 2 JAM (default)
+    const future = new Date(now);
+    future.setHours(future.getHours() + 2);
+    const futureString = future.toISOString().slice(0, 16);
+    document.getElementById('waktu_selesai').value = futureString;
+});
+</script>
 
 {% endblock %}
