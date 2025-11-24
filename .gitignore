@@ -1,0 +1,12 @@
+# Abaikan folder cache Python di manapun letaknya
+__pycache__/
+*.pyc
+
+# Abaikan database lokal (agar data siswa tidak ke-upload)
+instance/
+*.db
+*.sqlite3
+
+# Abaikan environment variables (keamanan)
+.env
+venv/
