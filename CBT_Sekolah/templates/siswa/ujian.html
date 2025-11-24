@@ -1,39 +1,337 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="card shadow mx-auto" style="max-width: 900px;">
-    <div class="card-header bg-primary text-white text-center">
-        <h3>{{ ujian.judul }}</h3>
-        <p class="mb-0">Durasi: {{ ujian.durasi_menit }} menit</p>
-    </div>
-    <div class="card-body">
-        <form method="POST" id="ujianForm">
-            <h4 class="text-primary">Soal Pilihan Ganda</h4>
-            {% for i, s in enumerate(pg) %}
-            <div class="border rounded p-4 mb-4 bg-light">
-                <p><strong>{{ loop.index }}.</strong> {{ s.soal | safe }}</p>
-                {% for opt in ['A','B','C','D'] %}
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="pg" value="{{ opt }}" id="pg{{ loop.parent.loop.index }}_{{ opt }}" required>
-                    <label class="form-check-label" for="pg{{ loop.parent.loop.index }}_{{ opt }}">
-                        {{ opt }}. {{ s[opt|lower] }}
-                    </label>
-                </div>
-                {% endfor %}
-            </div>
-            {% endfor %}
 
-            <h4 class="text-success mt-5">Soal Essay</h4>
-            {% for e in essay %}
-            <div class="mb-4">
-                <p><strong>{{ loop.index }}.</strong> {{ e.soal | safe }} (Bobot: {{ e.bobot }})</p>
-                <textarea name="essay_{{ loop.index }}" class="form-control" rows="5" required></textarea>
-            </div>
-            {% endfor %}
+<style>
+    /* Sembunyikan Radio Button Asli */
+    .input-hidden {
+        position: absolute;
+        left: -9999px;
+        opacity: 0;
+    }
 
-            <div class="text-center">
-                <button type="submit" class="btn btn-success btn-lg px-5">Kumpulkan Ujian</button>
-            </div>
-        </form>
+    /* Style Box Jawaban (Pengganti Radio) */
+    .pilihan-box {
+        display: block;
+        padding: 15px 20px;
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.2s ease-in-out;
+        background: white;
+        margin-bottom: 12px;
+        font-weight: 500;
+        color: #495057;
+    }
+
+    .pilihan-box:hover {
+        background-color: #f8f9fa;
+        border-color: #adb5bd;
+    }
+
+    /* Saat Radio Checked -> Ubah Warna Box */
+    input:checked + .pilihan-box {
+        background-color: #0d6efd;
+        color: white;
+        border-color: #0d6efd;
+        box-shadow: 0 4px 6px rgba(13, 110, 253, 0.2);
+    }
+
+    /* Grid Nomor Soal Sidebar */
+    .btn-nomor {
+        width: 100%; /* Full width di kolom grid */
+        aspect-ratio: 1 / 1; /* Kotak persegi */
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        border: 2px solid #dee2e6;
+        color: #6c757d;
+        background-color: white;
+        border-radius: 8px;
+        transition: all 0.2s;
+    }
+
+    .btn-nomor:hover { background-color: #f8f9fa; }
+    .btn-nomor.active { border-color: #0d6efd; color: #0d6efd; background-color: #e7f1ff; border-width: 2px; }
+    .btn-nomor.dijawab { background-color: #198754; color: white; border-color: #198754; }
+    .btn-nomor.ragu { background-color: #ffc107; color: black; border-color: #ffc107; }
+
+    /* Animasi Transisi Soal */
+    .soal-step { display: none; }
+    .soal-step.active { display: block; animation: slideIn 0.3s; }
+
+    @keyframes slideIn {
+        from { opacity: 0; transform: translateY(10px); } 
+        to { opacity: 1; transform: translateY(0); }
+    }
+</style>
+
+<div class="sticky-top bg-white shadow-sm py-2 mb-4" style="z-index: 1020; border-bottom: 3px solid #0d6efd;">
+    <div class="container d-flex justify-content-between align-items-center">
+        <div>
+            <h5 class="m-0 fw-bold text-primary">{{ ujian.judul }}</h5>
+            <small class="text-muted d-none d-md-inline">{{ ujian.mapel.nama }}</small>
+        </div>
+        <div class="text-end">
+            <span class="badge bg-danger fs-5 font-monospace px-3 py-2 rounded-pill" id="countdown">Memuat...</span>
+        </div>
     </div>
 </div>
+
+<div class="container mb-5">
+    <form method="POST" id="formUjian">
+        <div class="row">
+            
+            <div class="col-lg-9 mb-4">
+                <div class="card shadow-sm border-0 rounded-4" style="min-height: 500px;">
+                    <div class="card-body p-4 d-flex flex-column">
+                        
+                        {% for s in pg_tampil %}
+                        {% set visual_index = loop.index0 %} 
+                        {% set nomor_urut = loop.index %}
+
+                        <div class="soal-step flex-grow-1" id="step-{{ visual_index }}" data-type="pg">
+                            
+                            <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+                                <span class="badge bg-primary px-3 py-2 rounded-pill fs-6">Soal No. {{ nomor_urut }}</span>
+                                <span class="badge bg-light text-dark border px-3 py-2 rounded-pill">Pilihan Ganda</span>
+                            </div>
+                            
+                            <div class="fs-5 mb-4 text-dark lh-lg">
+                                {{ s.soal | safe }}
+                            </div>
+
+                            <div class="opsi-wrapper">
+                                {% for opt in s.opsi_acak %}
+                                <div class="mb-2">
+                                    <input type="radio" 
+                                           class="input-hidden input-jawaban-pg" 
+                                           name="pg_{{ s.original_index }}" 
+                                           id="opt_{{ s.original_index }}_{{ opt.kode }}" 
+                                           value="{{ opt.kode }}"
+                                           data-nomor="{{ visual_index }}"> 
+                                    
+                                    <label for="opt_{{ s.original_index }}_{{ opt.kode }}" class="pilihan-box d-flex align-items-center">
+                                        <span>{{ opt.teks }}</span>
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% endfor %}
+
+                        {% set start_essay = pg_tampil|length %}
+                        {% for e in essay_tampil %}
+                        {% set visual_index = start_essay + loop.index0 %}
+                        {% set nomor_urut = start_essay + loop.index %}
+
+                        <div class="soal-step flex-grow-1" id="step-{{ visual_index }}" data-type="essay">
+                            
+                            <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
+                                <span class="badge bg-success px-3 py-2 rounded-pill fs-6">Soal No. {{ nomor_urut }}</span>
+                                <span class="badge bg-warning text-dark border px-3 py-2 rounded-pill">Essay (Bobot: {{ e.bobot }})</span>
+                            </div>
+                            
+                            <div class="fs-5 mb-4 text-dark lh-lg">
+                                {{ e.soal | safe }}
+                            </div>
+
+                            <textarea name="essay_{{ e.original_index }}" 
+                                      class="form-control input-jawaban-essay bg-light" 
+                                      rows="10" 
+                                      placeholder="Ketik jawaban Anda di sini..."
+                                      data-nomor="{{ visual_index }}"
+                                      style="resize: none;"></textarea>
+                        </div>
+                        {% endfor %}
+
+                    </div>
+
+                    <div class="card-footer bg-white p-3 border-top d-flex justify-content-between align-items-center">
+                        <button type="button" class="btn btn-outline-secondary px-4 py-2 rounded-pill" id="btn-prev" onclick="gantiSoal(-1)">
+                            <i class="bi bi-chevron-left"></i> Sebelumnya
+                        </button>
+
+                        <div class="form-check form-check-inline d-flex align-items-center p-2 rounded bg-light border">
+                            <input class="form-check-input ms-1" type="checkbox" id="check-ragu" style="cursor: pointer; transform: scale(1.2);">
+                            <label class="form-check-label fw-bold text-warning ms-2" for="check-ragu" style="cursor: pointer;">Ragu-ragu</label>
+                        </div>
+
+                        <button type="button" class="btn btn-primary px-4 py-2 rounded-pill" id="btn-next" onclick="gantiSoal(1)">
+                            Selanjutnya <i class="bi bi-chevron-right"></i>
+                        </button>
+                        
+                        <button type="submit" class="btn btn-success px-4 py-2 rounded-pill fw-bold d-none" id="btn-submit" 
+                                onclick="return confirm('Apakah Anda yakin ingin menyelesaikan ujian? Pastikan semua soal telah terjawab.')">
+                            <i class="bi bi-send-fill me-2"></i> Kumpulkan
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-3">
+                <div class="card shadow-sm border-0 rounded-4 sticky-top" style="top: 100px;">
+                    <div class="card-header bg-light text-center fw-bold py-3">
+                        Navigasi Soal
+                    </div>
+                    <div class="card-body" style="max-height: 70vh; overflow-y: auto;">
+                        <div class="row g-2">
+                            {% set total_soal = pg_tampil|length + essay_tampil|length %}
+                            {% for i in range(total_soal) %}
+                            <div class="col-3 col-md-4 col-xl-3">
+                                <button type="button" class="btn btn-nomor" id="nav-btn-{{ i }}" onclick="bukaSoal({{ i }})">
+                                    {{ i + 1 }}
+                                </button>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        
+                        <div class="mt-4 pt-3 border-top small text-muted">
+                            <div class="d-flex align-items-center mb-2"><span class="badge bg-success me-2" style="width:20px; height:20px;">&nbsp;</span> Sudah Dijawab</div>
+                            <div class="d-flex align-items-center mb-2"><span class="badge bg-warning text-dark me-2" style="width:20px; height:20px;">&nbsp;</span> Ragu-ragu</div>
+                            <div class="d-flex align-items-center"><span class="badge border me-2" style="width:20px; height:20px;">&nbsp;</span> Belum Dijawab</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </form>
+</div>
+
+<script>
+    // Inisialisasi Variabel
+    let currentStep = 0;
+    const totalStep = parseInt("{{ pg_tampil|length + essay_tampil|length }}");
+    const steps = document.querySelectorAll('.soal-step');
+    const navBtns = document.querySelectorAll('.btn-nomor');
+    const checkRagu = document.getElementById('check-ragu');
+    const btnNext = document.getElementById('btn-next');
+    const btnPrev = document.getElementById('btn-prev');
+    const btnSubmit = document.getElementById('btn-submit');
+
+    // Load Halaman Pertama
+    updateTampilan();
+
+    // Fungsi Navigasi Next/Back
+    function gantiSoal(n) {
+        // Cegah out of bound
+        if (n === 1 && currentStep >= totalStep - 1) return;
+        if (n === -1 && currentStep <= 0) return;
+        
+        currentStep += n;
+        updateTampilan();
+    }
+
+    // Fungsi Lompat Soal
+    function bukaSoal(n) {
+        currentStep = n;
+        updateTampilan();
+    }
+
+    // Fungsi Utama Update UI
+    function updateTampilan() {
+        // 1. Ganti Soal yang Tampil
+        steps.forEach(el => el.classList.remove('active'));
+        steps[currentStep].classList.add('active');
+
+        // 2. Scroll ke atas (agar soal panjang tetap terbaca dari awal)
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+
+        // 3. Update Checkbox Ragu-ragu
+        const isRagu = navBtns[currentStep].classList.contains('ragu');
+        checkRagu.checked = isRagu;
+
+        // 4. Update Status Tombol Next/Prev/Submit
+        btnPrev.disabled = (currentStep === 0);
+        
+        if (currentStep === totalStep - 1) {
+            btnNext.classList.add('d-none');
+            btnSubmit.classList.remove('d-none');
+        } else {
+            btnNext.classList.remove('d-none');
+            btnSubmit.classList.add('d-none');
+        }
+
+        // 5. Highlight Nomor di Sidebar
+        navBtns.forEach(btn => btn.classList.remove('active'));
+        navBtns[currentStep].classList.add('active');
+    }
+
+    // --- LOGIKA STATUS DIJAWAB ---
+    
+    // 1. Pilihan Ganda (Change Event)
+    document.querySelectorAll('.input-jawaban-pg').forEach(input => {
+        input.addEventListener('change', function() {
+            const idx = this.dataset.nomor;
+            tandaiDijawab(idx);
+        });
+    });
+
+    // 2. Essay (Input Event)
+    document.querySelectorAll('.input-jawaban-essay').forEach(input => {
+        input.addEventListener('input', function() {
+            const idx = this.dataset.nomor;
+            if (this.value.trim() !== '') {
+                tandaiDijawab(idx);
+            } else {
+                // Jika dihapus sampai kosong, hilangkan warna hijau
+                navBtns[idx].classList.remove('dijawab');
+            }
+        });
+    });
+
+    function tandaiDijawab(idx) {
+        // Hapus status ragu, ganti jadi hijau (dijawab)
+        navBtns[idx].classList.remove('ragu');
+        navBtns[idx].classList.add('dijawab');
+    }
+
+    // --- LOGIKA RAGU-RAGU ---
+    checkRagu.addEventListener('change', function() {
+        if (this.checked) {
+            navBtns[currentStep].classList.add('ragu');
+            navBtns[currentStep].classList.remove('dijawab');
+        } else {
+            navBtns[currentStep].classList.remove('ragu');
+            // Cek ulang, apakah sebenarnya sudah ada jawaban?
+            const currentDiv = steps[currentStep];
+            let adaJawaban = false;
+
+            if (currentDiv.dataset.type === 'pg') {
+                if (currentDiv.querySelector('input:checked')) adaJawaban = true;
+            } else {
+                if (currentDiv.querySelector('textarea').value.trim() !== '') adaJawaban = true;
+            }
+
+            if (adaJawaban) navBtns[currentStep].classList.add('dijawab');
+        }
+    });
+
+    // --- TIMER MUNDUR ---
+    const waktuSelesai = new Date("{{ ujian.waktu_selesai.isoformat() }}").getTime();
+    
+    const timerInterval = setInterval(function() {
+        const now = new Date().getTime();
+        const distance = waktuSelesai - now;
+
+        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
+
+        document.getElementById("countdown").innerText = 
+            (hours < 10 ? "0"+hours : hours) + ":" + 
+            (minutes < 10 ? "0"+minutes : minutes) + ":" + 
+            (seconds < 10 ? "0"+seconds : seconds);
+
+        if (distance < 0) {
+            clearInterval(timerInterval);
+            document.getElementById("countdown").innerText = "WAKTU HABIS";
+            alert("Waktu ujian telah habis! Sistem akan mengumpulkan jawaban Anda secara otomatis.");
+            document.getElementById("formUjian").submit();
+        }
+    }, 1000);
+
+</script>
+
 {% endblock %}
