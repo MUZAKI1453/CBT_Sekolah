@@ -515,6 +515,29 @@ def lihat_nilai(ujian_id):
 
     return render_template('guru/lihat_nilai.html', ujian=ujian, data_nilai=data_nilai)
 
+# ==================== RESET PESERTA (RESET LOGIN) ====================
+@bp.route('/reset_peserta/<int:jawaban_id>', methods=['POST'])
+@login_required
+def reset_peserta(jawaban_id):
+    if current_user.role != 'guru': return redirect('/')
+    
+    # Cari data jawaban siswa tersebut
+    jawaban = JawabanSiswa.query.get_or_404(jawaban_id)
+    ujian = jawaban.ujian
+    
+    # Validasi: Pastikan guru ini pemilik ujian
+    if ujian.mapel.guru_id != current_user.id:
+        flash('Akses ditolak!', 'danger')
+        return redirect('/guru/dashboard')
+
+    # Hapus data jawaban (Reset)
+    nama_siswa = jawaban.siswa.nama # Simpan nama dulu buat flash message
+    db.session.delete(jawaban)
+    db.session.commit()
+    
+    flash(f'Status ujian siswa atas nama "{nama_siswa}" berhasil di-reset. Siswa bisa login dan mengerjakan ulang.', 'warning')
+    return redirect(url_for('guru.lihat_nilai', ujian_id=ujian.id))
+
 # ==================== GANTI PASSWORD (BARU) ====================
 @bp.route('/ganti_password', methods=['GET', 'POST'])
 @login_required

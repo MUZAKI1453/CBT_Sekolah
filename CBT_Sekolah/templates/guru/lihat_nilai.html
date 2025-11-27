@@ -35,6 +35,7 @@
                             <th class="py-3 text-center">Nilai Essay</th>
                             <th class="py-3 text-center">Total Akhir</th>
                             <th class="py-3">Waktu Kumpul</th>
+                            <th class="py-3 text-center">Aksi</th> </tr>
                         </tr>
                     </thead>
                     <tbody>
@@ -42,34 +43,78 @@
                             {% for n in data_nilai %}
                             <tr>
                                 <td class="ps-4">{{ loop.index }}</td>
+
                                 <td>
                                     <strong>{{ n.siswa.nama }}</strong><br>
                                     <small class="text-muted">{{ n.siswa.username }}</small>
                                 </td>
+
                                 <td>
                                     <span class="badge bg-info text-dark">
                                         {{ n.siswa.kelas.nama_kelas if n.siswa.kelas else 'Tanpa Kelas' }}
                                     </span>
                                 </td>
+
                                 <td class="text-center">{{ n.nilai_pg }}</td>
-                                <td class="text-center">
-                                    <span class="fw-bold">{{ n.nilai_essay }}</span>
-                                    <a href="/guru/koreksi/{{ n.id }}" class="btn btn-sm btn-outline-warning ms-2" title="Koreksi Essay">
-                                        <i class="bi bi-pencil-fill"></i>
-                                    </a>
+
+                                <td class="text-center text-secondary">
+                                    {{ n.nilai_essay }}
                                 </td>
+
                                 <td class="text-center fw-bold fs-5 text-primary">
                                     {{ n.total_nilai }}
                                 </td>
+
                                 <td>
                                     {{ n.waktu_submit.strftime('%H:%M') }}<br>
                                     <small class="text-muted">{{ n.waktu_submit.strftime('%d/%m') }}</small>
+                                </td>
+
+                                <td class="text-center">
+                                    <div class="btn-group" role="group">
+                                        
+                                        <a href="/guru/koreksi/{{ n.id }}" class="btn btn-warning btn-sm" title="Koreksi Jawaban Essay">
+                                            <i class="bi bi-pencil-square"></i>
+                                        </a>
+                                        
+                                        <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#reset{{ n.id }}" title="Reset / Hapus Jawaban">
+                                            <i class="bi bi-arrow-counterclockwise"></i>
+                                        </button>
+                                    </div>
+
+                                    <div class="modal fade text-start" id="reset{{ n.id }}" tabindex="-1">
+                                        <div class="modal-dialog">
+                                            <form action="/guru/reset_peserta/{{ n.id }}" method="POST">
+                                                <div class="modal-content">
+                                                    <div class="modal-header bg-danger text-white">
+                                                        <h5 class="modal-title">Reset Ujian Siswa?</h5>
+                                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                                    </div>
+                                                    <div class="modal-body">
+                                                        <p>Anda akan menghapus jawaban siswa:</p>
+                                                        <ul class="fw-bold mb-3">
+                                                            <li>Nama: {{ n.siswa.nama }}</li>
+                                                            <li>Kelas: {{ n.siswa.kelas.nama_kelas }}</li>
+                                                        </ul>
+                                                        <div class="alert alert-warning small border-warning">
+                                                            <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                                                            <strong>PERHATIAN:</strong> Data jawaban dan nilai siswa ini akan dihapus permanen. Siswa harus login dan mengerjakan ulang dari awal.
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                                        <button type="submit" class="btn btn-danger">Ya, Reset Sekarang</button>
+                                                    </div>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}
                         {% else %}
                             <tr>
-                                <td colspan="7" class="text-center py-5 text-muted">
+                                <td colspan="8" class="text-center py-5 text-muted">
                                     <i class="bi bi-people-fill display-4 d-block mb-3"></i>
                                     Belum ada siswa yang mengerjakan ujian ini.
                                 </td>
