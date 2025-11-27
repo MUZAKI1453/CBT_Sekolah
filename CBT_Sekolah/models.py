@@ -4,7 +4,6 @@ from datetime import datetime
 
 db = SQLAlchemy()
 
-
 # ===================== USER =====================
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -16,6 +15,7 @@ class User(UserMixin, db.Model):
 
     kelas = db.relationship('Kelas', backref='siswa', lazy=True)
     mapel_diajar = db.relationship('Mapel', backref='guru', lazy=True)
+    jawaban = db.relationship("JawabanSiswa", backref="siswa", passive_deletes=True)
 
 
 # ===================== KELAS =====================
@@ -43,16 +43,26 @@ class Ujian(db.Model):
     soal_pg = db.Column(db.Text)
     soal_essay = db.Column(db.Text)
 
-    mapel = db.relationship('Mapel', backref='ujian')
+    mapel = db.relationship('Mapel', backref='ujian', passive_deletes=True)
+
+    # ✔ RELASI YANG BENAR (1↔Many)
+    jawaban_siswa = db.relationship(
+        'JawabanSiswa',
+        backref='ujian',
+        passive_deletes=True
+    )
 
 
 # ===================== JAWABAN SISWA =====================
 class JawabanSiswa(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    siswa_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    siswa_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
 
-    # INI SUDAH BENAR — TETAP SEPERTI INI
-    ujian_id = db.Column(db.Integer, db.ForeignKey('ujian.id', ondelete='CASCADE'), nullable=False)
+    ujian_id = db.Column(
+        db.Integer,
+        db.ForeignKey('ujian.id', ondelete='CASCADE'),
+        nullable=False
+    )
 
     jawaban_pg = db.Column(db.Text)
     jawaban_essay = db.Column(db.Text)
@@ -60,7 +70,5 @@ class JawabanSiswa(db.Model):
     nilai_pg = db.Column(db.Float, default=0)
     nilai_essay = db.Column(db.Float, default=0)
     total_nilai = db.Column(db.Float, default=0)
-    waktu_submit = db.Column(db.DateTime, default=datetime.utcnow)
 
-    siswa = db.relationship('User', backref='jawaban')
-    ujian = db.relationship('Ujian', backref='jawaban_siswa')
+    waktu_submit = db.Column(db.DateTime, default=datetime.utcnow)

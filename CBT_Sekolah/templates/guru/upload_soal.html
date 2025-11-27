@@ -5,9 +5,18 @@
     <div class="row justify-content-center">
         <div class="col-lg-8">
             <div class="card shadow-lg border-0">
+
+                <!-- Tombol Kembali -->
+                <div class="p-3">
+                    <a href="{{ url_for('guru.dashboard') }}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left"></i> Kembali
+                    </a>
+                </div>
+
                 <div class="card-header bg-success text-white text-center py-4">
                     <h3 class="mb-0">Buat Ujian Baru — {{ mapel.nama }}</h3>
                 </div>
+
                 <div class="card-body p-5">
 
                     <div class="alert alert-info">
@@ -20,6 +29,7 @@
                     </div>
 
                     <form method="POST" enctype="multipart/form-data">
+
                         <div class="row g-4">
                             <div class="col-md-8">
                                 <label class="form-label fw-bold">Judul Ujian</label>
@@ -53,6 +63,7 @@
                             </button>
                         </div>
                     </form>
+
                 </div>
             </div>
         </div>
@@ -62,16 +73,17 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const now = new Date();
-    // Koreksi Timezone agar sesuai WIB/WITA/WIT user
+
+    // Koreksi timezone agar sesuai zona waktu user
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-    
+
     // Format ke string: YYYY-MM-DDTHH:MM
     const nowString = now.toISOString().slice(0, 16);
-    
-    // Set Waktu Mulai = SEKARANG
+
+    // Set default Waktu Mulai = SEKARANG
     document.getElementById('waktu_mulai').value = nowString;
 
-    // Set Waktu Selesai = SEKARANG + 2 JAM (default)
+    // Set Waktu Selesai = +2 jam
     const future = new Date(now);
     future.setHours(future.getHours() + 2);
     const futureString = future.toISOString().slice(0, 16);
