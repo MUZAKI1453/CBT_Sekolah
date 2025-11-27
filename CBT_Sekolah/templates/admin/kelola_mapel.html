@@ -1,124 +1,219 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container mt-4">
-    <h2>Kelola Mata Pelajaran</h2>
 
-    <!-- Form Tambah Mapel -->
-    <div class="card shadow mb-4">
-        <div class="card-body">
-            <form method="POST" class="row g-3 align-items-end">
-                <div class="col-md-5">
-                    <label class="form-label">Nama Mata Pelajaran</label>
-                    <input type="text" name="nama_mapel" class="form-control" placeholder="Contoh: Matematika" required>
-                </div>
-                <div class="col-md-5">
-                    <label class="form-label">Guru Pengajar</label>
-                    <select name="guru_id" class="form-select" required>
-                        <option value="">-- Pilih Guru --</option>
-                        {% for g in guru_list %}
-                        <option value="{{ g.id }}">{{ g.nama }} ({{ g.username }})</option>
+<style>
+    .table-modern {
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid #d8e2ef !important;
+    }
+    .table-modern thead th {
+        background: #0d6efd !important;
+        color: #fff !important;
+        font-weight: 600;
+        border: none !important;
+        padding: 14px 16px !important;
+    }
+    .table-modern tbody tr {
+        transition: 0.15s;
+    }
+    .table-modern tbody tr:hover {
+        background: #eef5ff !important;
+    }
+    .table-modern td, .table-modern th {
+        padding: 14px 16px !important;
+        vertical-align: middle !important;
+    }
+    .badge-modern {
+        background: #0d6efd !important;
+        font-size: 0.85rem;
+        padding: 6px 12px;
+        border-radius: 6px;
+    }
+    .card-custom {
+        border: none;
+        border-radius: 12px;
+    }
+
+    /* RESPONSIF DI HP */
+    @media (max-width: 576px) {
+        .table-modern thead {
+            font-size: 0.875rem;
+        }
+        .table-modern td, .table-modern th {
+            padding: 10px 8px !important;
+            font-size: 0.9rem;
+        }
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+        }
+    }
+</style>
+
+<div class="container mt-4">
+
+    <!-- TITLE + TOMBOL TAMBAH MAPEL -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold mb-0">Kelola Mata Pelajaran</h2>
+
+        <button class="btn btn-primary d-flex align-items-center gap-2 shadow-sm"
+                data-bs-toggle="modal" data-bs-target="#modalTambahMapel">
+            <i class="bi bi-plus-lg"></i>
+            <span class="d-none d-sm-inline">Tambah Mapel</span>
+            <span class="d-inline d-sm-none">Tambah</span>
+        </button>
+    </div>
+
+    <!-- CARD TABEL MAPEL + RESPONSIF -->
+    <div class="card shadow-sm card-custom">
+        <div class="card-body pt-4">
+
+            <h5 class="fw-semibold mb-3">Daftar Mata Pelajaran</h5>
+
+            <div class="table-responsive">
+                <table class="table table-modern table-striped align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th class="text-center" style="width: 70px;">No</th>
+                            <th>Mata Pelajaran</th>
+                            <th class="text-center" style="min-width: 150px;">Guru Pengajar</th>
+                            <th class="text-center" style="min-width: 140px;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for m in mapel %}
+                        <tr>
+                            <td class="text-center fw-medium">{{ loop.index }}</td>
+                            <td class="fw-semibold">{{ m.nama }}</td>
+                            <td class="text-center">
+                                {% if m.guru %}
+                                <span class="badge bg-success px-3 py-2">{{ m.guru.nama }}</span>
+                                {% else %}
+                                <span class="badge bg-secondary px-3 py-2">Belum ada guru</span>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center gap-1 flex-wrap">
+                                    <button type="button" class="btn btn-warning btn-sm"
+                                            data-bs-toggle="modal" data-bs-target="#edit{{ m.id }}">
+                                        <i class="bi bi-pencil"></i> Edit
+                                    </button>
+                                    <button type="button" class="btn btn-danger btn-sm"
+                                            data-bs-toggle="modal" data-bs-target="#hapus{{ m.id }}">
+                                        <i class="bi bi-trash"></i> Hapus
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
                         {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" name="tambah" class="btn btn-info w-100">Tambah Mapel</button>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Jika tidak ada mapel -->
+            {% if mapel|length == 0 %}
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-book fs-1 d-block mb-3"></i>
+                Belum ada mata pelajaran
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+    <!-- MODAL TAMBAH MAPEL (PERSIS SAMA DENGAN TAMBAH SISWA/GURU) -->
+    <div class="modal fade" id="modalTambahMapel">
+        <div class="modal-dialog">
+            <form method="POST">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5>Tambah Mata Pelajaran</h5>
+                    </div>
+                    <div class="modal-body">
+                        <label class="fw-semibold">Nama Mata Pelajaran</label>
+                        <input type="text" name="nama_mapel" class="form-control mb-3"
+                               placeholder="Contoh: Matematika" required>
+
+                        <label class="fw-semibold">Guru Pengajar</label>
+                        <select name="guru_id" class="form-select mb-3" required>
+                            <option value="">-- Pilih Guru --</option>
+                            {% for g in guru_list %}
+                            <option value="{{ g.id }}">{{ g.nama }} ({{ g.username }})</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" name="tambah" class="btn btn-primary">Tambah</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    </div>
                 </div>
             </form>
         </div>
     </div>
 
-    <!-- Tabel Daftar Mapel -->
-    <div class="card shadow">
-        <div class="card-body">
-            <table class="table table-hover align-middle">
-                <thead class="table-info">
-                    <tr>
-                        <th>No</th>
-                        <th>Mata Pelajaran</th>
-                        <th>Guru Pengajar</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for m in mapel %}
-                    <tr>
-                        <td>{{ loop.index }}</td>
-                        <td><strong>{{ m.nama }}</strong></td>
-                        <td>
-                            {% if m.guru %}
-                                <span class="badge bg-success">{{ m.guru.nama }}</span>
-                            {% else %}
-                                <span class="badge bg-secondary">Belum ada guru</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#edit{{ m.id }}">Edit</button>
-                            <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#hapus{{ m.id }}">Hapus</button>
-                        </td>
-                    </tr>
+    <!-- MODAL EDIT & HAPUS MAPEL (SERAGAM DENGAN LAINNYA) -->
+    {% for m in mapel %}
 
-                    <!-- Modal Edit Mapel -->
-                    <div class="modal fade" id="edit{{ m.id }}">
-                        <div class="modal-dialog">
-                            <form method="POST">
-                                <div class="modal-content">
-                                    <div class="modal-header bg-warning text-dark">
-                                        <h5>Edit Mapel: {{ m.nama }}</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <input type="hidden" name="mapel_id" value="{{ m.id }}">
-                                        <div class="mb-3">
-                                            <label>Nama Mata Pelajaran</label>
-                                            <input type="text" name="nama_edit" value="{{ m.nama }}" class="form-control" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label>Guru Pengajar</label>
-                                            <select name="guru_edit" class="form-select" required>
-                                                <option value="">-- Pilih Guru --</option>
-                                                {% for g in guru_list %}
-                                                <option value="{{ g.id }}" {% if m.guru and m.guru.id == g.id %}selected{% endif %}>
-                                                    {{ g.nama }} ({{ g.username }})
-                                                </option>
-                                                {% endfor %}
-                                            </select>
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="submit" name="edit" class="btn btn-warning">Update</button>
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                    </div>
-                                </div>
-                            </form>
+    <!-- Edit -->
+    <div class="modal fade" id="edit{{ m.id }}">
+        <div class="modal-dialog">
+            <form method="POST">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning text-dark">
+                        <h5>Edit Mapel: {{ m.nama }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="mapel_id" value="{{ m.id }}">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Nama Mata Pelajaran</label>
+                            <input type="text" name="nama_edit" value="{{ m.nama }}" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Guru Pengajar</label>
+                            <select name="guru_edit" class="form-select" required>
+                                <option value="">-- Pilih Guru --</option>
+                                {% for g in guru_list %}
+                                <option value="{{ g.id }}" {% if m.guru and m.guru.id == g.id %}selected{% endif %}>
+                                    {{ g.nama }} ({{ g.username }})
+                                </option>
+                                {% endfor %}
+                            </select>
                         </div>
                     </div>
-
-                    <!-- Modal Hapus Mapel -->
-                    <div class="modal fade" id="hapus{{ m.id }}">
-                        <div class="modal-dialog">
-                            <form method="POST">
-                                <div class="modal-content">
-                                    <div class="modal-header bg-danger text-white">
-                                        <h5>Hapus Mapel?</h5>
-                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        Yakin ingin menghapus mata pelajaran <strong>{{ m.nama }}</strong>?<br>
-                                        Semua ujian terkait akan ikut terhapus!
-                                    </div>
-                                    <div class="modal-footer">
-                                        <input type="hidden" name="mapel_id_hapus" value="{{ m.id }}">
-                                        <button type="submit" name="hapus" class="btn btn-danger">Ya, Hapus Permanen</button>
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
+                    <div class="modal-footer">
+                        <button type="submit" name="edit" class="btn btn-warning">Update</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
                     </div>
-                    {% endfor %}
-                </tbody>
-            </table>
+                </div>
+            </form>
         </div>
     </div>
+
+    <!-- Hapus -->
+    <div class="modal fade" id="hapus{{ m.id }}">
+        <div class="modal-dialog">
+            <form method="POST">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5>Hapus Mapel?</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        Yakin ingin menghapus mata pelajaran <strong>{{ m.nama }}</strong>?<br>
+                        Semua ujian terkait akan ikut terhapus!
+                    </div>
+                    <div class="modal-footer">
+                        <input type="hidden" name="mapel_id_hapus" value="{{ m.id }}">
+                        <button type="submit" name="hapus" class="btn btn-danger">Ya, Hapus Permanen</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+
 </div>
 {% endblock %}

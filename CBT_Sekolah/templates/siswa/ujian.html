@@ -61,7 +61,7 @@
     .soal-step.active { display: block; animation: slideIn 0.3s; }
 
     @keyframes slideIn {
-        from { opacity: 0; transform: translateY(10px); } 
+        from { opacity: 0; transform: translateY(10px); }
         to { opacity: 1; transform: translateY(0); }
     }
 </style>
@@ -81,22 +81,26 @@
 <div class="container mb-5">
     <form method="POST" id="formUjian">
         <div class="row">
-            
+
             <div class="col-lg-9 mb-4">
                 <div class="card shadow-sm border-0 rounded-4" style="min-height: 500px;">
                     <div class="card-body p-4 d-flex flex-column">
-                        
+
+                        <div id="timer" style="font-size: 24px; color: red; text-align: center; margin-bottom: 25px; font-weight: bold;">
+                            Sisa waktu: <span id="waktu">00:00:00</span>
+                        </div>
+
                         {% for s in pg_tampil %}
-                        {% set visual_index = loop.index0 %} 
+                        {% set visual_index = loop.index0 %}
                         {% set nomor_urut = loop.index %}
 
                         <div class="soal-step flex-grow-1" id="step-{{ visual_index }}" data-type="pg">
-                            
+
                             <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
                                 <span class="badge bg-primary px-3 py-2 rounded-pill fs-6">Soal No. {{ nomor_urut }}</span>
                                 <span class="badge bg-light text-dark border px-3 py-2 rounded-pill">Pilihan Ganda</span>
                             </div>
-                            
+
                             <div class="fs-5 mb-4 text-dark lh-lg">
                                 {{ s.soal | safe }}
                             </div>
@@ -104,13 +108,13 @@
                             <div class="opsi-wrapper">
                                 {% for opt in s.opsi_acak %}
                                 <div class="mb-2">
-                                    <input type="radio" 
-                                           class="input-hidden input-jawaban-pg" 
-                                           name="pg_{{ s.original_index }}" 
-                                           id="opt_{{ s.original_index }}_{{ opt.kode }}" 
+                                    <input type="radio"
+                                           class="input-hidden input-jawaban-pg"
+                                           name="pg_{{ s.original_index }}"
+                                           id="opt_{{ s.original_index }}_{{ opt.kode }}"
                                            value="{{ opt.kode }}"
-                                           data-nomor="{{ visual_index }}"> 
-                                    
+                                           data-nomor="{{ visual_index }}">
+
                                     <label for="opt_{{ s.original_index }}_{{ opt.kode }}" class="pilihan-box d-flex align-items-center">
                                         <span>{{ opt.teks }}</span>
                                     </label>
@@ -126,19 +130,19 @@
                         {% set nomor_urut = start_essay + loop.index %}
 
                         <div class="soal-step flex-grow-1" id="step-{{ visual_index }}" data-type="essay">
-                            
+
                             <div class="d-flex justify-content-between align-items-center mb-4 pb-2 border-bottom">
                                 <span class="badge bg-success px-3 py-2 rounded-pill fs-6">Soal No. {{ nomor_urut }}</span>
                                 <span class="badge bg-warning text-dark border px-3 py-2 rounded-pill">Essay (Bobot: {{ e.bobot }})</span>
                             </div>
-                            
+
                             <div class="fs-5 mb-4 text-dark lh-lg">
                                 {{ e.soal | safe }}
                             </div>
 
-                            <textarea name="essay_{{ e.original_index }}" 
-                                      class="form-control input-jawaban-essay bg-light" 
-                                      rows="10" 
+                            <textarea name="essay_{{ e.original_index }}"
+                                      class="form-control input-jawaban-essay bg-light"
+                                      rows="10"
                                       placeholder="Ketik jawaban Anda di sini..."
                                       data-nomor="{{ visual_index }}"
                                       style="resize: none;"></textarea>
@@ -160,8 +164,8 @@
                         <button type="button" class="btn btn-primary px-4 py-2 rounded-pill" id="btn-next" onclick="gantiSoal(1)">
                             Selanjutnya <i class="bi bi-chevron-right"></i>
                         </button>
-                        
-                        <button type="submit" class="btn btn-success px-4 py-2 rounded-pill fw-bold d-none" id="btn-submit" 
+
+                        <button type="submit" class="btn btn-success px-4 py-2 rounded-pill fw-bold d-none" id="btn-submit"
                                 onclick="return confirm('Apakah Anda yakin ingin menyelesaikan ujian? Pastikan semua soal telah terjawab.')">
                             <i class="bi bi-send-fill me-2"></i> Kumpulkan
                         </button>
@@ -185,7 +189,7 @@
                             </div>
                             {% endfor %}
                         </div>
-                        
+
                         <div class="mt-4 pt-3 border-top small text-muted">
                             <div class="d-flex align-items-center mb-2"><span class="badge bg-success me-2" style="width:20px; height:20px;">&nbsp;</span> Sudah Dijawab</div>
                             <div class="d-flex align-items-center mb-2"><span class="badge bg-warning text-dark me-2" style="width:20px; height:20px;">&nbsp;</span> Ragu-ragu</div>
@@ -218,7 +222,7 @@
         // Cegah out of bound
         if (n === 1 && currentStep >= totalStep - 1) return;
         if (n === -1 && currentStep <= 0) return;
-        
+
         currentStep += n;
         updateTampilan();
     }
@@ -244,7 +248,7 @@
 
         // 4. Update Status Tombol Next/Prev/Submit
         btnPrev.disabled = (currentStep === 0);
-        
+
         if (currentStep === totalStep - 1) {
             btnNext.classList.add('d-none');
             btnSubmit.classList.remove('d-none');
@@ -259,7 +263,7 @@
     }
 
     // --- LOGIKA STATUS DIJAWAB ---
-    
+
     // 1. Pilihan Ganda (Change Event)
     document.querySelectorAll('.input-jawaban-pg').forEach(input => {
         input.addEventListener('change', function() {
@@ -310,7 +314,7 @@
 
     // --- TIMER MUNDUR ---
     const waktuSelesai = new Date("{{ ujian.waktu_selesai.isoformat() }}").getTime();
-    
+
     const timerInterval = setInterval(function() {
         const now = new Date().getTime();
         const distance = waktuSelesai - now;
@@ -319,9 +323,9 @@
         const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
         const seconds = Math.floor((distance % (1000 * 60)) / 1000);
 
-        document.getElementById("countdown").innerText = 
-            (hours < 10 ? "0"+hours : hours) + ":" + 
-            (minutes < 10 ? "0"+minutes : minutes) + ":" + 
+        document.getElementById("countdown").innerText =
+            (hours < 10 ? "0"+hours : hours) + ":" +
+            (minutes < 10 ? "0"+minutes : minutes) + ":" +
             (seconds < 10 ? "0"+seconds : seconds);
 
         if (distance < 0) {
@@ -332,6 +336,129 @@
         }
     }, 1000);
 
+</script>
+
+
+<script>
+    // Variabel global
+    const form = document.getElementById('formUjian'); // ID form Anda
+    const sisaWaktuDetik = {{ sisa_waktu_detik | safe }}; // Dari Flask (gunakan |safe untuk angka)
+    let examStarted = false;
+    let switchCount = 0;
+    const maxSwitch = 3; // Batas switch sebelum auto-submit (sesuaikan)
+
+    // Mulai ujian: Masuk fullscreen dan set flag
+    window.addEventListener('load', () => {
+        examStarted = true;
+
+        // Masuk fullscreen otomatis (Saran 1)
+        if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen();
+        } else if (document.documentElement.mozRequestFullScreen) { // Firefox
+            document.documentElement.mozRequestFullScreen();
+        } else if (document.documentElement.webkitRequestFullscreen) { // Chrome/Safari
+            document.documentElement.webkitRequestFullscreen();
+        } else if (document.documentElement.msRequestFullscreen) { // IE/Edge
+            document.documentElement.msRequestFullscreen();
+        }
+
+        // Mulai timer
+        startTimer(sisaWaktuDetik);
+    });
+
+    // Deteksi keluar fullscreen (Saran 1)
+    document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement && examStarted) {
+            alert('Jangan keluar fullscreen! Ujian akan dikumpul otomatis.');
+            form.submit(); // Auto-submit
+        }
+    });
+
+    // Deteksi tab switch atau blur (Saran 2)
+    document.addEventListener('visibilitychange', () => {
+        if (document.hidden && examStarted) {
+            switchCount++;
+            if (switchCount >= maxSwitch) {
+                alert('Terlalu banyak switch tab! Ujian dikumpul otomatis.');
+                form.submit();
+            } else {
+                alert(`Peringatan: Jangan switch tab! (${switchCount}/${maxSwitch})`);
+            }
+        }
+    });
+
+    window.addEventListener('blur', () => {
+        if (examStarted) {
+            alert('Jangan tinggalkan halaman ujian!');
+        }
+    });
+
+    // Konfirmasi sebelum keluar halaman (Tambahan untuk lock)
+    window.addEventListener('beforeunload', (e) => {
+        if (examStarted) {
+            e.preventDefault();
+            e.returnValue = 'Ujian belum selesai! Yakin keluar? Jawaban mungkin hilang.';
+        }
+    });
+
+    // Timer countdown dan auto-submit saat habis (Saran 1)
+    function startTimer(duration) {
+        let timer = duration, hours, minutes, seconds;
+        const waktuElem = document.getElementById('waktu');
+        const interval = setInterval(() => {
+            hours = parseInt(timer / 3600, 10);
+            minutes = parseInt((timer % 3600) / 60, 10);
+            seconds = parseInt(timer % 60, 10);
+
+            hours = hours < 10 ? "0" + hours : hours;
+            minutes = minutes < 10 ? "0" + minutes : minutes;
+            seconds = seconds < 10 ? "0" + seconds : seconds;
+
+            waktuElem.textContent = `${hours}:${minutes}:${seconds}`;
+
+            if (--timer < 0) {
+                clearInterval(interval);
+                alert('Waktu ujian habis! Jawaban dikumpul otomatis.');
+                form.submit(); // Auto-submit
+            }
+        }, 1000);
+    }
+
+    // Validasi submit manual: Pastikan semua soal diisi (Opsional, tapi direkomendasikan)
+    form.addEventListener('submit', (e) => {
+        // Cek PG: Semua radio dipilih
+        let pgFilled = true;
+        for (let i = 0; i < {{ pg_tampil|length }}; i++) {
+            if (!document.querySelector(`input[name="pg_${i}"]:checked`)) {
+                pgFilled = false;
+                break;
+            }
+        }
+
+        // Cek Essay: Semua textarea tidak kosong
+        const essayInputs = document.querySelectorAll('textarea[name^="essay_"]');
+        let essayFilled = true;
+        essayInputs.forEach(input => {
+            if (input.value.trim() === '') {
+                essayFilled = false;
+            }
+        });
+
+        if (!pgFilled || !essayFilled) {
+            e.preventDefault();
+            alert('Isi semua soal sebelum submit!');
+            return;
+        }
+
+        // Reset flag setelah submit sukses
+        examStarted = false;
+    });
+
+    // Disable right-click, copy, cut, paste (Saran 2)
+    document.addEventListener('contextmenu', (e) => e.preventDefault());
+    document.addEventListener('copy', (e) => e.preventDefault());
+    document.addEventListener('cut', (e) => e.preventDefault());
+    document.addEventListener('paste', (e) => e.preventDefault());
 </script>
 
 {% endblock %}

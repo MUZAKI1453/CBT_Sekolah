@@ -1,167 +1,301 @@
 {% extends "base.html" %}
 {% block content %}
+
+<style>
+    .table-modern {
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid #d8e2ef !important;
+    }
+    .table-modern thead th {
+        background: #0d6efd !important;
+        color: #fff !important;
+        font-weight: 600;
+        border: none !important;
+        padding: 14px 16px !important;
+    }
+    .table-modern tbody tr {
+        transition: 0.15s;
+    }
+    .table-modern tbody tr:hover {
+        background: #eef5ff !important;
+    }
+    .table-modern td, .table-modern th {
+        padding: 14px 16px !important;
+        vertical-align: middle !important;
+    }
+    .badge-modern {
+        background: #0d6efd !important;
+        font-size: 0.85rem;
+        padding: 6px 12px;
+        border-radius: 6px;
+    }
+    .card-custom {
+        border: none;
+        border-radius: 12px;
+    }
+
+    /* RESPONSIF DI HP */
+    @media (max-width: 576px) {
+        .table-modern thead {
+            font-size: 0.875rem;
+        }
+        .table-modern td, .table-modern th {
+            padding: 10px 8px !important;
+            font-size: 0.9rem;
+        }
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+        }
+    }
+</style>
+
 <div class="container mt-4">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>Kelola Siswa</h2>
-        <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#modalImportSiswa">
-            <i class="bi bi-file-earmark-excel"></i> Import Excel
-        </button>
-    </div>
 
-    <div class="card shadow mb-4">
-        <div class="card-header bg-light">
-            <strong>Tambah Siswa Manual</strong>
-        </div>
-        <div class="card-body">
-            <form method="POST" class="row g-3 align-items-end">
-                <div class="col-md-3">
-                    <label class="form-label">NIS</label>
-                    <input type="text" name="nis" class="form-control" placeholder="Contoh: 21225001" required>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Nama Lengkap</label>
-                    <input type="text" name="nama" class="form-control" placeholder="Nama siswa" required>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label">Kelas</label>
-                    <select name="kelas_id" class="form-select" required>
-                        <option value="">-- Pilih Kelas --</option>
-                        {% for k in kelas %}
-                        <option value="{{ k.id }}">{{ k.nama_kelas }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-3">
-                    <button type="submit" name="tambah" class="btn btn-primary w-100">Tambah Siswa</button>
-                </div>
-            </form>
-            <small class="text-muted d-block mt-2">Password default = NIS (bisa diganti saat edit)</small>
+    <!-- TITLE + TOMBOL -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold mb-0">Kelola Siswa</h2>
+        <div class="d-flex gap-2">
+            <button class="btn btn-outline-primary d-flex align-items-center gap-2 shadow-sm"
+                    data-bs-toggle="modal" data-bs-target="#modalCariFilter">
+                <i class="bi bi-funnel"></i>
+                <span class="d-none d-sm-inline">Cari & Filter</span>
+                <span class="d-inline d-sm-none">Filter</span>
+            </button>
+            <button class="btn btn-success d-flex align-items-center gap-2 shadow-sm"
+                    data-bs-toggle="modal" data-bs-target="#modalImportSiswa">
+                <i class="bi bi-file-earmark-excel"></i>
+                <span class="d-none d-sm-inline">Import Excel</span>
+            </button>
+            <button class="btn btn-primary d-flex align-items-center gap-2 shadow-sm"
+                    data-bs-toggle="modal" data-bs-target="#modalTambahSiswa">
+                <i class="bi bi-plus-lg"></i>
+                <span class="d-none d-sm-inline">Tambah Siswa</span>
+            </button>
         </div>
     </div>
 
-    <div class="card shadow">
-        <div class="card-body">
-            <table class="table table-hover align-middle">
-                <thead class="table-dark">
-                    <tr>
-                        <th>NIS</th>
-                        <th>Nama</th>
-                        <th>Kelas</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for s in siswa %}
-                    <tr>
-                        <td>{{ s.username }}</td>
-                        <td>{{ s.nama }}</td>
-                        <td>
-                            {% if s.kelas %}
-                                <span class="badge bg-primary">{{ s.kelas.nama_kelas }}</span>
-                            {% else %}
+    <!-- TABEL SISWA + NOMOR URUT + RESPONSIF -->
+    <div class="card shadow-sm card-custom">
+        <div class="card-body pt-4">
+            <h5 class="fw-semibold mb-3">Daftar Siswa</h5>
+
+            <div class="table-responsive">
+                <table class="table table-modern table-striped align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th class="text-center" style="width: 70px;">No</th>
+                            <th style="min-width: 120px;">NIS</th>
+                            <th>Nama</th>
+                            <th class="text-center" style="min-width: 130px;">Kelas</th>
+                            <th class="text-center" style="min-width: 140px;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for s in siswa %}
+                        <tr>
+                            <td class="text-center fw-medium">{{ loop.index }}</td>
+                            <td class="fw-semibold">{{ s.username }}</td>
+                            <td>{{ s.nama }}</td>
+                            <td class="text-center">
+                                {% if s.kelas %}
+                                <span class="badge badge-modern px-3 py-2">{{ s.kelas.nama_kelas }}</span>
+                                {% else %}
                                 <span class="text-danger">Belum ada kelas</span>
-                            {% endif %}
-                        </td>
-                        <td>
-                            <button class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#edit{{ s.id }}">Edit</button>
-                            <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#hapus{{ s.id }}">Hapus</button>
-                        </td>
-                    </tr>
-
-                    <div class="modal fade" id="edit{{ s.id }}">
-                        <div class="modal-dialog">
-                            <form method="POST">
-                                <div class="modal-content">
-                                    <div class="modal-header bg-warning text-dark">
-                                        <h5>Edit Siswa: {{ s.nama }}</h5>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <input type="hidden" name="user_id" value="{{ s.id }}">
-                                        <div class="mb-3">
-                                            <label>Nama Lengkap</label>
-                                            <input type="text" name="nama_edit" value="{{ s.nama }}" class="form-control" required>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label>Kelas</label>
-                                            <select name="kelas_edit" class="form-select" required>
-                                                <option value="">-- Pilih Kelas --</option>
-                                                {% for k in kelas %}
-                                                <option value="{{ k.id }}" {% if s.kelas and s.kelas.id == k.id %}selected{% endif %}>
-                                                    {{ k.nama_kelas }}
-                                                </option>
-                                                {% endfor %}
-                                            </select>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label>Password Baru (kosongkan jika tidak diganti)</label>
-                                            <input type="password" name="password_edit" class="form-control" placeholder="Minimal 6 karakter">
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="submit" name="edit" class="btn btn-warning">Update</button>
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                    </div>
+                                {% endif %}
+                            </td>
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center gap-1 flex-wrap">
+                                    <button class="btn btn-warning btn-sm"
+                                            data-bs-toggle="modal" data-bs-target="#edit{{ s.id }}">
+                                        <i class="bi bi-pencil"></i> Edit
+                                    </button>
+                                    <button class="btn btn-danger btn-sm"
+                                            data-bs-toggle="modal" data-bs-target="#hapus{{ s.id }}">
+                                        <i class="bi bi-trash"></i> Hapus
+                                    </button>
                                 </div>
-                            </form>
-                        </div>
-                    </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
 
-                    <div class="modal fade" id="hapus{{ s.id }}">
-                        <div class="modal-dialog">
-                            <form method="POST">
-                                <div class="modal-content">
-                                    <div class="modal-header bg-danger text-white">
-                                        <h5>Hapus Siswa?</h5>
-                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        Yakin ingin menghapus siswa <strong>{{ s.nama }}</strong> (NIS: {{ s.username }})?<br>
-                                        Data tidak bisa dikembalikan!
-                                    </div>
-                                    <div class="modal-footer">
-                                        <input type="hidden" name="user_id_hapus" value="{{ s.id }}">
-                                        <button type="submit" name="hapus" class="btn btn-danger">Ya, Hapus Permanen</button>
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </tbody>
-            </table>
+            {% if siswa|length == 0 %}
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-people fs-1 d-block mb-3"></i>
+                Belum ada data siswa
+            </div>
+            {% endif %}
         </div>
     </div>
-</div>
 
-<div class="modal fade" id="modalImportSiswa">
-    <div class="modal-dialog">
-        <form method="POST" enctype="multipart/form-data">
-            <div class="modal-content">
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title">Import Data Siswa</h5>
+    <!-- MODAL CARI & FILTER -->
+    <div class="modal fade" id="modalCariFilter">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0 shadow-lg">
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title"><i class="bi bi-funnel me-2"></i> Cari & Filter Siswa</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
-                    <div class="alert alert-info small">
-                        <strong>Format Excel:</strong>
-                        <ul class="mb-0 ps-3">
-                            <li>Kolom A: <strong>NIS</strong> (Wajib unik)</li>
-                            <li>Kolom B: <strong>Nama</strong></li>
-                            <li>Kolom C: <strong>Kelas</strong> (Harus sama persis dengan menu Kelas)</li>
-                        </ul>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Upload File (.xlsx)</label>
-                        <input type="file" name="file_excel" class="form-control" accept=".xlsx" required>
-                    </div>
+                    <form id="filterForm" method="GET" action="{{ url_for('admin.kelola_siswa') }}">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Cari Nama / NIS</label>
+                            <input type="text" name="q" class="form-control form-control-lg"
+                                   placeholder="Ketik nama atau NIS..." value="{{ request.args.get('q', '') }}">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Filter Kelas</label>
+                            <select name="kelas" class="form-select form-select-lg">
+                                <option value="">-- Semua Kelas --</option>
+                                {% for k in kelas %}
+                                <option value="{{ k.id }}" {% if request.args.get('kelas') == k.id|string %}selected{% endif %}>
+                                    {{ k.nama_kelas }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                    </form>
                 </div>
                 <div class="modal-footer">
-                    <button type="submit" name="import_siswa" class="btn btn-success">Upload & Proses</button>
+                    <a href="{{ url_for('admin.kelola_siswa') }}" class="btn btn-secondary">Reset</a>
+                    <button type="submit" form="filterForm" class="btn btn-primary px-4">Terapkan</button>
                 </div>
             </div>
-        </form>
+        </div>
     </div>
+
+    <!-- MODAL TAMBAH SISWA -->
+    <div class="modal fade" id="modalTambahSiswa">
+        <div class="modal-dialog">
+            <form method="POST">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5>Tambah Siswa</h5>
+                    </div>
+                    <div class="modal-body">
+                        <label class="fw-semibold">NIS</label>
+                        <input type="text" name="nis" class="form-control mb-3" placeholder="Contoh: 21225001" required>
+                        <label class="fw-semibold">Nama Lengkap</label>
+                        <input type="text" name="nama" class="form-control mb-3" placeholder="Nama siswa" required>
+                        <label class="fw-semibold">Kelas</label>
+                        <select name="kelas_id" class="form-select mb-3" required>
+                            <option value="">-- Pilih Kelas --</option>
+                            {% for k in kelas %}
+                            <option value="{{ k.id }}">{{ k.nama_kelas }}</option>
+                            {% endfor %}
+                        </select>
+                        <small class="text-muted">Password default = NIS</small>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" name="tambah" class="btn btn-primary">Tambah</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL IMPORT EXCEL -->
+    <div class="modal fade" id="modalImportSiswa">
+        <div class="modal-dialog modal-dialog-centered">
+            <form method="POST" enctype="multipart/form-data">
+                <div class="modal-content border-0 shadow-lg">
+                    <div class="modal-header bg-primary text-white">
+                        <h5 class="modal-title"><i class="bi bi-file-earmark-excel me-2"></i> Import Data Siswa</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="alert alert-info small">
+                            <strong>Format Excel:</strong>
+                            <ul class="mb-0 ps-3">
+                                <li>Kolom A: <strong>NIS</strong></li>
+                                <li>Kolom B: <strong>Nama</strong></li>
+                                <li>Kolom C: <strong>Kelas</strong> (harus sama dengan menu kelas)</li>
+                            </ul>
+                        </div>
+                        <label class="form-label fw-semibold">Upload File (.xlsx)</label>
+                        <input type="file" name="file_excel" class="form-control form-control-lg" accept=".xlsx" required>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" name="import_siswa" class="btn btn-primary px-4">
+                            <i class="bi bi-upload me-1"></i> Upload & Proses
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL EDIT & HAPUS SISWA -->
+    {% for s in siswa %}
+    <!-- Edit -->
+    <div class="modal fade" id="edit{{ s.id }}">
+        <div class="modal-dialog">
+            <form method="POST">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning text-dark">
+                        <h5>Edit Siswa: {{ s.nama }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="user_id" value="{{ s.id }}">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Nama Lengkap</label>
+                            <input type="text" name="nama_edit" value="{{ s.nama }}" class="form-control" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Kelas</label>
+                            <select name="kelas_edit" class="form-select" required>
+                                <option value="">-- Pilih Kelas --</option>
+                                {% for k in kelas %}
+                                <option value="{{ k.id }}" {% if s.kelas and s.kelas.id == k.id %}selected{% endif %}>
+                                    {{ k.nama_kelas }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Password Baru <small>(kosongkan jika tidak ingin ganti)</small></label>
+                            <input type="password" name="password_edit" class="form-control" placeholder="Minimal 6 karakter">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" name="edit" class="btn btn-warning">Update</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Hapus -->
+    <div class="modal fade" id="hapus{{ s.id }}">
+        <div class="modal-dialog">
+            <form method="POST">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5>Hapus Siswa?</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        Yakin ingin menghapus siswa <strong>{{ s.nama }}</strong> (NIS: {{ s.username }})?<br>
+                        Semua data ujian dan nilai siswa ini akan ikut terhapus!
+                    </div>
+                    <div class="modal-footer">
+                        <input type="hidden" name="user_id_hapus" value="{{ s.id }}">
+                        <button type="submit" name="hapus" class="btn btn-danger">Ya, Hapus Permanen</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+
 </div>
 {% endblock %}

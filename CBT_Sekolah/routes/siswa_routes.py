@@ -7,21 +7,23 @@ from datetime import datetime
 
 bp = Blueprint('siswa', __name__)
 
+
 # ==================== DASHBOARD SISWA ====================
 @bp.route('/dashboard')
 @login_required
 def dashboard():
     if current_user.role != 'siswa': return redirect('/')
     ujian = Ujian.query.filter(Ujian.waktu_selesai > datetime.now()).order_by(Ujian.waktu_mulai).all()
-    
+
     return render_template('siswa/dashboard.html', ujian=ujian, datetime=datetime)
+
 
 # ==================== HALAMAN UJIAN (FULL LOGIC) ====================
 @bp.route('/ujian/<int:ujian_id>', methods=['GET', 'POST'])
 @login_required
 def ujian(ujian_id):
     if current_user.role != 'siswa': return redirect('/')
-    
+
     ujian = Ujian.query.get_or_404(ujian_id)
     now = datetime.now()
 
@@ -32,10 +34,15 @@ def ujian(ujian_id):
     if now > ujian.waktu_selesai:
         flash('Waktu ujian sudah habis!', 'danger')
         return redirect('/siswa/dashboard')
-    
+
     if JawabanSiswa.query.filter_by(siswa_id=current_user.id, ujian_id=ujian_id).first():
         flash('Anda sudah mengerjakan ujian ini!', 'info')
         return redirect('/siswa/dashboard')
+
+    # Hitung sisa waktu dalam detik (untuk timer JS)
+    sisa_waktu_detik = int((ujian.waktu_selesai - now).total_seconds())
+    if sisa_waktu_detik < 0:
+        sisa_waktu_detik = 0
 
     # Load Database Asli
     pg_db = json.loads(ujian.soal_pg) if ujian.soal_pg else []
@@ -46,24 +53,24 @@ def ujian(ujian_id):
         total_bobot_essay = 0
         for e in essay_db:
             total_bobot_essay += int(e.get('bobot', 0))
-        
+
         # Max nilai PG adalah sisa dari 100 dikurangi bobot essay
         # Contoh: Jika Essay 40 poin, maka PG maksimal 60 poin.
         max_score_pg = 100 - total_bobot_essay
-        if max_score_pg < 0: max_score_pg = 0 # Safety jika bobot essay > 100
+        if max_score_pg < 0: max_score_pg = 0  # Safety jika bobot essay > 100
 
         # --- 2. HITUNG SKOR PG SISWA ---
         jawaban_pg_siswa = {}
         jml_benar = 0
-        
+
         for i, soal in enumerate(pg_db):
             # Ambil jawaban berdasarkan index asli
-            jawaban = request.form.get(f'pg_{i}') 
+            jawaban = request.form.get(f'pg_{i}')
             jawaban_pg_siswa[str(i)] = jawaban
-            
+
             if jawaban and jawaban == soal['kunci']:
                 jml_benar += 1
-        
+
         # Rumus Baru: (Benar / Total Soal) * Max Score PG
         if pg_db:
             nilai_pg = (jml_benar / len(pg_db)) * max_score_pg
@@ -83,18 +90,18 @@ def ujian(ujian_id):
             jawaban_pg=json.dumps(jawaban_pg_siswa),
             jawaban_essay=json.dumps(jawaban_essay_siswa),
             nilai_pg=round(nilai_pg, 2),
-            nilai_essay=0, # Menunggu koreksi guru
-            total_nilai=round(nilai_pg, 2), # Sementara total = PG (sampai guru mengoreksi)
+            nilai_essay=0,  # Menunggu koreksi guru
+            total_nilai=round(nilai_pg, 2),  # Sementara total = PG (sampai guru mengoreksi)
             waktu_submit=datetime.now()
         )
         db.session.add(jwb)
         db.session.commit()
-        
+
         flash('Jawaban berhasil dikirim! Nilai akan muncul setelah dikoreksi guru.', 'success')
         return redirect('/siswa/dashboard')
 
     # --- PENGACAKAN TAMPILAN (GET REQUEST) ---
-    
+
     # 1. Acak PG
     pg_tampil = []
     for idx, item in enumerate(pg_db):
@@ -120,10 +127,12 @@ def ujian(ujian_id):
         })
     random.shuffle(essay_tampil)
 
-    return render_template('siswa/ujian.html', 
-                           ujian=ujian, 
-                           pg_tampil=pg_tampil, 
-                           essay_tampil=essay_tampil)
+    return render_template('siswa/ujian.html',
+                           ujian=ujian,
+                           pg_tampil=pg_tampil,
+                           essay_tampil=essay_tampil,
+                           sisa_waktu_detik=sisa_waktu_detik)
+
 
 # ==================== GANTI PASSWORD (FITUR BARU) ====================
 @bp.route('/ganti_password', methods=['GET', 'POST'])
@@ -139,15 +148,15 @@ def ganti_password():
         # 1. Cek Password Lama
         if not check_password_hash(current_user.password, old_pass):
             flash('Password lama salah!', 'danger')
-        
+
         # 2. Cek Konfirmasi Password Baru
         elif new_pass != confirm_pass:
             flash('Konfirmasi password baru tidak cocok!', 'warning')
-        
+
         # 3. Validasi Panjang Password
         elif len(new_pass) < 6:
             flash('Password baru minimal 6 karakter!', 'warning')
-        
+
         else:
             # 4. Update Password (Hash Dulu!)
             current_user.password = generate_password_hash(new_pass)

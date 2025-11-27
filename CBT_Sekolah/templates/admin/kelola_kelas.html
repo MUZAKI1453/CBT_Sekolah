@@ -1,78 +1,207 @@
 {% extends "base.html" %}
 {% block content %}
+
+<style>
+    /* ==================== TABEL MODERN ==================== */
+    .table-modern {
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid #d8e2ef !important;
+    }
+
+    .table-modern thead th {
+        background: #0d6efd !important;
+        color: #fff !important;
+        font-weight: 600;
+        border: none !important;
+        padding: 14px 16px !important;
+    }
+
+    .table-modern tbody tr {
+        transition: 0.15s;
+    }
+
+    .table-modern tbody tr:hover {
+        background: #eef5ff !important;
+    }
+
+    .table-modern td,
+    .table-modern th {
+        padding: 14px 16px !important;
+        vertical-align: middle !important;
+    }
+
+    .badge-modern {
+        background: #0d6efd !important;
+        font-size: 0.85rem;
+        padding: 6px 12px;
+        border-radius: 6px;
+    }
+
+    .card-custom {
+        border: none;
+        border-radius: 12px;
+    }
+
+    /* RESPONSIF DI HP */
+    @media (max-width: 576px) {
+        .table-modern thead {
+            font-size: 0.875rem;
+        }
+        .table-modern td, .table-modern th {
+            padding: 10px 8px !important;
+            font-size: 0.9rem;
+        }
+        .btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.8rem;
+        }
+    }
+</style>
+
 <div class="container mt-4">
-    <h2>Kelola Kelas</h2>
-    <div class="card shadow">
-        <div class="card-body">
-            <form method="POST" class="mb-4">
-                <div class="row g-3">
-                    <div class="col-md-8">
-                        <input type="text" name="nama_kelas" class="form-control" placeholder="Nama Kelas (contoh: X IPA 1)" required>
+
+    <!-- ======================= TITLE + TOMBOL TAMBAH (SERAGAM DENGAN LAINNYA) ======================= -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="fw-bold mb-0">Kelola Kelas</h2>
+
+        <button class="btn btn-primary d-flex align-items-center gap-2 shadow-sm"
+                data-bs-toggle="modal" data-bs-target="#modalTambah">
+            <i class="bi bi-plus-lg"></i>
+            <span class="d-none d-sm-inline">Tambah Kelas</span>
+            <span class="d-inline d-sm-none">Tambah</span>
+        </button>
+    </div>
+
+    <!-- ======================= CARD TABEL KELAS + RESPONSIF ======================= -->
+    <div class="card shadow-sm card-custom">
+        <div class="card-body pt-4">
+
+            <h5 class="fw-semibold mb-3">Daftar Kelas</h5>
+
+            <!-- Tambahkan table-responsive -->
+            <div class="table-responsive">
+                <table class="table table-modern table-striped align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th class="text-center" style="width: 70px;">No</th>
+                            <th>Nama Kelas</th>
+                            <th class="text-center" style="min-width: 120px;">Jumlah Siswa</th>
+                            <th class="text-center" style="min-width: 140px;">Aksi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for k in kelas %}
+                        <tr>
+                            <td class="text-center fw-medium">{{ loop.index }}</td>
+                            <td class="fw-semibold">{{ k.Kelas.nama_kelas }}</td>
+                            <td class="text-center">
+                                <span class="badge badge-modern px-3 py-2">
+                                    {{ k.jumlah_siswa }}
+                                </span>
+                            </td>
+                            <td class="text-center">
+                                <div class="d-flex justify-content-center gap-1 flex-wrap">
+                                    <button type="button" class="btn btn-warning btn-sm"
+                                            data-bs-toggle="modal" data-bs-target="#edit{{ k.Kelas.id }}">
+                                        <i class="bi bi-pencil"></i> Edit
+                                    </button>
+                                    <button type="button" class="btn btn-danger btn-sm"
+                                            data-bs-toggle="modal" data-bs-target="#hapus{{ k.Kelas.id }}">
+                                        <i class="bi bi-trash"></i> Hapus
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Jika tidak ada kelas -->
+            {% if kelas|length == 0 %}
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-building fs-1 d-block mb-3"></i>
+                Belum ada kelas yang dibuat
+            </div>
+            {% endif %}
+
+        </div>
+    </div>
+
+    <!-- ======================= MODAL TAMBAH KELAS (SAMA DENGAN SISWA & GURU) ======================= -->
+    <div class="modal fade" id="modalTambah">
+        <div class="modal-dialog">
+            <form method="POST">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5>Tambah Kelas</h5>
                     </div>
-                    <div class="col-md-4">
-                        <button type="submit" name="tambah" class="btn btn-success w-100">Tambah Kelas</button>
+                    <div class="modal-body">
+                        <label class="fw-semibold">Nama Kelas</label>
+                        <input type="text" name="nama_kelas" class="form-control mb-3"
+                               placeholder="Contoh: X IPA 1" required>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" name="tambah" class="btn btn-primary">Tambah</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
                     </div>
                 </div>
             </form>
-
-            <table class="table table-hover">
-                <thead class="table-primary">
-                    <tr>
-                        <th>No</th>
-                        <th>Nama Kelas</th>
-                        <th>Aksi</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for k in kelas %}
-                    <tr>
-                        <td>{{ loop.index }}</td>
-                        <td>{{ k.nama_kelas }}</td>
-                        <td>
-                            <button type="button" class="btn btn-warning btn-sm" data-bs-toggle="modal" data-bs-target="#edit{{ k.id }}">Edit</button>
-                            <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#hapus{{ k.id }}">Hapus</button>
-                        </td>
-                    </tr>
-
-                    <!-- Modal Edit -->
-                    <div class="modal fade" id="edit{{ k.id }}">
-                        <div class="modal-dialog">
-                            <form method="POST">
-                                <div class="modal-content">
-                                    <div class="modal-header"><h5>Edit Kelas</h5></div>
-                                    <div class="modal-body">
-                                        <input type="hidden" name="kelas_id" value="{{ k.id }}">
-                                        <input type="text" name="nama_edit" value="{{ k.nama_kelas }}" class="form-control" required>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="submit" name="edit" class="btn btn-warning">Update</button>
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-
-                    <!-- Modal Hapus -->
-                    <div class="modal fade" id="hapus{{ k.id }}">
-                        <div class="modal-dialog">
-                            <form method="POST">
-                                <div class="modal-content">
-                                    <div class="modal-header"><h5>Hapus Kelas?</h5></div>
-                                    <div class="modal-body">Yakin hapus kelas <strong>{{ k.nama_kelas }}</strong>?</div>
-                                    <div class="modal-footer">
-                                        <input type="hidden" name="kelas_id_hapus" value="{{ k.id }}">
-                                        <button type="submit" name="hapus" class="btn btn-danger">Ya, Hapus</button>
-                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                    </div>
-                                </div>
-                            </form>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </tbody>
-            </table>
         </div>
     </div>
+
+    <!-- ======================= MODAL EDIT & HAPUS KELAS (SERAGAM DENGAN LAINNYA) ======================= -->
+    {% for k in kelas %}
+
+    <!-- Modal Edit -->
+    <div class="modal fade" id="edit{{ k.Kelas.id }}">
+        <div class="modal-dialog">
+            <form method="POST">
+                <div class="modal-content">
+                    <div class="modal-header bg-warning text-dark">
+                        <h5>Edit Kelas: {{ k.Kelas.nama_kelas }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <input type="hidden" name="kelas_id" value="{{ k.Kelas.id }}">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">Nama Kelas</label>
+                            <input type="text" name="nama_edit" value="{{ k.Kelas.nama_kelas }}" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="submit" name="edit" class="btn btn-warning">Update</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Hapus -->
+    <div class="modal fade" id="hapus{{ k.Kelas.id }}">
+        <div class="modal-dialog">
+            <form method="POST">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5>Hapus Kelas?</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        Yakin ingin menghapus kelas <strong>{{ k.Kelas.nama_kelas }}</strong>?<br>
+                        Semua data siswa di kelas ini akan terpengaruh!
+                    </div>
+                    <div class="modal-footer">
+                        <input type="hidden" name="kelas_id_hapus" value="{{ k.Kelas.id }}">
+                        <button type="submit" name="hapus" class="btn btn-danger">Ya, Hapus Permanen</button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+    {% endfor %}
+
 </div>
 {% endblock %}

@@ -1,4 +1,6 @@
 from datetime import datetime
+from operator import or_
+
 import pandas as pd  # <--- WAJIB DITAMBAHKAN UNTUK BACA EXCEL
 
 from flask import Blueprint, render_template, request, flash, redirect, url_for
@@ -29,70 +31,105 @@ def dashboard():
                            total_mapel=total_mapel,
                            now=datetime.now())
 
+
 # ==================== KELOLA KELAS ====================
 @bp.route('/kelola_kelas', methods=['GET', 'POST'])
 @login_required
 def kelola_kelas():
-    if current_user.role != 'admin': return redirect('/')
+    if current_user.role != 'admin':
+        return redirect('/')
+
     if request.method == 'POST':
+
+        # Tambah Kelas
         if 'tambah' in request.form:
             nama = request.form['nama_kelas'].strip()
+
             if not Kelas.query.filter_by(nama_kelas=nama).first():
                 db.session.add(Kelas(nama_kelas=nama))
                 db.session.commit()
                 flash('Kelas berhasil ditambah!', 'success')
             else:
                 flash('Kelas sudah ada!', 'warning')
+
+        # Edit Kelas
         elif 'edit' in request.form:
             kelas_id = request.form['kelas_id']
             kelas = Kelas.query.get_or_404(kelas_id)
             kelas.nama_kelas = request.form['nama_edit']
             db.session.commit()
             flash('Kelas berhasil diupdate!', 'success')
+
+        # Hapus Kelas
         elif 'hapus' in request.form:
             kelas_id = request.form['kelas_id_hapus']
             kelas = Kelas.query.get_or_404(kelas_id)
             db.session.delete(kelas)
             db.session.commit()
             flash('Kelas berhasil dihapus!', 'success')
-    kelas = Kelas.query.all()
+
+    # Query Kelas + hitung jumlah siswa
+    kelas = (
+        Kelas.query
+        .outerjoin(User, User.kelas_id == Kelas.id)
+        .add_columns(Kelas, db.func.count(User.id).label("jumlah_siswa"))
+        .group_by(Kelas.id)
+        .all()
+    )
+
     return render_template('admin/kelola_kelas.html', kelas=kelas)
 
-# ==================== KELOLA SISWA (UPDATED) ====================
+
+# ==================== KELOLA SISWA (UPDATED & REVISED) ====================
 @bp.route('/kelola_siswa', methods=['GET', 'POST'])
 @login_required
 def kelola_siswa():
-    if current_user.role != 'admin': return redirect('/')
-    
+    # 1. CEK OTORISASI
+    if current_user.role != 'admin':
+        return redirect('/')
+
+    # 2. PROSES REQUEST POST (TAMBAH, EDIT, HAPUS, IMPORT)
     if request.method == 'POST':
         # --- FITUR BARU: IMPORT EXCEL ---
         if 'import_siswa' in request.form:
             file = request.files.get('file_excel')
-            if file:
+            if file and file.filename.endswith(('.xlsx', '.xls')):
                 try:
                     df = pd.read_excel(file)
                     berhasil = 0
                     gagal = 0
-                    
-                    # Loop setiap baris di Excel
-                    for _, row in df.iterrows():
-                        # Ambil data & bersihkan format angka (misal: 1001.0 -> 1001)
-                        nis = str(row['NIS']).split('.')[0].strip()
+
+                    for index, row in df.iterrows():
+                        # Ambil data & bersihkan format angka/kosong
+                        try:
+                            # Menggunakan int() untuk menghilangkan desimal, lalu str()
+                            # Tambahkan penanganan NaN dari pandas
+                            nis = str(int(row['NIS']))
+                        except ValueError:
+                            # Jika NIS tidak bisa diubah ke int (misal: NaN atau string non-angka)
+                            gagal += 1
+                            continue
+
                         nama = str(row['Nama']).strip()
                         nama_kelas = str(row['Kelas']).strip()
+
+                        # Pastikan semua data penting tidak kosong
+                        if not all([nis, nama, nama_kelas]):
+                            gagal += 1
+                            continue
 
                         # 1. Cek duplikat NIS
                         if User.query.filter_by(username=nis).first():
                             gagal += 1
-                            continue # Skip siswa ini
-                        
-                        # 2. Cari ID Kelas berdasarkan Nama Kelas di Excel
+                            continue
+
+                            # 2. Cari ID Kelas
                         kelas_obj = Kelas.query.filter_by(nama_kelas=nama_kelas).first()
                         if not kelas_obj:
                             gagal += 1
-                            continue # Skip jika kelas tidak ditemukan di DB
+                            continue
 
-                        # 3. Tambahkan User Baru (Password Default = NIS)
+                            # 3. Tambahkan User Baru (Password Default = NIS)
                         db.session.add(User(
                             username=nis,
                             password=generate_password_hash(nis),
@@ -101,21 +138,29 @@ def kelola_siswa():
                             kelas_id=kelas_obj.id
                         ))
                         berhasil += 1
-                    
+
                     db.session.commit()
-                    flash(f'Import Selesai! Berhasil: {berhasil}, Gagal: {gagal} (NIS duplikat / Nama Kelas salah)', 'info')
-                
+                    flash(
+                        f'Import Selesai! Berhasil: {berhasil}, Gagal: {gagal} (NIS duplikat / Nama Kelas salah / data kosong)',
+                        'info')
+
                 except Exception as e:
-                    flash(f'Gagal memproses file: {str(e)}', 'danger')
+                    # Log error untuk debugging jika perlu
+                    # print(f"Error import: {e}")
+                    flash(f'Gagal memproses file: {str(e)}. Pastikan format kolom (NIS, Nama, Kelas) sudah benar.',
+                          'danger')
             else:
-                flash('File Excel tidak ditemukan!', 'warning')
+                flash('File Excel tidak ditemukan atau format file salah!', 'warning')
+
+            return redirect(url_for('.kelola_siswa'))  # <--- REDIRECT setelah import
 
         # --- FITUR LAMA: TAMBAH MANUAL ---
         elif 'tambah' in request.form:
-            nis = request.form['nis']
-            nama = request.form['nama']
+            nis = request.form['nis'].strip()
+            nama = request.form['nama'].strip()
             kelas_id = int(request.form['kelas_id'])
-            pwd = request.form.get('password', nis)
+            pwd = request.form.get('password', nis).strip()
+
             if User.query.filter_by(username=nis).first():
                 flash('NIS sudah terdaftar!', 'warning')
             else:
@@ -129,16 +174,22 @@ def kelola_siswa():
                 db.session.commit()
                 flash('Siswa berhasil ditambah!', 'success')
 
+            return redirect(url_for('.kelola_siswa'))  # <--- REDIRECT setelah tambah
+
         # --- FITUR LAMA: EDIT ---
         elif 'edit' in request.form:
             user_id = request.form['user_id']
             user = User.query.get_or_404(user_id)
-            user.nama = request.form['nama_edit']
+            user.nama = request.form['nama_edit'].strip()
             user.kelas_id = int(request.form['kelas_edit'])
+
             if request.form['password_edit']:
-                user.password = generate_password_hash(request.form['password_edit'])
+                user.password = generate_password_hash(request.form['password_edit'].strip())
+
             db.session.commit()
             flash('Data siswa berhasil diupdate!', 'success')
+
+            return redirect(url_for('.kelola_siswa'))  # <--- REDIRECT setelah edit
 
         # --- FITUR LAMA: HAPUS ---
         elif 'hapus' in request.form:
@@ -148,10 +199,41 @@ def kelola_siswa():
             db.session.commit()
             flash('Siswa berhasil dihapus!', 'success')
 
-    # Load data untuk ditampilkan di tabel
-    siswa = User.query.filter_by(role='siswa').options(joinedload(User.kelas)).all()
-    kelas = Kelas.query.all()
-    return render_template('admin/kelola_siswa.html', siswa=siswa, kelas=kelas)
+            return redirect(url_for('.kelola_siswa'))  # <--- REDIRECT setelah hapus
+
+    # 3. PROSES REQUEST GET (ATAU SETELAH REDIRECT DARI POST)
+
+    # --- CARI & FILTER ---
+    q = request.args.get('q', '').strip()
+    kelas_id_filter = request.args.get('kelas')  # Ganti nama variabel agar tidak ambigu
+
+    # Query dasar untuk siswa
+    siswa_query = User.query.filter_by(role='siswa').options(joinedload(User.kelas))
+
+    # Terapkan filter pencarian
+    if q:
+        siswa_query = siswa_query.filter(
+            or_(User.nama.ilike(f'%{q}%'), User.username.ilike(f'%{q}%'))
+        )
+
+    # Terapkan filter kelas
+    if kelas_id_filter:
+        try:
+            kelas_id_filter = int(kelas_id_filter)
+            siswa_query = siswa_query.filter(User.kelas_id == kelas_id_filter)
+        except ValueError:
+            # Abaikan jika kelas_id_filter bukan angka yang valid
+            pass
+
+    # Ambil data siswa yang sudah difilter
+    siswa = siswa_query.order_by(User.nama).all()
+
+    # Ambil data semua kelas untuk filter dan form
+    kelas_list = Kelas.query.order_by(Kelas.nama_kelas).all()
+
+    # Kirim data ke template
+    # Gunakan 'kelas_list' untuk konsistensi
+    return render_template('admin/kelola_siswa.html', siswa=siswa, kelas=kelas_list)
 
 # ==================== KELOLA GURU (UPDATED) ====================
 @bp.route('/kelola_guru', methods=['GET', 'POST'])
