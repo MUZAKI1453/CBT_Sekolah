@@ -27,7 +27,7 @@ def dashboard():
     return render_template('guru/dashboard.html', mapel=mapel, ujian=ujian, datetime=datetime)
 
 
-# ==================== UPLOAD SOAL (PDF) ====================
+# ==================== UPLOAD SOAL / BUAT UJIAN BARU ====================
 @bp.route('/upload_soal/<int:mapel_id>', methods=['GET', 'POST'])
 @login_required
 def upload_soal(mapel_id):
@@ -35,7 +35,6 @@ def upload_soal(mapel_id):
         return redirect('/')
 
     mapel = Mapel.query.get_or_404(mapel_id)
-    # Pastikan guru ini pemilik mapel
     if mapel.guru_id != current_user.id:
         flash('Anda tidak berhak mengunggah soal untuk mapel ini!', 'danger')
         return redirect('/guru/dashboard')
@@ -45,16 +44,11 @@ def upload_soal(mapel_id):
         judul = request.form['judul'].strip()
         waktu_mulai = request.form['waktu_mulai']
         waktu_selesai = request.form['waktu_selesai']
-        durasi_input = int(request.form['durasi'])  # Ambil durasi manual
-        file = request.files.get('file_pdf')  # Pastikan name di HTML adalah 'file_pdf'
+        durasi_input = int(request.form['durasi'])
+        file = request.files.get('file_pdf')
 
-        # Validasi dasar
-        if not judul or not waktu_mulai or not waktu_selesai or not file:
-            flash('Semua field wajib diisi!', 'danger')
-            return redirect(request.url)
-
-        if not file.filename.lower().endswith('.pdf'):
-            flash('File harus berformat PDF (.pdf)', 'danger')
+        if not judul or not waktu_mulai or not waktu_selesai:
+            flash('Judul, Waktu Mulai, dan Waktu Selesai wajib diisi!', 'danger')
             return redirect(request.url)
 
         try:
@@ -64,126 +58,139 @@ def upload_soal(mapel_id):
             flash('Format waktu salah!', 'danger')
             return redirect(request.url)
 
-        # --- MULAI PROSES PARSING PDF ---
         pg_list = []
         essay_list = []
 
-        try:
-            full_text = ""
-            with pdfplumber.open(file) as pdf:
-                for page in pdf.pages:
-                    extracted = page.extract_text()
-                    if extracted:
-                        full_text += extracted + "\n"
-
-            # Bersihkan dan pisahkan per baris
-            lines = [line.strip() for line in full_text.split('\n') if line.strip()]
-
-            current_soal = None
-
-            # Regex Patterns
-            pola_nomor = re.compile(r'^\d+\.\s+(.*)')  # Contoh: "1. Soal..."
-            pola_opsi = re.compile(r'^([A-E])\.\s+(.*)')  # Contoh: "A. Jawaban..."
-            pola_kunci = re.compile(r'\(Jawaban:\s*([A-E])\)', re.IGNORECASE)  # Contoh: (Jawaban: A)
-            pola_bobot = re.compile(r'\(Poin:\s*(\d+)\)', re.IGNORECASE)  # Contoh: (Poin: 20)
-
-            for line in lines:
-                # Cek apakah ini awal nomor soal baru?
-                match_nomor = pola_nomor.match(line)
-
-                if match_nomor:
-                    # Simpan soal sebelumnya jika ada
-                    if current_soal:
-                        if current_soal['tipe'] == 'pg':
-                            pg_list.append(current_soal['data'])
-                        elif current_soal['tipe'] == 'essay':
-                            essay_list.append(current_soal['data'])
-
-                    # Inisialisasi soal baru
-                    isi_soal = match_nomor.group(1)
-
-                    cek_kunci = pola_kunci.search(isi_soal)
-                    cek_bobot = pola_bobot.search(isi_soal)
-
-                    if cek_kunci:
-                        # Tipe PG
-                        kunci_jawaban = cek_kunci.group(1).upper()
-                        soal_bersih = pola_kunci.sub('', isi_soal).strip()
-
-                        current_soal = {
-                            'tipe': 'pg',
-                            'data': {
-                                'soal': soal_bersih,
-                                'a': '', 'b': '', 'c': '', 'd': '', 'e': '',
-                                'kunci': kunci_jawaban
-                            }
-                        }
-
-                    elif cek_bobot:
-                        # Tipe Essay
-                        bobot_nilai = int(cek_bobot.group(1))
-                        soal_bersih = pola_bobot.sub('', isi_soal).strip()
-
-                        current_soal = {
-                            'tipe': 'essay',
-                            'data': {
-                                'soal': soal_bersih,
-                                'bobot': bobot_nilai
-                            }
-                        }
-                    else:
-                        # Baris angka tapi tidak ada tag (Jawaban/Poin), mungkin bagian dari teks soal sebelumnya
-                        if current_soal:
-                            current_soal['data']['soal'] += " " + line
-                        else:
-                            current_soal = None
-
-                # Cek apakah ini Opsi A-E (Hanya untuk PG)
-                elif current_soal and current_soal['tipe'] == 'pg':
-                    match_opsi = pola_opsi.match(line)
-                    if match_opsi:
-                        opt_label = match_opsi.group(1).lower()  # a, b, c, d, e
-                        opt_text = match_opsi.group(2)
-                        current_soal['data'][opt_label] = opt_text
-                    else:
-                        # Bukan opsi, berarti lanjutan teks soal
-                        current_soal['data']['soal'] += " " + line
-
-                # Jika Essay, semua baris berikutnya adalah lanjutan soal
-                elif current_soal and current_soal['tipe'] == 'essay':
-                    current_soal['data']['soal'] += " " + line
-
-            # Simpan soal terakhir (karena loop sudah habis)
-            if current_soal:
-                if current_soal['tipe'] == 'pg':
-                    pg_list.append(current_soal['data'])
-                elif current_soal['tipe'] == 'essay':
-                    essay_list.append(current_soal['data'])
-
-            # Cek hasil parsing
-            if not pg_list and not essay_list:
-                flash('Gagal membaca soal! Pastikan format PDF sesuai: (Jawaban: A) atau (Poin: 20).', 'warning')
+        # --- JIKA ADA FILE PDF (PARSING CERDAS) ---
+        if file and file.filename != '':
+            if not file.filename.lower().endswith('.pdf'):
+                flash('File harus berformat PDF (.pdf)', 'danger')
                 return redirect(request.url)
 
-            # Simpan ke Database
-            ujian = Ujian(
-                mapel_id=mapel_id,
-                judul=judul,
-                waktu_mulai=mulai,
-                waktu_selesai=selesai,
-                durasi_menit=durasi_input,
-                soal_pg=json.dumps(pg_list, ensure_ascii=False),
-                soal_essay=json.dumps(essay_list, ensure_ascii=False)
-            )
-            db.session.add(ujian)
-            db.session.commit()
+            try:
+                full_text = ""
+                with pdfplumber.open(file) as pdf:
+                    for page in pdf.pages:
+                        extracted = page.extract_text()
+                        if extracted:
+                            full_text += extracted + "\n"
 
+                lines = [line.strip() for line in full_text.split('\n') if line.strip()]
+                
+                current_soal = None
+                last_state = 'soal' # Melacak posisi: 'soal', 'a', 'b', 'c', 'd', 'e'
+
+                # Regex Lebih Fleksibel
+                pola_nomor = re.compile(r'^(\d+)\.\s+(.*)')      # Tangkap angka dan isi
+                pola_opsi = re.compile(r'^([A-E])\.\s+(.*)')      # Tangkap Huruf A-E
+                pola_kunci = re.compile(r'\(Jawaban:\s*([A-E])\)', re.IGNORECASE) 
+                pola_bobot = re.compile(r'\(Poin:\s*(\d+)\)', re.IGNORECASE)
+
+                for line in lines:
+                    match_nomor = pola_nomor.match(line)
+                    match_opsi = pola_opsi.match(line)
+
+                    # 1. JIKA MENEMUKAN NOMOR BARU (1. Bla bla)
+                    if match_nomor:
+                        # Simpan soal sebelumnya sebelum reset
+                        if current_soal:
+                            if current_soal['tipe'] == 'pg':
+                                pg_list.append(current_soal['data'])
+                            elif current_soal['tipe'] == 'essay':
+                                essay_list.append(current_soal['data'])
+
+                        # Buat soal baru
+                        isi_soal_raw = match_nomor.group(2) # Ambil teks setelah angka
+                        
+                        # Cek apakah ini PG (ada kunci) atau Essay (ada poin)
+                        cek_kunci = pola_kunci.search(isi_soal_raw)
+                        cek_bobot = pola_bobot.search(isi_soal_raw)
+
+                        if cek_kunci:
+                            # TIPE PG
+                            kunci_jawaban = cek_kunci.group(1).upper()
+                            soal_bersih = pola_kunci.sub('', isi_soal_raw).strip()
+                            current_soal = {
+                                'tipe': 'pg',
+                                'data': {
+                                    'soal': soal_bersih,
+                                    'a': '', 'b': '', 'c': '', 'd': '', 'e': '',
+                                    'kunci': kunci_jawaban
+                                }
+                            }
+                        elif cek_bobot:
+                            # TIPE ESSAY
+                            bobot_nilai = int(cek_bobot.group(1))
+                            soal_bersih = pola_bobot.sub('', isi_soal_raw).strip()
+                            current_soal = {
+                                'tipe': 'essay',
+                                'data': {'soal': soal_bersih, 'bobot': bobot_nilai}
+                            }
+                        else:
+                            # Default ke PG jika tidak ada tag, nanti diasumsikan soal biasa
+                            current_soal = {
+                                'tipe': 'pg',
+                                'data': {
+                                    'soal': isi_soal_raw,
+                                    'a': '', 'b': '', 'c': '', 'd': '', 'e': '',
+                                    'kunci': 'A' # Default sementara
+                                }
+                            }
+                        
+                        last_state = 'soal' # Reset state pembacaan ke 'soal'
+
+                    # 2. JIKA MENEMUKAN OPSI (A. Bla bla) - HANYA UNTUK PG
+                    elif current_soal and current_soal['tipe'] == 'pg' and match_opsi:
+                        opt_label = match_opsi.group(1).lower() # a, b, c...
+                        opt_text = match_opsi.group(2)
+                        
+                        current_soal['data'][opt_label] = opt_text
+                        last_state = opt_label # Ubah state pembacaan ke opsi ini
+
+                    # 3. JIKA BARIS BIASA (LANJUTAN TEKS PANJANG)
+                    elif current_soal:
+                        # Perbaikan Utama: Tambahkan ke 'last_state' yang aktif
+                        # Jika state terakhir 'soal', masuk ke soal. 
+                        # Jika state terakhir 'b', masuk ke opsi B.
+                        if last_state == 'soal':
+                             current_soal['data']['soal'] += " " + line
+                        elif last_state in ['a', 'b', 'c', 'd', 'e']:
+                             current_soal['data'][last_state] += " " + line
+
+                # Simpan soal terakhir (karena loop selesai)
+                if current_soal:
+                    if current_soal['tipe'] == 'pg':
+                        pg_list.append(current_soal['data'])
+                    elif current_soal['tipe'] == 'essay':
+                        essay_list.append(current_soal['data'])
+
+                if not pg_list and not essay_list:
+                    flash('Gagal membaca PDF! Format tidak terdeteksi. Pastikan ada Nomor (1.) dan Opsi (A.)', 'warning')
+                    return redirect(request.url)
+
+            except Exception as e:
+                flash(f'Error sistem membaca PDF: {str(e)}', 'danger')
+                return redirect(request.url)
+
+        # Simpan ke Database
+        ujian = Ujian(
+            mapel_id=mapel_id,
+            judul=judul,
+            waktu_mulai=mulai,
+            waktu_selesai=selesai,
+            durasi_menit=durasi_input,
+            soal_pg=json.dumps(pg_list, ensure_ascii=False),
+            soal_essay=json.dumps(essay_list, ensure_ascii=False)
+        )
+        db.session.add(ujian)
+        db.session.commit()
+
+        if file and file.filename != '':
             flash(f'Berhasil! {len(pg_list)} Soal PG dan {len(essay_list)} Soal Essay tersimpan.', 'success')
             return redirect('/guru/dashboard')
-
-        except Exception as e:
-            flash(f'Terjadi kesalahan sistem: {str(e)}', 'danger')
-            return redirect(request.url)
+        else:
+            flash('Kerangka ujian berhasil dibuat! Silakan tambahkan soal manual.', 'success')
+            return redirect(url_for('guru.edit_ujian', ujian_id=ujian.id))
 
     return render_template('guru/upload_soal.html', mapel=mapel)
 

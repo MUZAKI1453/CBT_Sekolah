@@ -1,12 +1,10 @@
 {% extends "base.html" %}
 {% block content %}
 
-<!-- HTMX -->
 <script src="https://unpkg.com/htmx.org@1.9.10"></script>
 
 <div class="container mt-4">
 
-    <!-- HEADER (TIDAK DIREFRESH) -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="fw-bold text-primary mb-0">{{ ujian.judul }}</h2>
@@ -20,34 +18,31 @@
                 Kembali
             </a>
 
-            <!-- Form download Excel (POST, tidak terganggu HTMX karena tidak direplace) -->
             <form method="POST" class="d-inline">
                 <button type="submit" name="download_excel" class="btn btn-success">
-                    Download Excel
+                    <i class="bi bi-file-earmark-excel"></i> Download Excel
                 </button>
             </form>
         </div>
     </div>
 
-    <!-- TABEL (card tetap statis, hanya tbody yang di-replace oleh HTMX) -->
-    <div class="card shadow border-0">
+    <div class="card shadow-sm border-0 bg-transparent">
         <div class="card-body p-0">
             <div class="table-responsive">
-                <table class="table table-hover table-striped align-middle mb-0">
-                    <thead class="bg-primary text-white">
+                <table class="table table-modern align-middle mb-0">
+                    <thead>
                         <tr>
-                            <th class="py-3 ps-4">No</th>
-                            <th class="py-3">Nama Siswa</th>
-                            <th class="py-3">Kelas</th>
-                            <th class="py-3 text-center">Nilai PG</th>
-                            <th class="py-3 text-center">Nilai Essay</th>
-                            <th class="py-3 text-center">Total Akhir</th>
-                            <th class="py-3">Waktu Kumpul</th>
-                            <th class="py-3 text-center">Aksi</th>
+                            <th class="ps-4">No</th>
+                            <th>Nama Siswa</th>
+                            <th>Kelas</th>
+                            <th class="text-center">Nilai PG</th>
+                            <th class="text-center">Nilai Essay</th>
+                            <th class="text-center">Total Akhir</th>
+                            <th>Waktu Kumpul</th>
+                            <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
 
-                    <!-- INI YANG DIREFRESH: hanya tbody -->
                     <tbody id="tbody-nilai"
                            hx-get="{{ url_for('guru.refresh_tabel_nilai', ujian_id=ujian.id) }}"
                            hx-trigger="every 10s"
@@ -62,7 +57,6 @@
 
 </div>
 
-<!-- MODAL GLOBAL RESET (di luar table so tidak hilang saat HTMX replace) -->
 <div class="modal fade" id="modalResetGlobal" tabindex="-1">
   <div class="modal-dialog">
     <form id="reset-form" method="POST">
@@ -87,7 +81,6 @@
   </div>
 </div>
 
-<!-- Helper JS: buka modal & set action form POST -->
 <script>
 function openReset(id, nama, kelas) {
     const form = document.getElementById('reset-form');
@@ -95,34 +88,22 @@ function openReset(id, nama, kelas) {
     document.getElementById('reset-nama').innerText = nama ?? '';
     document.getElementById('reset-kelas').innerText = kelas ?? '';
 
-    // show bootstrap modal
     const modalEl = document.getElementById('modalResetGlobal');
     const modal = new bootstrap.Modal(modalEl);
     modal.show();
 
-    // Setelah submit modal, kita ingin:
-    // - mencegah page reload (optional), dan
-    // - setelah berhasil (204), trigger reload partial tbody manual agar update cepat.
     form.onsubmit = function(evt) {
         evt.preventDefault();
         fetch(form.action, { method: 'POST', credentials: 'same-origin' })
         .then(response => {
             if (response.status === 204) {
-                // Tutup modal
                 modal.hide();
-                // Trigger HTMX refresh manual: swap in new tbody
-                // kita bisa memanggil htmx.trigger
                 if (window.htmx) {
                     htmx.trigger(document.getElementById('tbody-nilai'), 'refresh');
                 } else {
-                    // fallback: reload partial via fetch then replace innerHTML
-                    fetch("{{ url_for('guru.refresh_tabel_nilai', ujian_id=ujian.id) }}")
-                    .then(r => r.text()).then(html => {
-                        document.getElementById('tbody-nilai').innerHTML = html;
-                    });
+                    location.reload();
                 }
             } else {
-                // jika error, reload halaman agar flash message muncul
                 location.reload();
             }
         })

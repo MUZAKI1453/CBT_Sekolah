@@ -1,3 +1,54 @@
 body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
 .card { border-radius: 15px; }
 .form-check-input:checked { background-color: #0d6efd; border-color: #0d6efd; }
+
+/* ==================== TABLE MODERN (GLOBAL) ==================== */
+.table-modern {
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid #d8e2ef !important;
+    border-collapse: separate; /* Penting untuk radius */
+    border-spacing: 0;
+}
+
+.table-modern thead th {
+    background: #0d6efd !important;
+    color: #fff !important;
+    font-weight: 600;
+    border: none !important;
+    padding: 14px 16px !important;
+    vertical-align: middle;
+}
+
+.table-modern tbody tr {
+    transition: 0.15s;
+}
+
+.table-modern tbody tr:hover {
+    background: #eef5ff !important;
+}
+
+.table-modern td {
+    padding: 14px 16px !important;
+    vertical-align: middle !important;
+    border-bottom: 1px solid #edf2f9;
+    background-color: white; /* Pastikan background putih */
+}
+
+/* Badge Style yang sering dipakai di tabel */
+.badge-modern {
+    background: #0d6efd !important;
+    font-size: 0.85rem;
+    padding: 6px 12px;
+    border-radius: 6px;
+    color: white;
+}
+
+/* Responsif Tabel di HP */
+@media (max-width: 576px) {
+    .table-modern thead th, 
+    .table-modern td {
+        padding: 10px 8px !important;
+        font-size: 0.85rem;
+    }
+}

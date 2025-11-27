@@ -26,7 +26,7 @@
                         {% for opt in ['a', 'b', 'c', 'd', 'e'] %}
                             {% if s[opt] %} <div class="col-md-6 mb-1">
                                 <div class="p-2 border rounded 
-                                    {% if s.kunci == opt|upper %} bg-success text-white fw-bold {% endif %}">
+                                    {% if s.kunci == opt|upper %} bg-primary bg-opacity-10 border-primary text-primary fw-bold {% endif %}">
                                     {{ opt|upper }}. {{ s[opt] }}
                                     {% if s.kunci == opt|upper %} <i class="bi bi-check-circle-fill ms-2"></i>{% endif %}
                                 </div>
@@ -43,7 +43,7 @@
     </div>
 
     <div class="card shadow-sm border-0">
-        <div class="card-header bg-success text-white">
+        <div class="card-header bg-primary text-white">
             <h5 class="mb-0">II. Essay ({{ essay|length }} Soal)</h5>
         </div>
         <div class="card-body">
