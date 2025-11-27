@@ -4,6 +4,7 @@ from config import Config
 from models import db, User
 from werkzeug.security import generate_password_hash, check_password_hash
 from sqlalchemy import event  # TAMBAHKAN INI
+from waitress import serve
 
 app = Flask(__name__)
 app.config.from_object(Config)
@@ -91,4 +92,4 @@ with app.app_context():
         print("Admin default dibuat → username: admin | password: admin123")
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=False)
