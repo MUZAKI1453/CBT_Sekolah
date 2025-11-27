@@ -1,65 +1,214 @@
 {% extends "base.html" %}
 {% block content %}
 
-<!-- POSISI TENGAH LAYAR YANG PALING IDEAL -->
-<div class="d-flex align-items-center justify-content-center min-vh-100 px-3"
-     style="padding-top: 2vh; padding-bottom: 8vh;">
+<style>
+    /* CUSTOM STYLE UNTUK HALAMAN LOGIN */
+    body {
+        background: #f0f2f5;
+    }
 
-    <div class="card border-0 shadow-sm rounded-4 text-center" style="width: 340px; max-width: 95vw;">
+    .login-container {
+        min-height: 85vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 20px;
+    }
+
+    .card-login {
+        width: 100%;
+        max-width: 400px;
+        border: none;
+        border-radius: 16px;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+        overflow: hidden;
+    }
+
+    .login-header {
+        background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%);
+        padding: 30px 20px;
+        text-align: center;
+        color: white;
+    }
+
+    /* REVISI CSS LOGO: Tanpa Lingkaran & Background */
+    .school-logo {
+        width: 120px;       /* Ukuran diperbesar sedikit agar pas */
+        height: auto;       /* Tinggi menyesuaikan rasio gambar */
+        max-height: 120px;  /* Batas tinggi maksimal */
+        object-fit: contain;
+        margin-bottom: 15px;
+        filter: drop-shadow(0 4px 6px rgba(0,0,0,0.2)); /* Shadow lembut langsung pada bentuk logo */
+    }
+
+    /* ROLE SWITCHER */
+    .role-switch {
+        background-color: #f1f3f5;
+        border-radius: 50rem;
+        padding: 5px;
+        display: flex;
+        position: relative;
+        margin-bottom: 25px;
+    }
+
+    .role-switch input {
+        display: none;
+    }
+
+    .role-switch label {
+        flex: 1;
+        text-align: center;
+        padding: 10px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        border-radius: 50rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        color: #6c757d;
+        z-index: 2;
+    }
+
+    .role-switch input:checked + label {
+        background-color: white;
+        color: #0d6efd;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+    }
+
+    /* FORM INPUTS */
+    .form-control-lg {
+        font-size: 1rem;
+        padding: 12px 15px;
+        border-radius: 10px;
+        border: 1px solid #dee2e6;
+    }
+    
+    .form-control-lg:focus {
+        border-color: #0d6efd;
+        box-shadow: 0 0 0 4px rgba(13, 110, 253, 0.15);
+    }
+
+    .input-group-text {
+        background: white;
+        border-right: none;
+        border-top-left-radius: 10px;
+        border-bottom-left-radius: 10px;
+        color: #6c757d;
+    }
+    
+    .input-with-icon {
+        border-left: none;
+        border-top-right-radius: 10px;
+        border-bottom-right-radius: 10px;
+    }
+
+    /* TOMBOL LOGIN */
+    .btn-login {
+        border-radius: 10px;
+        font-weight: 700;
+        padding: 12px;
+        font-size: 1rem;
+        transition: transform 0.1s;
+    }
+    .btn-login:active {
+        transform: scale(0.98);
+    }
+</style>
+
+<div class="login-container">
+    <div class="card card-login bg-white">
+        
+        <div class="login-header">
+            <img src="{{ url_for('static', filename='img/logo_sekolah.png') }}" 
+                 class="school-logo" 
+                 alt="Logo SMAIP Baitussalam">
+
+            <h5 class="fw-bold mb-0">CBT SMAIP Baitussalam</h5>
+            <small class="opacity-75">Ujian Berbasis Komputer & Smartphone</small>
+        </div>
+
         <div class="card-body p-4">
-
-            <!-- LOGO CBT BULAT BIRU (SAMA DENGAN NAVBAR) -->
-            <div class="mx-auto mb-4 rounded-circle d-flex align-items-center justify-content-center text-white shadow-lg"
-                 style="width: 100px; height: 100px; background: #0d6efd; font-size: 42px; font-weight: 900; letter-spacing: 3px;">
-                CBT
-            </div>
-
-            <h5 class="fw-bold text-dark mb-1">CBT Sekolah</h5>
-            <p class="text-muted small mb-4">Sistem Ujian Berbasis Komputer</p>
-
-            <!-- FORM MINI & RAPI -->
+            
             <form method="POST" action="/login-unified">
-                <div class="mb-3">
-                    <input type="text" name="username" class="form-control form-control-sm rounded-3"
-                           placeholder="NIS / NIP / Username" required autofocus>
+                
+                <div class="role-switch">
+                    <input type="radio" name="role" id="roleSiswa" value="siswa" checked>
+                    <label for="roleSiswa">Siswa</label>
+
+                    <input type="radio" name="role" id="roleGuru" value="guru">
+                    <label for="roleGuru">Guru</label>
+
+                    <input type="radio" name="role" id="roleAdmin" value="admin">
+                    <label for="roleAdmin">Admin</label>
                 </div>
 
                 <div class="mb-3">
-                    <input type="password" name="password" class="form-control form-control-sm rounded-3"
-                           placeholder="Password" required>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-person"></i></span>
+                        <input type="text" name="username" class="form-control form-control-lg input-with-icon"
+                               placeholder="NIS / NIP / Username" required autofocus>
+                    </div>
                 </div>
 
                 <div class="mb-4">
-                    <select name="role" id="roleSelect" class="form-select form-control-sm rounded-3" required>
-                        <option value="" disabled selected>Pilih role...</option>
-                        <option value="admin">Administrator</option>
-                        <option value="guru">Guru</option>
-                        <option value="siswa">Siswa</option>
-                    </select>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="bi bi-lock"></i></span>
+                        <input type="password" name="password" id="passwordInput" class="form-control form-control-lg input-with-icon"
+                               style="border-right: none; border-top-right-radius: 0; border-bottom-right-radius: 0;"
+                               placeholder="Password" required>
+                        
+                        <span class="input-group-text bg-white" style="border-left: none; border-radius: 0 10px 10px 0; cursor: pointer;" onclick="togglePassword()">
+                            <i class="bi bi-eye-slash" id="toggleIcon"></i>
+                        </span>
+                    </div>
                 </div>
 
-                <button type="submit" id="loginBtn"
-                        class="btn btn-primary btn-sm w-100 rounded-pill fw-bold shadow-sm"
-                        style="height: 42px;">
-                    Masuk
+                <button type="submit" class="btn btn-primary w-100 btn-login shadow-sm">
+                    MASUK SEKARANG <i class="bi bi-arrow-right-short"></i>
                 </button>
+
             </form>
+
+            <div class="text-center mt-4">
+                <small class="text-muted">
+                    &copy; <span id="year"></span> SMAIP Baitussalam.id
+                </small>
+            </div>
         </div>
     </div>
 </div>
 
-<!-- Ganti warna tombol sesuai role -->
 <script>
-document.getElementById('roleSelect').addEventListener('change', function() {
-    const btn = document.getElementById('loginBtn');
-    if (this.value === 'admin') {
-        btn.className = 'btn btn-primary btn-sm w-100 rounded-pill fw-bold shadow-sm';
-    } else if (this.value === 'guru') {
-        btn.className = 'btn btn-success btn-sm w-100 rounded-pill fw-bold shadow-sm';
-    } else if (this.value === 'siswa') {
-        btn.className = 'btn btn-warning btn-sm w-100 rounded-pill fw-bold shadow-sm text-dark';
+    function togglePassword() {
+        const input = document.getElementById('passwordInput');
+        const icon = document.getElementById('toggleIcon');
+        
+        if (input.type === "password") {
+            input.type = "text";
+            icon.classList.remove('bi-eye-slash');
+            icon.classList.add('bi-eye');
+        } else {
+            input.type = "password";
+            icon.classList.remove('bi-eye');
+            icon.classList.add('bi-eye-slash');
+        }
     }
-});
+
+    const radios = document.querySelectorAll('input[name="role"]');
+    const userInput = document.querySelector('input[name="username"]');
+    
+    radios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.value === 'siswa') {
+                userInput.placeholder = 'Masukkan NIS Siswa';
+            } else if (this.value === 'guru') {
+                userInput.placeholder = 'Masukkan NIP Guru';
+            } else {
+                userInput.placeholder = 'Username Admin';
+            }
+        });
+    });
+
+    document.getElementById('year').textContent = new Date().getFullYear();
 </script>
 
 {% endblock %}
