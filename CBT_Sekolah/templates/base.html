@@ -15,11 +15,11 @@
     <style>
         /* Agar Navbar Mobile tidak menutupi konten */
         body { 
-            padding-top: 80px; /* Ditambah sedikit agar lega */
-            background-color: #f4f6f9; /* Background abu muda soft */
+            padding-top: 80px; 
+            background-color: #f4f6f9; 
         }
         
-        /* NAVBAR GRADIENT (Senada dengan Login) */
+        /* NAVBAR GRADIENT */
         .navbar {
             background: linear-gradient(135deg, #0d6efd 0%, #0a58ca 100%) !important;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
@@ -27,7 +27,7 @@
 
         /* LOGO DI NAVBAR */
         .navbar-brand img {
-            height: 40px; /* Ukuran logo pas di navbar */
+            height: 40px; 
             width: auto;
             object-fit: contain;
             filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
@@ -40,7 +40,7 @@
             text-shadow: 0 1px 2px rgba(0,0,0,0.2);
         }
 
-        /* DROPDOWN MENU MOBILE & DESKTOP */
+        /* DROPDOWN MENU */
         .dropdown-menu {
             border: none;
             border-radius: 12px;
@@ -49,7 +49,7 @@
 
         @media (max-width: 991px) {
             .navbar-collapse {
-                background: rgba(255, 255, 255, 0.1); /* Efek kaca transparan */
+                background: rgba(255, 255, 255, 0.1); 
                 backdrop-filter: blur(10px);
                 -webkit-backdrop-filter: blur(10px);
                 padding: 1rem;
@@ -58,7 +58,6 @@
                 border: 1px solid rgba(255,255,255,0.2);
             }
             
-            /* Link di dalam menu mobile */
             .nav-link {
                 color: white !important;
                 padding: 10px 15px !important;
@@ -69,7 +68,6 @@
                 background: rgba(255,255,255,0.2);
             }
 
-            /* Dropdown sub-menu di mobile */
             .dropdown-menu {
                 background: rgba(255,255,255,0.95); 
                 margin-top: 5px;
@@ -147,12 +145,16 @@
 
                 <ul class="navbar-nav ms-auto align-items-lg-center">
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle text-white d-flex align-items-center" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <div class="d-none d-lg-block text-end me-2 lh-sm">
-                                <div class="fw-bold" style="font-size: 0.9rem;">{{ current_user.nama }}</div>
-                                <div style="font-size: 0.75rem; opacity: 0.8;">{{ current_user.role|capitalize }}</div>
+                        <a class="nav-link dropdown-toggle text-white d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            
+                            <div class="d-flex flex-column text-start text-lg-end lh-sm order-2 order-lg-1">
+                                <span class="fw-bold" style="font-size: 0.9rem;">{{ current_user.nama }}</span>
+                                <span style="font-size: 0.75rem; opacity: 0.9;">
+                                    {{ current_user.username }} | {{ current_user.role|capitalize }}
+                                </span>
                             </div>
-                            <i class="bi bi-person-circle fs-3"></i>
+
+                            <i class="bi bi-person-circle fs-3 order-1 order-lg-2"></i>
                         </a>
                         
                         <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
@@ -218,7 +220,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="{{ url_for('static', filename='js/script.js') }}"></script>
 
-
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             const alerts = document.querySelectorAll('.alert');
@@ -228,7 +229,7 @@
                         let bsAlert = new bootstrap.Alert(alert);
                         bsAlert.close();
                     } catch (e) {}
-                }, 4000); // 4 detik
+                }, 4000); 
             });
         });
     </script>
