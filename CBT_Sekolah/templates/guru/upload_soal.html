@@ -4,68 +4,95 @@
 <div class="container mt-4">
     <div class="row justify-content-center">
         <div class="col-lg-8">
-            <div class="card shadow-lg border-0">
 
-                <!-- Tombol Kembali -->
-                <div class="p-3">
-                    <a href="{{ url_for('guru.dashboard') }}" class="btn btn-secondary">
-                        <i class="bi bi-arrow-left"></i> Kembali
+            <div class="card shadow-lg border-0 rounded-3">
+
+                <!-- HEADER seperti modal -->
+                <div class="d-flex justify-content-between align-items-center px-4 py-3"
+                     style="background-color:#0d6efd; border-top-left-radius:8px; border-top-right-radius:8px;">
+                    <h5 class="text-white fw-semibold mb-0">
+                        <i class="bi bi-file-earmark-plus"></i> Buat Ujian Baru — {{ mapel.nama }}
+                    </h5>
+                    <a href="{{ url_for('guru.dashboard') }}" class="text-white fs-4" style="text-decoration:none;">
+                        <i class="bi bi-x-lg"></i>
                     </a>
                 </div>
 
-                <div class="card-header bg-success text-white text-center py-4">
-                    <h3 class="mb-0">Buat Ujian Baru — {{ mapel.nama }}</h3>
-                </div>
+                <!-- BODY -->
+                <div class="card-body p-4">
 
-                <div class="card-body p-5">
-
-                    <div class="alert alert-info">
-                        <strong><i class="bi bi-info-circle"></i> Petunjuk Format PDF:</strong><br>
+                    <div class="alert alert-info border-0 shadow-sm">
+                        <strong><i class="bi bi-info-circle"></i> Petunjuk Format PDF:</strong>
                         <ul class="mb-0 mt-2 small">
                             <li><strong>Pilihan Ganda:</strong> Akhiri soal dengan <code>(Jawaban: A)</code></li>
-                            <li><strong>Opsi Jawaban:</strong> Format PG: <code>A. Isi jawaban...</code></li>
+                            <li><strong>Opsi Jawaban:</strong> Gunakan format <code>A. Isi jawaban...</code></li>
                             <li><strong>Essay:</strong> Akhiri soal dengan <code>(Poin: 20)</code></li>
                         </ul>
                     </div>
 
                     <form method="POST" enctype="multipart/form-data">
 
-                        <div class="row g-4">
+                        <div class="row g-3">
                             <div class="col-md-8">
-                                <label class="form-label fw-bold">Judul Ujian</label>
-                                <input type="text" name="judul" class="form-control" placeholder="Contoh: UTS Semester Ganjil" required>
+                                <label class="form-label fw-semibold">Judul Ujian</label>
+                                <input type="text" name="judul" class="form-control shadow-sm"
+                                       placeholder="Contoh: UTS Semester Ganjil" required>
                             </div>
+
                             <div class="col-md-4">
-                                <label class="form-label fw-bold">Durasi (Menit)</label>
-                                <input type="number" name="durasi" id="durasi" value="90" min="10" max="180" class="form-control" required>
+                                <label class="form-label fw-semibold">Durasi (Menit)</label>
+                                <input type="number" name="durasi" id="durasi"
+                                       value="90" min="10" max="180"
+                                       class="form-control shadow-sm" required>
                             </div>
                         </div>
 
-                        <div class="row g-4 mt-2">
+                        <div class="row g-3 mt-2">
                             <div class="col-md-6">
-                                <label class="form-label fw-bold">Waktu Mulai</label>
-                                <input type="datetime-local" name="waktu_mulai" id="waktu_mulai" class="form-control" required>
+                                <label class="form-label fw-semibold">Waktu Mulai</label>
+                                <input type="datetime-local" name="waktu_mulai" id="waktu_mulai"
+                                       class="form-control shadow-sm" required>
                             </div>
                             <div class="col-md-6">
-                                <label class="form-label fw-bold">Waktu Selesai</label>
-                                <input type="datetime-local" name="waktu_selesai" id="waktu_selesai" class="form-control" required>
+                                <label class="form-label fw-semibold">Waktu Selesai</label>
+                                <input type="datetime-local" name="waktu_selesai" id="waktu_selesai"
+                                       class="form-control shadow-sm" required>
                             </div>
                         </div>
 
-                        <div class="mt-4">
-                            <label class="form-label fw-bold">Upload File Soal (.pdf)</label>
-                            <input type="file" name="file_pdf" accept=".pdf" class="form-control form-control-lg" required>
+                        <!-- Input upload dengan STYLE seperti modal -->
+                        <div class="mt-3">
+                            <label class="form-label fw-semibold">Upload File Soal (.pdf)</label>
+                            <div class="input-group shadow-sm">
+                                <span class="input-group-text bg-primary text-white">
+                                    <i class="bi bi-filetype-pdf"></i>
+                                </span>
+                                <input type="file"
+                                       name="file_pdf"
+                                       accept=".pdf"
+                                       class="form-control"
+                                       required>
+                            </div>
                         </div>
 
-                        <div class="text-center mt-5">
-                            <button type="submit" class="btn btn-success btn-lg px-5 rounded-pill shadow">
-                                <i class="bi bi-cloud-upload"></i> Proses & Simpan Ujian
+                        <!-- FOOTER: tombol seperti modal -->
+                        <div class="d-flex justify-content-end gap-2 mt-4">
+                            <a href="{{ url_for('guru.dashboard') }}"
+                               class="btn btn-secondary px-4 rounded-3">
+                                Batal
+                            </a>
+
+                            <button type="submit"
+                                    class="btn btn-primary px-4 rounded-3">
+                                <i class="bi bi-cloud-upload"></i> Upload & Proses
                             </button>
                         </div>
+
                     </form>
 
                 </div>
             </div>
+
         </div>
     </div>
 </div>
@@ -73,17 +100,11 @@
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const now = new Date();
-
-    // Koreksi timezone agar sesuai zona waktu user
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-
-    // Format ke string: YYYY-MM-DDTHH:MM
     const nowString = now.toISOString().slice(0, 16);
 
-    // Set default Waktu Mulai = SEKARANG
     document.getElementById('waktu_mulai').value = nowString;
 
-    // Set Waktu Selesai = +2 jam
     const future = new Date(now);
     future.setHours(future.getHours() + 2);
     const futureString = future.toISOString().slice(0, 16);
