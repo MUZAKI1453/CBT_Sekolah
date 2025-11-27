@@ -1,0 +1,44 @@
+{% if data_nilai %}
+    {% for n in data_nilai %}
+    <tr>
+        <td class="ps-4">{{ loop.index }}</td>
+        <td>
+            <strong>{{ n.siswa.nama }}</strong><br>
+            <small class="text-muted">{{ n.siswa.username }}</small>
+        </td>
+        <td>
+            <span class="badge bg-info text-dark">
+                {{ n.siswa.kelas.nama_kelas if n.siswa.kelas else 'Tanpa Kelas' }}
+            </span>
+        </td>
+        <td class="text-center">{{ n.nilai_pg }}</td>
+        <td class="text-center text-secondary">{{ n.nilai_essay }}</td>
+        <td class="text-center fw-bold fs-5 text-primary">{{ n.total_nilai }}</td>
+        <td>
+            {% if n.waktu_submit %}
+                {{ n.waktu_submit.strftime('%H:%M') }}<br>
+                <small class="text-muted">{{ n.waktu_submit.strftime('%d/%m') }}</small>
+            {% else %}
+                -
+            {% endif %}
+        </td>
+        <td class="text-center">
+            <div class="btn-group" role="group">
+                <a href="/guru/koreksi/{{ n.id }}" class="btn btn-warning btn-sm" title="Koreksi Jawaban Essay">Koreksi</a>
+
+                <button type="button" class="btn btn-danger btn-sm"
+                        onclick="openReset({{ n.id }}, '{{ n.siswa.nama|escape }}', '{{ (n.siswa.kelas.nama_kelas if n.siswa.kelas else '')|escape }}')"
+                        title="Reset Jawaban">
+                    Reset
+                </button>
+            </div>
+        </td>
+    </tr>
+    {% endfor %}
+{% else %}
+<tr>
+    <td colspan="8" class="text-center py-5 text-muted">
+        Belum ada siswa yang mengerjakan ujian ini.
+    </td>
+</tr>
+{% endif %}

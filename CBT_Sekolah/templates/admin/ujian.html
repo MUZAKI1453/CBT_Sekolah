@@ -1,93 +1,128 @@
 {% extends "base.html" %}
 {% block content %}
+
+<style>
+    /* ==================== TABEL MODERN (SAMA PERSIS) ==================== */
+    .table-modern {
+        border-radius: 10px;
+        overflow: hidden;
+        border: 1px solid #d8e2ef !important;
+    }
+
+    .table-modern thead th {
+        background: #0d6efd !important;
+        color: #fff !important;
+        font-weight: 600;
+        border: none !important;
+        padding: 14px 16px !important;
+    }
+
+    .table-modern tbody tr {
+        transition: 0.15s;
+    }
+
+    .table-modern tbody tr:hover {
+        background: #eef5ff !important;
+    }
+
+    .table-modern td,
+    .table-modern th {
+        padding: 14px 16px !important;
+        vertical-align: middle !important;
+    }
+
+    .badge-modern {
+        background: #0d6efd !important;
+        font-size: 0.85rem;
+        padding: 6px 12px;
+        border-radius: 6px;
+    }
+
+    .card-custom {
+        border: none;
+        border-radius: 12px;
+    }
+
+    /* Responsif HP */
+    @media (max-width: 576px) {
+        .table-modern thead {
+            font-size: 0.875rem;
+        }
+        .table-modern td, .table-modern th {
+            padding: 10px 8px !important;
+            font-size: 0.9rem;
+        }
+    }
+</style>
+
 <div class="container mt-4">
+
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2>Monitoring Seluruh Ujian</h2>
+        <h2 class="fw-bold">Monitoring Seluruh Ujian</h2>
     </div>
 
-    <div class="card shadow">
+    <div class="card shadow-sm card-custom">
         <div class="card-body">
+
+            <h5 class="fw-semibold mb-3">Daftar Ujian</h5>
+
             <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead class="table-dark">
+                <table class="table table-modern align-middle mb-0">
+                    <thead>
                         <tr>
                             <th>Judul Ujian</th>
                             <th>Mapel & Guru</th>
                             <th>Jadwal</th>
                             <th>Status</th>
-                            <th>Aksi</th>
                         </tr>
                     </thead>
+
                     <tbody>
                         {% for u in ujian %}
                         <tr>
                             <td>
                                 <strong>{{ u.judul }}</strong><br>
-                                <small class="text-muted">Durasi: {{ u.durasi_menit }} Menit</small>
+                                <small class="text-muted">Durasi: {{ u.durasi_menit }} menit</small>
                             </td>
+
                             <td>
                                 <span class="fw-bold text-primary">{{ u.mapel.nama }}</span><br>
                                 <small class="text-muted">
-                                    <i class="bi bi-person"></i> 
+                                    <i class="bi bi-person"></i>
                                     {{ u.mapel.guru.nama if u.mapel.guru else 'Tanpa Guru' }}
                                 </small>
                             </td>
+
                             <td>
-                                <small class="d-block fw-bold">{{ u.waktu_mulai.strftime('%d %b %Y') }}</small>
+                                <small class="fw-bold d-block">{{ u.waktu_mulai.strftime('%d %b %Y') }}</small>
                                 <small>{{ u.waktu_mulai.strftime('%H:%M') }} - {{ u.waktu_selesai.strftime('%H:%M') }}</small>
                             </td>
+
                             <td>
                                 {% if datetime.now() < u.waktu_mulai %}
-                                    <span class="badge bg-warning text-dark">Belum Mulai</span>
+                                    <span class="badge badge-modern bg-warning text-dark">Belum Mulai</span>
                                 {% elif datetime.now() <= u.waktu_selesai %}
-                                    <span class="badge bg-success">Sedang Berjalan</span>
+                                    <span class="badge badge-modern bg-success">Sedang Berjalan</span>
                                 {% else %}
-                                    <span class="badge bg-secondary">Selesai</span>
+                                    <span class="badge badge-modern bg-secondary">Selesai</span>
                                 {% endif %}
                             </td>
-                            <td>
-                                <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#hapus{{ u.id }}">
-                                    <i class="bi bi-trash"></i> Hapus
-                                </button>
-                            </td>
                         </tr>
-
-                        <div class="modal fade" id="hapus{{ u.id }}">
-                            <div class="modal-dialog">
-                                <form method="POST">
-                                    <div class="modal-content">
-                                        <div class="modal-header bg-danger text-white">
-                                            <h5>Hapus Ujian?</h5>
-                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                                        </div>
-                                        <div class="modal-body">
-                                            <p>Anda yakin ingin menghapus ujian:</p>
-                                            <p class="fw-bold text-center fs-5">{{ u.judul }}</p>
-                                            <div class="alert alert-warning">
-                                                <i class="bi bi-exclamation-triangle-fill"></i>
-                                                <strong>Perhatian:</strong> Semua nilai siswa dan jawaban yang terkait dengan ujian ini akan ikut terhapus permanen!
-                                            </div>
-                                        </div>
-                                        <div class="modal-footer">
-                                            <input type="hidden" name="ujian_id" value="{{ u.id }}">
-                                            <button type="submit" name="hapus" class="btn btn-danger">Ya, Hapus Permanen</button>
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                        </div>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
                         {% else %}
                         <tr>
-                            <td colspan="5" class="text-center py-4 text-muted">
-                                Belum ada ujian yang dibuat oleh guru.
+                            <td colspan="4" class="text-center py-4 text-muted">
+                                Belum ada ujian yang dibuat.
                             </td>
                         </tr>
                         {% endfor %}
+
                     </tbody>
                 </table>
             </div>
+
         </div>
     </div>
+
 </div>
+
 {% endblock %}

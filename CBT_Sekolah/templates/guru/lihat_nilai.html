@@ -1,27 +1,35 @@
 {% extends "base.html" %}
 {% block content %}
+
+<!-- HTMX -->
+<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
 <div class="container mt-4">
-    
+
+    <!-- HEADER (TIDAK DIREFRESH) -->
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="fw-bold text-primary mb-0">{{ ujian.judul }}</h2>
             <p class="text-muted mb-0">
-                <i class="bi bi-book"></i> {{ ujian.mapel.nama }} &nbsp;|&nbsp; 
-                <i class="bi bi-clock"></i> {{ ujian.waktu_mulai.strftime('%d %b %Y') }}
+                {{ ujian.mapel.nama }} |
+                {{ ujian.waktu_mulai.strftime('%d %b %Y') }}
             </p>
         </div>
         <div>
             <a href="/guru/dashboard" class="btn btn-secondary me-2">
-                <i class="bi bi-arrow-left"></i> Kembali
+                Kembali
             </a>
+
+            <!-- Form download Excel (POST, tidak terganggu HTMX karena tidak direplace) -->
             <form method="POST" class="d-inline">
                 <button type="submit" name="download_excel" class="btn btn-success">
-                    <i class="bi bi-file-earmark-excel"></i> Download Excel
+                    Download Excel
                 </button>
             </form>
         </div>
     </div>
 
+    <!-- TABEL (card tetap statis, hanya tbody yang di-replace oleh HTMX) -->
     <div class="card shadow border-0">
         <div class="card-body p-0">
             <div class="table-responsive">
@@ -35,95 +43,96 @@
                             <th class="py-3 text-center">Nilai Essay</th>
                             <th class="py-3 text-center">Total Akhir</th>
                             <th class="py-3">Waktu Kumpul</th>
-                            <th class="py-3 text-center">Aksi</th> </tr>
+                            <th class="py-3 text-center">Aksi</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        {% if data_nilai %}
-                            {% for n in data_nilai %}
-                            <tr>
-                                <td class="ps-4">{{ loop.index }}</td>
 
-                                <td>
-                                    <strong>{{ n.siswa.nama }}</strong><br>
-                                    <small class="text-muted">{{ n.siswa.username }}</small>
-                                </td>
-
-                                <td>
-                                    <span class="badge bg-info text-dark">
-                                        {{ n.siswa.kelas.nama_kelas if n.siswa.kelas else 'Tanpa Kelas' }}
-                                    </span>
-                                </td>
-
-                                <td class="text-center">{{ n.nilai_pg }}</td>
-
-                                <td class="text-center text-secondary">
-                                    {{ n.nilai_essay }}
-                                </td>
-
-                                <td class="text-center fw-bold fs-5 text-primary">
-                                    {{ n.total_nilai }}
-                                </td>
-
-                                <td>
-                                    {{ n.waktu_submit.strftime('%H:%M') }}<br>
-                                    <small class="text-muted">{{ n.waktu_submit.strftime('%d/%m') }}</small>
-                                </td>
-
-                                <td class="text-center">
-                                    <div class="btn-group" role="group">
-                                        
-                                        <a href="/guru/koreksi/{{ n.id }}" class="btn btn-warning btn-sm" title="Koreksi Jawaban Essay">
-                                            <i class="bi bi-pencil-square"></i>
-                                        </a>
-                                        
-                                        <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#reset{{ n.id }}" title="Reset / Hapus Jawaban">
-                                            <i class="bi bi-arrow-counterclockwise"></i>
-                                        </button>
-                                    </div>
-
-                                    <div class="modal fade text-start" id="reset{{ n.id }}" tabindex="-1">
-                                        <div class="modal-dialog">
-                                            <form action="/guru/reset_peserta/{{ n.id }}" method="POST">
-                                                <div class="modal-content">
-                                                    <div class="modal-header bg-danger text-white">
-                                                        <h5 class="modal-title">Reset Ujian Siswa?</h5>
-                                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                                                    </div>
-                                                    <div class="modal-body">
-                                                        <p>Anda akan menghapus jawaban siswa:</p>
-                                                        <ul class="fw-bold mb-3">
-                                                            <li>Nama: {{ n.siswa.nama }}</li>
-                                                            <li>Kelas: {{ n.siswa.kelas.nama_kelas }}</li>
-                                                        </ul>
-                                                        <div class="alert alert-warning small border-warning">
-                                                            <i class="bi bi-exclamation-triangle-fill me-1"></i>
-                                                            <strong>PERHATIAN:</strong> Data jawaban dan nilai siswa ini akan dihapus permanen. Siswa harus login dan mengerjakan ulang dari awal.
-                                                        </div>
-                                                    </div>
-                                                    <div class="modal-footer">
-                                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                                        <button type="submit" class="btn btn-danger">Ya, Reset Sekarang</button>
-                                                    </div>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        {% else %}
-                            <tr>
-                                <td colspan="8" class="text-center py-5 text-muted">
-                                    <i class="bi bi-people-fill display-4 d-block mb-3"></i>
-                                    Belum ada siswa yang mengerjakan ujian ini.
-                                </td>
-                            </tr>
-                        {% endif %}
+                    <!-- INI YANG DIREFRESH: hanya tbody -->
+                    <tbody id="tbody-nilai"
+                           hx-get="{{ url_for('guru.refresh_tabel_nilai', ujian_id=ujian.id) }}"
+                           hx-trigger="every 10s"
+                           hx-swap="innerHTML">
+                        {% include 'guru/partials/tabel_nilai_body.html' %}
                     </tbody>
+
                 </table>
             </div>
         </div>
     </div>
+
 </div>
+
+<!-- MODAL GLOBAL RESET (di luar table so tidak hilang saat HTMX replace) -->
+<div class="modal fade" id="modalResetGlobal" tabindex="-1">
+  <div class="modal-dialog">
+    <form id="reset-form" method="POST">
+      <div class="modal-content">
+        <div class="modal-header bg-danger text-white">
+          <h5 class="modal-title">Reset Ujian Siswa</h5>
+          <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p>Nama: <b id="reset-nama"></b></p>
+          <p>Kelas: <b id="reset-kelas"></b></p>
+          <div class="alert alert-warning small">
+            PERHATIAN: Jawaban & nilai akan dihapus permanen. Siswa harus mengerjakan ulang.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+          <button type="submit" class="btn btn-danger">Ya, Reset</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Helper JS: buka modal & set action form POST -->
+<script>
+function openReset(id, nama, kelas) {
+    const form = document.getElementById('reset-form');
+    form.action = "/guru/reset_peserta/" + id;
+    document.getElementById('reset-nama').innerText = nama ?? '';
+    document.getElementById('reset-kelas').innerText = kelas ?? '';
+
+    // show bootstrap modal
+    const modalEl = document.getElementById('modalResetGlobal');
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+
+    // Setelah submit modal, kita ingin:
+    // - mencegah page reload (optional), dan
+    // - setelah berhasil (204), trigger reload partial tbody manual agar update cepat.
+    form.onsubmit = function(evt) {
+        evt.preventDefault();
+        fetch(form.action, { method: 'POST', credentials: 'same-origin' })
+        .then(response => {
+            if (response.status === 204) {
+                // Tutup modal
+                modal.hide();
+                // Trigger HTMX refresh manual: swap in new tbody
+                // kita bisa memanggil htmx.trigger
+                if (window.htmx) {
+                    htmx.trigger(document.getElementById('tbody-nilai'), 'refresh');
+                } else {
+                    // fallback: reload partial via fetch then replace innerHTML
+                    fetch("{{ url_for('guru.refresh_tabel_nilai', ujian_id=ujian.id) }}")
+                    .then(r => r.text()).then(html => {
+                        document.getElementById('tbody-nilai').innerHTML = html;
+                    });
+                }
+            } else {
+                // jika error, reload halaman agar flash message muncul
+                location.reload();
+            }
+        })
+        .catch(err => {
+            console.error(err);
+            location.reload();
+        });
+        return false;
+    };
+}
+</script>
+
 {% endblock %}

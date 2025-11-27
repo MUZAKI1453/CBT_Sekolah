@@ -3,13 +3,22 @@ from flask_login import LoginManager, login_required, logout_user, login_user
 from config import Config
 from models import db, User
 from werkzeug.security import generate_password_hash, check_password_hash
+from sqlalchemy import event  # TAMBAHKAN INI
 
 app = Flask(__name__)
 app.config.from_object(Config)
 db.init_app(app)
 
+# === AKTIFKAN FOREIGN KEYS DI SQLITE (HARUS DI DALAM app_context!) ===
+with app.app_context():
+    @event.listens_for(db.engine, "connect")
+    def set_sqlite_pragma(dbapi_connection, connection_record):
+        cursor = dbapi_connection.cursor()
+        cursor.execute("PRAGMA foreign_keys = ON")
+        cursor.close()
+
 login_manager = LoginManager(app)
-login_manager.login_view = 'index'  # sekarang login di halaman utama
+login_manager.login_view = 'index'
 login_manager.login_message = 'Silakan login terlebih dahulu.'
 login_manager.login_message_category = 'info'
 
@@ -39,14 +48,12 @@ def login_unified():
     password = request.form['password']
     role = request.form['role']
 
-    # Cek user sesuai username + role
     user = User.query.filter_by(username=username, role=role).first()
 
     if user and check_password_hash(user.password, password):
         login_user(user)
         flash(f'Selamat datang, {user.nama or user.username}!', 'success')
 
-        # Redirect sesuai role
         if role == 'admin':
             return redirect('/admin/dashboard')
         elif role == 'guru':

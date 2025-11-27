@@ -12,6 +12,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 bp = Blueprint('admin', __name__)
 
+
 # ==================== DASHBOARD ====================
 @bp.route('/dashboard')
 @login_required
@@ -21,7 +22,7 @@ def dashboard():
 
     total_kelas = Kelas.query.count()
     total_siswa = User.query.filter_by(role='siswa').count()
-    total_guru  = User.query.filter_by(role='guru').count()
+    total_guru = User.query.filter_by(role='guru').count()
     total_mapel = Mapel.query.count()
 
     return render_template('admin/dashboard.html',
@@ -235,12 +236,13 @@ def kelola_siswa():
     # Gunakan 'kelas_list' untuk konsistensi
     return render_template('admin/kelola_siswa.html', siswa=siswa, kelas=kelas_list)
 
+
 # ==================== KELOLA GURU (UPDATED) ====================
 @bp.route('/kelola_guru', methods=['GET', 'POST'])
 @login_required
 def kelola_guru():
     if current_user.role != 'admin': return redirect('/')
-    
+
     if request.method == 'POST':
         # --- FITUR BARU: IMPORT EXCEL ---
         if 'import_guru' in request.form:
@@ -259,7 +261,7 @@ def kelola_guru():
                         if User.query.filter_by(username=nip).first():
                             skip += 1
                             continue
-                        
+
                         # Tambah Guru (Password Default = NIP)
                         db.session.add(User(
                             username=nip,
@@ -268,10 +270,10 @@ def kelola_guru():
                             nama=nama
                         ))
                         berhasil += 1
-                    
+
                     db.session.commit()
                     flash(f'Import Guru Selesai! Berhasil: {berhasil}, Skip (Duplikat): {skip}', 'info')
-                
+
                 except Exception as e:
                     flash(f'Gagal memproses file: {str(e)}', 'danger')
 
@@ -311,6 +313,7 @@ def kelola_guru():
     guru = User.query.filter_by(role='guru').all()
     return render_template('admin/kelola_guru.html', guru=guru)
 
+
 # ==================== KELOLA MATA PELAJARAN ====================
 @bp.route('/kelola_mapel', methods=['GET', 'POST'])
 @login_required
@@ -340,6 +343,7 @@ def kelola_mapel():
             flash('Mapel berhasil dihapus!', 'success')
     mapel = Mapel.query.all()
     return render_template('admin/kelola_mapel.html', mapel=mapel, guru_list=guru_list)
+
 
 # ==================== MONITORING UJIAN ====================
 @bp.route('/ujian', methods=['GET', 'POST'])

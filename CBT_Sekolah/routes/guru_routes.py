@@ -11,17 +11,18 @@ import io
 
 bp = Blueprint('guru', __name__)
 
+
 # ==================== DASHBOARD GURU ====================
 @bp.route('/dashboard')
 @login_required
 def dashboard():
     if current_user.role != 'guru':
         return redirect('/')
-    
+
     mapel = Mapel.query.filter_by(guru_id=current_user.id).all()
     # Mengambil semua ujian dari mapel yang diajar guru ini
     ujian = Ujian.query.join(Mapel).filter(Mapel.guru_id == current_user.id).order_by(Ujian.waktu_mulai.desc()).all()
-    
+
     # PERBAIKAN: Kirim parameter 'datetime' agar tidak error di HTML
     return render_template('guru/dashboard.html', mapel=mapel, ujian=ujian, datetime=datetime)
 
@@ -44,8 +45,8 @@ def upload_soal(mapel_id):
         judul = request.form['judul'].strip()
         waktu_mulai = request.form['waktu_mulai']
         waktu_selesai = request.form['waktu_selesai']
-        durasi_input = int(request.form['durasi']) # Ambil durasi manual
-        file = request.files.get('file_pdf') # Pastikan name di HTML adalah 'file_pdf'
+        durasi_input = int(request.form['durasi'])  # Ambil durasi manual
+        file = request.files.get('file_pdf')  # Pastikan name di HTML adalah 'file_pdf'
 
         # Validasi dasar
         if not judul or not waktu_mulai or not waktu_selesai or not file:
@@ -66,7 +67,7 @@ def upload_soal(mapel_id):
         # --- MULAI PROSES PARSING PDF ---
         pg_list = []
         essay_list = []
-        
+
         try:
             full_text = ""
             with pdfplumber.open(file) as pdf:
@@ -79,17 +80,17 @@ def upload_soal(mapel_id):
             lines = [line.strip() for line in full_text.split('\n') if line.strip()]
 
             current_soal = None
-            
+
             # Regex Patterns
-            pola_nomor = re.compile(r'^\d+\.\s+(.*)')          # Contoh: "1. Soal..."
-            pola_opsi = re.compile(r'^([A-E])\.\s+(.*)')        # Contoh: "A. Jawaban..."
-            pola_kunci = re.compile(r'\(Jawaban:\s*([A-E])\)', re.IGNORECASE) # Contoh: (Jawaban: A)
-            pola_bobot = re.compile(r'\(Poin:\s*(\d+)\)', re.IGNORECASE)      # Contoh: (Poin: 20)
+            pola_nomor = re.compile(r'^\d+\.\s+(.*)')  # Contoh: "1. Soal..."
+            pola_opsi = re.compile(r'^([A-E])\.\s+(.*)')  # Contoh: "A. Jawaban..."
+            pola_kunci = re.compile(r'\(Jawaban:\s*([A-E])\)', re.IGNORECASE)  # Contoh: (Jawaban: A)
+            pola_bobot = re.compile(r'\(Poin:\s*(\d+)\)', re.IGNORECASE)  # Contoh: (Poin: 20)
 
             for line in lines:
                 # Cek apakah ini awal nomor soal baru?
                 match_nomor = pola_nomor.match(line)
-                
+
                 if match_nomor:
                     # Simpan soal sebelumnya jika ada
                     if current_soal:
@@ -99,8 +100,8 @@ def upload_soal(mapel_id):
                             essay_list.append(current_soal['data'])
 
                     # Inisialisasi soal baru
-                    isi_soal = match_nomor.group(1) 
-                    
+                    isi_soal = match_nomor.group(1)
+
                     cek_kunci = pola_kunci.search(isi_soal)
                     cek_bobot = pola_bobot.search(isi_soal)
 
@@ -108,7 +109,7 @@ def upload_soal(mapel_id):
                         # Tipe PG
                         kunci_jawaban = cek_kunci.group(1).upper()
                         soal_bersih = pola_kunci.sub('', isi_soal).strip()
-                        
+
                         current_soal = {
                             'tipe': 'pg',
                             'data': {
@@ -117,12 +118,12 @@ def upload_soal(mapel_id):
                                 'kunci': kunci_jawaban
                             }
                         }
-                    
+
                     elif cek_bobot:
                         # Tipe Essay
                         bobot_nilai = int(cek_bobot.group(1))
                         soal_bersih = pola_bobot.sub('', isi_soal).strip()
-                        
+
                         current_soal = {
                             'tipe': 'essay',
                             'data': {
@@ -136,18 +137,18 @@ def upload_soal(mapel_id):
                             current_soal['data']['soal'] += " " + line
                         else:
                             current_soal = None
-                
+
                 # Cek apakah ini Opsi A-E (Hanya untuk PG)
                 elif current_soal and current_soal['tipe'] == 'pg':
                     match_opsi = pola_opsi.match(line)
                     if match_opsi:
-                        opt_label = match_opsi.group(1).lower() # a, b, c, d, e
+                        opt_label = match_opsi.group(1).lower()  # a, b, c, d, e
                         opt_text = match_opsi.group(2)
                         current_soal['data'][opt_label] = opt_text
                     else:
                         # Bukan opsi, berarti lanjutan teks soal
                         current_soal['data']['soal'] += " " + line
-                
+
                 # Jika Essay, semua baris berikutnya adalah lanjutan soal
                 elif current_soal and current_soal['tipe'] == 'essay':
                     current_soal['data']['soal'] += " " + line
@@ -176,7 +177,7 @@ def upload_soal(mapel_id):
             )
             db.session.add(ujian)
             db.session.commit()
-            
+
             flash(f'Berhasil! {len(pg_list)} Soal PG dan {len(essay_list)} Soal Essay tersimpan.', 'success')
             return redirect('/guru/dashboard')
 
@@ -186,6 +187,7 @@ def upload_soal(mapel_id):
 
     return render_template('guru/upload_soal.html', mapel=mapel)
 
+
 # ==================== EDIT UJIAN (MANUAL + UPLOAD) ====================
 @bp.route('/edit_ujian/<int:ujian_id>', methods=['GET', 'POST'])
 @login_required
@@ -194,7 +196,7 @@ def edit_ujian(ujian_id):
         return redirect('/')
 
     ujian = Ujian.query.get_or_404(ujian_id)
-    
+
     # Validasi: Pastikan guru ini pemilik mapel
     if ujian.mapel.guru_id != current_user.id:
         flash('Akses ditolak!', 'danger')
@@ -212,7 +214,7 @@ def edit_ujian(ujian_id):
         # 1. Update Metadata (Judul, Waktu, Durasi)
         ujian.judul = request.form['judul'].strip()
         ujian.durasi_menit = int(request.form['durasi'])
-        
+
         try:
             # Format datetime-local HTML: 'YYYY-MM-DDTHH:MM'
             ujian.waktu_mulai = datetime.strptime(request.form['waktu_mulai'], '%Y-%m-%dT%H:%M')
@@ -223,7 +225,7 @@ def edit_ujian(ujian_id):
 
         # 2. LOGIKA GANDA: Cek apakah ada file PDF baru?
         file = request.files.get('file_pdf')
-        
+
         # --- A. JIKA ADA FILE PDF BARU DIUPLOAD (TIMPA SEMUA) ---
         if file and file.filename != '':
             if not file.filename.lower().endswith('.pdf'):
@@ -240,11 +242,11 @@ def edit_ujian(ujian_id):
                             full_text += extracted + "\n"
 
                 lines = [line.strip() for line in full_text.split('\n') if line.strip()]
-                
+
                 new_pg_list = []
                 new_essay_list = []
                 current_soal = None
-                
+
                 # Regex Patterns
                 pola_nomor = re.compile(r'^\d+\.\s+(.*)')
                 pola_opsi = re.compile(r'^([A-E])\.\s+(.*)')
@@ -290,14 +292,14 @@ def edit_ujian(ujian_id):
                                 current_soal['data']['soal'] += " " + line
                             else:
                                 current_soal = None
-                    
+
                     elif current_soal and current_soal['tipe'] == 'pg':
                         match_opsi = pola_opsi.match(line)
                         if match_opsi:
                             current_soal['data'][match_opsi.group(1).lower()] = match_opsi.group(2)
                         else:
                             current_soal['data']['soal'] += " " + line
-                    
+
                     elif current_soal and current_soal['tipe'] == 'essay':
                         current_soal['data']['soal'] += " " + line
 
@@ -338,7 +340,7 @@ def edit_ujian(ujian_id):
                 if soal_pg[i].strip():
                     manual_pg_list.append({
                         'soal': soal_pg[i],
-                        'a': opt_a[i], 'b': opt_b[i], 'c': opt_c[i], 
+                        'a': opt_a[i], 'b': opt_b[i], 'c': opt_c[i],
                         'd': opt_d[i], 'e': opt_e[i],
                         'kunci': kunci[i]
                     })
@@ -365,9 +367,9 @@ def edit_ujian(ujian_id):
         return redirect('/guru/dashboard')
 
     # Render Template (GET Request)
-    return render_template('guru/edit_ujian.html', 
-                           ujian=ujian, 
-                           pg_list=pg_existing, 
+    return render_template('guru/edit_ujian.html',
+                           ujian=ujian,
+                           pg_list=pg_existing,
                            essay_list=essay_existing)
 
 
@@ -375,17 +377,19 @@ def edit_ujian(ujian_id):
 @bp.route('/hapus_ujian/<int:ujian_id>', methods=['POST'])
 @login_required
 def hapus_ujian(ujian_id):
-    if current_user.role != 'guru': return redirect('/')
-    
+    if current_user.role != 'guru':
+        return redirect('/')
+
     ujian = Ujian.query.get_or_404(ujian_id)
     if ujian.mapel.guru_id != current_user.id:
         flash('Akses ditolak!', 'danger')
-    else:
-        db.session.delete(ujian)
-        db.session.commit()
-        flash('Ujian berhasil dihapus!', 'success')
-        
+        return redirect('/guru/dashboard')
+
+    db.session.delete(ujian)
+    db.session.commit()
+    flash('Ujian berhasil dihapus!', 'success')
     return redirect('/guru/dashboard')
+
 
 # ==================== PREVIEW UJIAN (FITUR BARU) ====================
 @bp.route('/preview/<int:ujian_id>')
@@ -393,9 +397,9 @@ def hapus_ujian(ujian_id):
 def preview(ujian_id):
     if current_user.role != 'guru':
         return redirect('/')
-    
+
     ujian = Ujian.query.get_or_404(ujian_id)
-    
+
     # Pastikan guru hanya melihat ujian mapelnya sendiri
     if ujian.mapel.guru_id != current_user.id:
         flash('Akses ditolak!', 'danger')
@@ -407,16 +411,17 @@ def preview(ujian_id):
 
     return render_template('guru/preview_ujian.html', ujian=ujian, pg=pg, essay=essay)
 
+
 # ==================== KOREKSI ESSAY ====================
 @bp.route('/koreksi/<int:jawaban_id>', methods=['GET', 'POST'])
 @login_required
 def koreksi(jawaban_id):
     if current_user.role != 'guru': return redirect('/')
-    
+
     # Ambil data jawaban siswa
     jawaban_siswa = JawabanSiswa.query.get_or_404(jawaban_id)
     ujian = jawaban_siswa.ujian
-    
+
     # Validasi Hak Akses
     if ujian.mapel.guru_id != current_user.id:
         flash('Akses ditolak!', 'danger')
@@ -428,7 +433,7 @@ def koreksi(jawaban_id):
 
     if request.method == 'POST':
         total_skor_essay = 0
-        
+
         # Loop setiap soal untuk ambil input nilai dari guru
         for i, soal in enumerate(soal_essay):
             input_name = f'nilai_{i}'
@@ -439,21 +444,22 @@ def koreksi(jawaban_id):
                 # Opsional: Batasi agar tidak melebihi bobot (skor > soal['bobot'])
             except:
                 skor = 0
-            
+
             total_skor_essay += skor
-        
+
         # Update Database
         jawaban_siswa.nilai_essay = total_skor_essay
         jawaban_siswa.total_nilai = jawaban_siswa.nilai_pg + total_skor_essay
-        
+
         db.session.commit()
         flash(f'Nilai berhasil disimpan! Total Essay: {total_skor_essay}', 'success')
         return redirect(url_for('guru.lihat_nilai', ujian_id=ujian.id))
 
-    return render_template('guru/koreksi.html', 
-                           jawaban=jawaban_siswa, 
-                           soal_essay=soal_essay, 
+    return render_template('guru/koreksi.html',
+                           jawaban=jawaban_siswa,
+                           soal_essay=soal_essay,
                            jawab_essay=jawab_essay)
+
 
 # ==================== LIHAT NILAI & EXPORT EXCEL ====================
 @bp.route('/lihat_nilai/<int:ujian_id>', methods=['GET', 'POST'])
@@ -463,7 +469,6 @@ def lihat_nilai(ujian_id):
         return redirect('/')
 
     ujian = Ujian.query.get_or_404(ujian_id)
-    
     # Validasi kepemilikan
     if ujian.mapel.guru_id != current_user.id:
         flash('Anda tidak memiliki akses ke data ini!', 'danger')
@@ -472,20 +477,18 @@ def lihat_nilai(ujian_id):
     # Ambil semua jawaban siswa untuk ujian ini
     data_nilai = JawabanSiswa.query.filter_by(ujian_id=ujian_id).all()
 
-    # Urutkan berdasarkan Kelas, lalu Nama Siswa (Python Sorting)
-    # Lambda ini menangani jika siswa/kelas ada yang kosong agar tidak error
+    # Urutkan berdasarkan Kelas, lalu Nama Siswa (aman terhadap None)
     data_nilai.sort(key=lambda x: (
-        x.siswa.kelas.nama_kelas if x.siswa and x.siswa.kelas else "", 
+        x.siswa.kelas.nama_kelas if x.siswa and x.siswa.kelas else "",
         x.siswa.nama if x.siswa else ""
     ))
 
-    # --- FITUR TAMBAHAN: DOWNLOAD EXCEL ---
-    if request.method == 'POST' and 'download_excel' in request.form:
+    # DOWNLOAD EXCEL (POST dari form pada header, tetap bekerja)
+    if request.method == 'POST' and request.form.get('download_excel'):
         if not data_nilai:
             flash('Belum ada siswa yang mengerjakan.', 'warning')
             return redirect(request.url)
-            
-        # Siapkan data untuk Pandas
+
         list_data = []
         for j in data_nilai:
             list_data.append({
@@ -495,17 +498,16 @@ def lihat_nilai(ujian_id):
                 'Nilai PG': j.nilai_pg,
                 'Nilai Essay': j.nilai_essay,
                 'Total Nilai': j.total_nilai,
-                'Waktu Submit': j.waktu_submit.strftime('%Y-%m-%d %H:%M')
+                'Waktu Submit': j.waktu_submit.strftime('%Y-%m-%d %H:%M') if j.waktu_submit else '-'
             })
-        
-        df = pd.read_json(json.dumps(list_data)) # Trik convert list dict ke DF aman
-        
-        # Buat file Excel di memori (tanpa simpan ke disk)
+
+        df = pd.DataFrame(list_data)
+
         output = io.BytesIO()
         with pd.ExcelWriter(output, engine='openpyxl') as writer:
             df.to_excel(writer, index=False, sheet_name='Nilai Ujian')
         output.seek(0)
-        
+
         return send_file(
             output,
             as_attachment=True,
@@ -513,30 +515,52 @@ def lihat_nilai(ujian_id):
             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
         )
 
+    # Render halaman utama (header + tabel). Tbody akan include partial.
     return render_template('guru/lihat_nilai.html', ujian=ujian, data_nilai=data_nilai)
+
+
+# ----------------------------------------------------------------
+# Partial HTMX: hanya mengembalikan <tbody> tabel nilai
+# Dipanggil oleh HTMX setiap X detik
+# ----------------------------------------------------------------
+@bp.route('/refresh_tabel_nilai/<int:ujian_id>')
+@login_required
+def refresh_tabel_nilai(ujian_id):
+    if current_user.role != 'guru':
+        return ('', 403)
+
+    ujian = Ujian.query.get_or_404(ujian_id)
+    if ujian.mapel.guru_id != current_user.id:
+        return ('', 403)
+
+    data_nilai = JawabanSiswa.query.filter_by(ujian_id=ujian_id).all()
+    data_nilai.sort(key=lambda x: (
+        x.siswa.kelas.nama_kelas if x.siswa and x.siswa.kelas else "",
+        x.siswa.nama if x.siswa else ""
+    ))
+
+    # Render partial (hanya isi tbody)
+    return render_template('guru/partials/tabel_nilai_body.html', data_nilai=data_nilai)
+
 
 # ==================== RESET PESERTA (RESET LOGIN) ====================
 @bp.route('/reset_peserta/<int:jawaban_id>', methods=['POST'])
 @login_required
 def reset_peserta(jawaban_id):
-    if current_user.role != 'guru': return redirect('/')
-    
-    # Cari data jawaban siswa tersebut
+    if current_user.role != 'guru':
+        return ('', 403)
+
     jawaban = JawabanSiswa.query.get_or_404(jawaban_id)
     ujian = jawaban.ujian
-    
-    # Validasi: Pastikan guru ini pemilik ujian
     if ujian.mapel.guru_id != current_user.id:
         flash('Akses ditolak!', 'danger')
-        return redirect('/guru/dashboard')
+        return ('', 403)
 
-    # Hapus data jawaban (Reset)
-    nama_siswa = jawaban.siswa.nama # Simpan nama dulu buat flash message
     db.session.delete(jawaban)
     db.session.commit()
-    
-    flash(f'Status ujian siswa atas nama "{nama_siswa}" berhasil di-reset. Siswa bisa login dan mengerjakan ulang.', 'warning')
-    return redirect(url_for('guru.lihat_nilai', ujian_id=ujian.id))
+    # HTMX akan mereset tabel dengan memanggil partial otomatis jika Anda set behavior JS.
+    return ('', 204)
+
 
 # ==================== GANTI PASSWORD (BARU) ====================
 @bp.route('/ganti_password', methods=['GET', 'POST'])
@@ -552,15 +576,15 @@ def ganti_password():
         # 1. Validasi Password Lama
         if not check_password_hash(current_user.password, old_pass):
             flash('Password lama salah!', 'danger')
-        
+
         # 2. Validasi Konfirmasi
         elif new_pass != confirm_pass:
             flash('Konfirmasi password baru tidak cocok!', 'warning')
-        
+
         # 3. Validasi Panjang
         elif len(new_pass) < 6:
             flash('Password baru minimal 6 karakter!', 'warning')
-        
+
         else:
             # 4. Simpan
             current_user.password = generate_password_hash(new_pass)

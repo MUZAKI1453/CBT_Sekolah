@@ -1,18 +1,133 @@
 {% extends "base.html" %}
 {% block content %}
-<h2 class="mt-4">Selamat Datang, {{ current_user.nama }}</h2>
-<h4>Ujian yang Tersedia:</h4>
-<div class="row">
-    {% for u in ujian %}
-    <div class="col-md-6 mb-3">
-        <div class="card shadow">
-            <div class="card-body">
-                <h5>{{ u.judul }}</h5>
-                <p>Waktu: {{ u.waktu_mulai.strftime('%d/%m/%Y %H:%M') }} - {{ u.waktu_selesai.strftime('%H:%M') }}</p>
-                <a href="/siswa/ujian/{{ u.id }}" class="btn btn-primary">Kerjakan Ujian</a>
+
+<style>
+    /* ===== ROOT COLORS (serasi dengan navbar biru) ===== */
+    :root {
+        --primary: #0d6efd;
+        --primary-light: #e8f0ff;
+        --text-title: #1c1c1c;
+        --text-sub: #6c757d;
+        --radius: 14px;
+    }
+
+    /* ===== PAGE WRAPPER ===== */
+    .dashboard-container {
+        max-width: 1080px;
+        margin: auto;
+        padding: 28px 18px;
+    }
+
+    /* ===== HEADER ===== */
+    .dashboard-header h2 {
+        font-size: 30px;
+        font-weight: 700;
+        color: var(--text-title);
+        margin-bottom: 8px;
+    }
+
+    .dashboard-header p {
+        font-size: 17px;
+        color: var(--text-sub);
+        margin-bottom: 28px;
+    }
+
+    /* ===== CARD UJIAN ===== */
+    .exam-card {
+        background: white;
+        border-radius: var(--radius);
+        border: 1px solid #e9ecef;
+        padding: 22px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+        transition: 0.2s ease;
+        height: 100%;
+    }
+
+    .exam-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 7px 22px rgba(0,0,0,0.08);
+    }
+
+    .exam-title {
+        font-size: 19px;
+        font-weight: 700;
+        color: var(--text-title);
+    }
+
+    .exam-info {
+        font-size: 15px;
+        color: var(--text-sub);
+        margin-top: 6px;
+    }
+
+    .exam-btn {
+        margin-top: 18px;
+        padding: 11px 18px;
+        border-radius: 10px;
+        background: var(--primary);
+        color: white;
+        font-size: 15px;
+        font-weight: 600;
+        border: none;
+        display: inline-block;
+        transition: 0.15s ease;
+        width: 100%;
+        text-align: center;
+    }
+
+    .exam-btn:hover {
+        background: #0b5ed7;
+    }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+        .dashboard-header h2 {
+            font-size: 24px;
+        }
+
+        .exam-card {
+            padding: 18px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .dashboard-container {
+            padding: 22px 14px;
+        }
+
+        .exam-btn {
+            font-size: 14px;
+            padding: 10px 14px;
+        }
+    }
+</style>
+
+<div class="dashboard-container">
+
+    <!-- HEADER -->
+    <div class="dashboard-header">
+        <h2>Selamat Datang, {{ current_user.nama }}</h2>
+        <p>Ujian yang Tersedia:</p>
+    </div>
+
+    <!-- LIST UJIAN -->
+    <div class="row g-4">
+        {% for u in ujian %}
+        <div class="col-lg-6 col-md-6 col-sm-12">
+            <div class="exam-card">
+                <div class="exam-title">{{ u.judul }}</div>
+
+                <div class="exam-info">
+                    📅 {{ u.waktu_mulai.strftime('%d/%m/%Y %H:%M') }}
+                    — {{ u.waktu_selesai.strftime('%H:%M') }}
+                </div>
+
+                <a href="/siswa/ujian/{{ u.id }}" class="exam-btn">Kerjakan Ujian</a>
             </div>
         </div>
+        {% endfor %}
     </div>
-    {% endfor %}
+
 </div>
+
 {% endblock %}

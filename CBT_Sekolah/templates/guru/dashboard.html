@@ -1,33 +1,146 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="container mt-4">
+<style>
+    /* COLORS */
+    :root {
+        --primary: #0d6efd;
+        --primary-light: #eaf2ff;
+        --text-title: #1c1c1c;
+        --text-sub: #6c757d;
+        --radius: 14px;
+    }
 
-    <!-- Selamat Datang -->
-    <div class="text-center mb-5">
-        <h1 class="display-6 fw-bold text-success">
-            Selamat Datang, Guru {{ current_user.nama }}
-        </h1>
-        <p class="lead text-muted">Kelola ujian mata pelajaran Anda</p>
+    /* PAGE */
+    .dashboard-wrapper {
+        max-width: 1200px;
+        margin: auto;
+        padding: 30px 20px;
+    }
+
+    /* HEADER */
+    .dashboard-header h1 {
+        font-size: 32px;
+        font-weight: 700;
+        color: var(--text-title);
+    }
+    .dashboard-header p {
+        color: var(--text-sub);
+        margin-bottom: 34px;
+    }
+
+    /* CARD MAPEL */
+    .mapel-card {
+        background: white;
+        border-radius: var(--radius);
+        border: 1px solid #e9ecef;
+        padding: 24px;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+        transition: .2s ease;
+        height: 100%;
+        text-align: center;
+    }
+    .mapel-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 8px 22px rgba(0,0,0,0.08);
+    }
+    .mapel-title {
+        font-weight: 700;
+        font-size: 20px;
+        color: var(--text-title);
+    }
+    .mapel-icon {
+        font-size: 45px;
+        color: var(--primary);
+        margin-bottom: 14px;
+    }
+
+    /* UPLOAD BTN */
+    .mapel-btn {
+        margin-top: 18px;
+        padding: 10px 18px;
+        background: var(--primary);
+        color: white;
+        border: none;
+        width: 100%;
+        border-radius: 10px;
+        font-size: 15px;
+        font-weight: 600;
+        transition: 0.15s;
+    }
+    .mapel-btn:hover {
+        background: #0b5ed7;
+    }
+
+    /* TABLE */
+    .exam-table {
+        border-radius: var(--radius);
+        overflow: hidden;
+        box-shadow: 0 4px 14px rgba(0,0,0,0.05);
+    }
+
+    .exam-table thead {
+        background: var(--primary-light);
+    }
+
+    .exam-table th {
+        font-weight: 600;
+        color: var(--text-title);
+        padding: 14px;
+    }
+
+    .exam-table td {
+        padding: 14px;
+        vertical-align: middle;
+    }
+
+    /* MOBILE BTN STYLE */
+    .btn-sm {
+        border-radius: 8px !important;
+        padding: 6px 10px !important;
+    }
+
+    /* MOBILE RESPONSIVE */
+    @media (max-width: 768px) {
+        .dashboard-header h1 {
+            font-size: 26px;
+        }
+        .mapel-card {
+            padding: 20px;
+        }
+        .mapel-btn {
+            font-size: 14px;
+        }
+        .exam-table td, .exam-table th {
+            font-size: 14px;
+            padding: 10px;
+        }
+    }
+</style>
+
+<div class="dashboard-wrapper">
+
+    <!-- HEADER -->
+    <div class="dashboard-header text-center">
+        <h1>Selamat Datang, {{ current_user.nama }}</h1>
+        <p>Kelola mata pelajaran & ujian Anda di sini</p>
     </div>
 
-    <!-- Daftar Mapel yang Diajar -->
+    <!-- SECTION: MAPEL -->
     {% if mapel %}
-    <h4 class="mb-4 text-primary">
-        Mata Pelajaran yang Anda Ajar
-    </h4>
+    <h4 class="mb-3 fw-bold text-primary">Mata Pelajaran yang Anda Ajar</h4>
+
     <div class="row g-4 mb-5">
         {% for m in mapel %}
-        <div class="col-md-6 col-lg-4">
-            <div class="card shadow-sm border-0 h-100 hover-card">
-                <div class="card-body text-center p-4">
-                    <i class="bi bi-book fs-1 text-primary mb-3"></i>
-                    <h5 class="fw-bold">{{ m.nama }}</h5>
-                    <p class="text-muted small mb-3">Mata Pelajaran</p>
-                    <a href="/guru/upload_soal/{{ m.id }}" class="btn btn-success rounded-pill px-4">
-                        Upload Soal Baru
-                    </a>
-                </div>
+        <div class="col-lg-4 col-md-6 col-sm-12">
+            <div class="mapel-card">
+                <div class="mapel-icon"><i class="bi bi-book"></i></div>
+                <div class="mapel-title">{{ m.nama }}</div>
+                <div class="text-muted small mb-3">Mata Pelajaran</div>
+
+                <a href="/guru/upload_soal/{{ m.id }}" class="mapel-btn">
+                    Upload Soal Baru
+                </a>
             </div>
         </div>
         {% endfor %}
@@ -39,22 +152,22 @@
     </div>
     {% endif %}
 
-    <!-- Daftar Ujian yang Sudah Dibuat -->
+    <!-- SECTION: UJIAN -->
     {% if ujian %}
-    <h4 class="mb-4 text-primary">
-        Ujian yang Sudah Dibuat
-    </h4>
-    <div class="table-responsive">
+    <h4 class="mb-3 fw-bold text-primary">Ujian yang Sudah Dibuat</h4>
+
+    <div class="table-responsive exam-table">
         <table class="table table-hover align-middle">
-            <thead class="table-primary">
+            <thead>
                 <tr>
                     <th>Judul Ujian</th>
                     <th>Mapel</th>
-                    <th>Waktu Pelaksanaan</th>
+                    <th>Jadwal</th>
                     <th>Status</th>
                     <th>Aksi</th>
                 </tr>
             </thead>
+
             <tbody>
                 {% for u in ujian %}
                 <tr>
@@ -64,6 +177,7 @@
                         <small>{{ u.waktu_mulai.strftime('%d %b %Y') }}</small><br>
                         <small class="text-muted">{{ u.waktu_mulai.strftime('%H:%M') }} - {{ u.waktu_selesai.strftime('%H:%M') }}</small>
                     </td>
+
                     <td>
                         {% if datetime.now() < u.waktu_mulai %}
                             <span class="badge bg-warning">Belum Dimulai</span>
@@ -73,62 +187,60 @@
                             <span class="badge bg-secondary">Selesai</span>
                         {% endif %}
                     </td>
+
                     <td class="text-nowrap">
+
+                        <!-- Preview -->
                         <a href="/guru/preview/{{ u.id }}" class="btn btn-warning btn-sm" title="Lihat Soal">
                             <i class="bi bi-eye"></i>
                         </a>
 
+                        <!-- Edit -->
                         <a href="/guru/edit_ujian/{{ u.id }}" class="btn btn-primary btn-sm" title="Edit Ujian">
                             <i class="bi bi-pencil-square"></i>
                         </a>
 
+                        <!-- Nilai -->
                         <a href="/guru/lihat_nilai/{{ u.id }}" class="btn btn-info btn-sm" title="Lihat Nilai">
                             <i class="bi bi-bar-chart-line"></i>
                         </a>
 
-                        <button type="button" class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#hapusUjian{{ u.id }}" title="Hapus">
+                        <!-- Hapus -->
+                        <button class="btn btn-danger btn-sm" data-bs-toggle="modal" data-bs-target="#hapusUjian{{ u.id }}" title="Hapus">
                             <i class="bi bi-trash"></i>
                         </button>
 
-                        <div class="modal fade" id="hapusUjian{{ u.id }}" tabindex="-1">
+                        <!-- MODAL -->
+                        <div class="modal fade" id="hapusUjian{{ u.id }}">
                             <div class="modal-dialog">
                                 <form action="/guru/hapus_ujian/{{ u.id }}" method="POST">
                                     <div class="modal-content">
                                         <div class="modal-header bg-danger text-white">
                                             <h5 class="modal-title">Hapus Ujian?</h5>
-                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                            <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                                         </div>
-                                        <div class="modal-body text-wrap" style="white-space: normal;">
-                                            Apakah Anda yakin ingin menghapus ujian <strong>{{ u.judul }}</strong>?<br>
-                                            <small class="text-danger">Semua nilai siswa terkait ujian ini juga akan hilang permanen!</small>
+                                        <div class="modal-body">
+                                            Apakah Anda yakin ingin menghapus <strong>{{ u.judul }}</strong>?<br>
+                                            <small class="text-danger">Nilai siswa akan hilang permanen.</small>
                                         </div>
                                         <div class="modal-footer">
-                                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                            <button type="submit" class="btn btn-danger">Ya, Hapus</button>
+                                            <button class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                            <button class="btn btn-danger">Ya, Hapus</button>
                                         </div>
                                     </div>
                                 </form>
                             </div>
                         </div>
+
                     </td>
                 </tr>
                 {% endfor %}
             </tbody>
+
         </table>
     </div>
     {% endif %}
 
 </div>
-
-<!-- Hover Effect -->
-<style>
-.hover-card {
-    transition: all 0.3s ease;
-}
-.hover-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 15px 30px rgba(0,0,0,0.15) !important;
-}
-</style>
 
 {% endblock %}
