@@ -1,4 +1,13 @@
-body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+/* SETTING FONT UTAMA MENJADI POPPINS */
+body { 
+    font-family: 'Poppins', sans-serif !important; 
+}
+
+/* Pastikan semua elemen turunan juga mengikuti */
+h1, h2, h3, h4, h5, h6, p, span, a, div, input, button, select, textarea {
+    font-family: 'Poppins', sans-serif !important;
+}
+
 .card { border-radius: 15px; }
 .form-check-input:checked { background-color: #0d6efd; border-color: #0d6efd; }
 

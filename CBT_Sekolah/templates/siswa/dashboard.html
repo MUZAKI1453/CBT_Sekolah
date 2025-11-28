@@ -2,131 +2,261 @@
 {% block content %}
 
 <style>
-    /* ===== ROOT COLORS (serasi dengan navbar biru) ===== */
     :root {
         --primary: #0d6efd;
-        --primary-light: #e8f0ff;
-        --text-title: #1c1c1c;
-        --text-sub: #6c757d;
-        --radius: 14px;
+        --primary-soft: #e7f1ff;
+        --secondary: #6c757d;
+        --success-soft: #d1e7dd;
+        --warning-soft: #fff3cd;
+        --radius: 16px;
     }
 
-    /* ===== PAGE WRAPPER ===== */
     .dashboard-container {
-        max-width: 1080px;
+        max-width: 1000px;
         margin: auto;
-        padding: 28px 18px;
+        padding: 25px 20px;
     }
 
-    /* ===== HEADER ===== */
-    .dashboard-header h2 {
-        font-size: 30px;
-        font-weight: 700;
-        color: var(--text-title);
-        margin-bottom: 8px;
+    /* 1. HERO BANNER STYLE */
+    .hero-card {
+        background: linear-gradient(135deg, #0d6efd 0%, #0043a8 100%);
+        color: white;
+        border-radius: var(--radius);
+        padding: 35px 30px;
+        margin-bottom: 30px;
+        box-shadow: 0 10px 30px rgba(13, 110, 253, 0.25);
+        position: relative;
+        overflow: hidden;
     }
-
-    .dashboard-header p {
-        font-size: 17px;
-        color: var(--text-sub);
-        margin-bottom: 28px;
+    .hero-card::after {
+        content: "";
+        position: absolute;
+        top: -30%;
+        right: -5%;
+        width: 250px;
+        height: 250px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 50%;
+        transform: rotate(45deg);
     }
+    .hero-title { font-weight: 800; font-size: 2rem; margin-bottom: 8px; }
+    .hero-subtitle { opacity: 0.95; font-size: 1.1rem; max-width: 600px; line-height: 1.5; }
 
-    /* ===== CARD UJIAN ===== */
+    /* 2. STATS CARDS */
+    .stat-card {
+        background: white;
+        border: 1px solid #edf2f9;
+        border-radius: var(--radius);
+        padding: 20px;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+        transition: transform 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-5px); }
+    
+    .stat-icon {
+        width: 60px; height: 60px;
+        border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.8rem;
+    }
+    .bg-icon-blue { background: var(--primary-soft); color: var(--primary); }
+    .bg-icon-green { background: var(--success-soft); color: #198754; }
+
+    .stat-info h3 { font-weight: 800; margin: 0; font-size: 1.8rem; color: #333; }
+    .stat-info p { margin: 0; color: #888; font-size: 0.9rem; font-weight: 600; }
+
+    /* 3. EXAM CARD MODERN */
     .exam-card {
         background: white;
+        border: 1px solid #edf2f9;
         border-radius: var(--radius);
-        border: 1px solid #e9ecef;
-        padding: 22px;
-        box-shadow: 0 4px 14px rgba(0,0,0,0.05);
-        transition: 0.2s ease;
+        padding: 25px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+        transition: .3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
         height: 100%;
+        display: flex;
+        flex-direction: column;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .exam-card::before {
+        content: "";
+        position: absolute;
+        top: 0; left: 0; width: 6px; height: 100%;
+        background: var(--primary);
     }
 
     .exam-card:hover {
-        transform: translateY(-4px);
-        box-shadow: 0 7px 22px rgba(0,0,0,0.08);
+        transform: translateY(-8px);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.08);
+        border-color: var(--primary-soft);
+    }
+
+    .exam-badge {
+        font-size: 0.75rem;
+        padding: 6px 12px;
+        border-radius: 50rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
     }
 
     .exam-title {
-        font-size: 19px;
-        font-weight: 700;
-        color: var(--text-title);
+        font-size: 1.25rem;
+        font-weight: 800;
+        color: #2c3e50;
+        margin: 15px 0 10px 0;
+        line-height: 1.4;
     }
 
-    .exam-info {
-        font-size: 15px;
-        color: var(--text-sub);
-        margin-top: 6px;
+    .exam-meta {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-bottom: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
     }
 
     .exam-btn {
-        margin-top: 18px;
-        padding: 11px 18px;
-        border-radius: 10px;
-        background: var(--primary);
-        color: white;
-        font-size: 15px;
-        font-weight: 600;
-        border: none;
-        display: inline-block;
-        transition: 0.15s ease;
-        width: 100%;
+        margin-top: auto;
+        padding: 12px 20px;
+        border-radius: 12px;
+        font-weight: 700;
+        font-size: 1rem;
+        transition: 0.2s;
         text-align: center;
+        box-shadow: 0 4px 10px rgba(13, 110, 253, 0.2);
     }
+    .exam-btn:hover { box-shadow: 0 6px 15px rgba(13, 110, 253, 0.3); transform: translateY(-2px); }
+    .exam-btn-disabled { background: #e9ecef; color: #adb5bd; border: none; cursor: not-allowed; box-shadow: none; }
 
-    .exam-btn:hover {
-        background: #0b5ed7;
+    /* SECTION TITLE */
+    .section-title {
+        font-weight: 800;
+        color: #333;
+        margin-bottom: 25px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 1.4rem;
     }
-
-    /* ===== RESPONSIVE ===== */
-    @media (max-width: 768px) {
-        .dashboard-header h2 {
-            font-size: 24px;
-        }
-
-        .exam-card {
-            padding: 18px;
-        }
-    }
-
-    @media (max-width: 480px) {
-        .dashboard-container {
-            padding: 22px 14px;
-        }
-
-        .exam-btn {
-            font-size: 14px;
-            padding: 10px 14px;
-        }
+    .section-title::before {
+        content: "";
+        width: 5px; height: 25px;
+        background: var(--primary);
+        border-radius: 4px;
+        display: block;
     }
 </style>
 
 <div class="dashboard-container">
 
-    <!-- HEADER -->
-    <div class="dashboard-header">
-        <h2>Selamat Datang, {{ current_user.nama }}</h2>
-        <p>Ujian yang Tersedia:</p>
+    <div class="hero-card">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="hero-title">Halo, {{ current_user.nama }} 👋</div>
+                <div class="hero-subtitle">
+                    Selamat datang di Panel Ujian. Persiapkan dirimu, kerjakan dengan jujur, dan raih hasil terbaik!
+                </div>
+            </div>
+            <div class="col-md-4 text-center d-none d-md-block">
+                <i class="bi bi-mortarboard-fill" style="font-size: 5rem; opacity: 0.3;"></i>
+            </div>
+        </div>
     </div>
 
-    <!-- LIST UJIAN -->
+    <div class="row g-4 mb-5">
+        <div class="col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon bg-icon-blue">
+                    <i class="bi bi-file-earmark-text"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ ujian|length }}</h3>
+                    <p>Ujian Tersedia</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="stat-card">
+                <div class="stat-icon bg-icon-green">
+                    <i class="bi bi-shield-check"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>Jujur</h3>
+                    <p>Prinsip Utama</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <h4 class="section-title">Daftar Ujian</h4>
+
+    {% if ujian %}
     <div class="row g-4">
         {% for u in ujian %}
         <div class="col-lg-6 col-md-6 col-sm-12">
             <div class="exam-card">
-                <div class="exam-title">{{ u.judul }}</div>
-
-                <div class="exam-info">
-                    📅 {{ u.waktu_mulai.strftime('%d/%m/%Y %H:%M') }}
-                    — {{ u.waktu_selesai.strftime('%H:%M') }}
+                
+                <div class="d-flex justify-content-between align-items-start">
+                    <span class="exam-badge bg-primary bg-opacity-10 text-primary">
+                        <i class="bi bi-book me-1"></i> {{ u.mapel.nama }}
+                    </span>
+                    
+                    {% if datetime.now() < u.waktu_mulai %}
+                        <span class="badge bg-warning text-dark rounded-pill">Belum Mulai</span>
+                    {% elif datetime.now() <= u.waktu_selesai %}
+                        <span class="badge bg-success rounded-pill px-3">Sedang Berlangsung</span>
+                    {% else %}
+                        <span class="badge bg-secondary rounded-pill">Selesai</span>
+                    {% endif %}
                 </div>
 
-                <a href="/siswa/ujian/{{ u.id }}" class="exam-btn">Kerjakan Ujian</a>
+                <h5 class="exam-title">{{ u.judul }}</h5>
+
+                <div class="exam-meta text-primary fw-bold">
+                    <i class="bi bi-calendar-event"></i> {{ u.waktu_mulai.strftime('%d %B %Y') }}
+                </div>
+                <div class="exam-meta">
+                    <i class="bi bi-clock"></i> {{ u.waktu_mulai.strftime('%H:%M') }} - {{ u.waktu_selesai.strftime('%H:%M') }} WIB
+                </div>
+                <div class="exam-meta mb-4">
+                    <i class="bi bi-hourglass-split"></i> Durasi: {{ u.durasi_menit }} Menit
+                </div>
+
+                {% if datetime.now() < u.waktu_mulai %}
+                    <button class="btn exam-btn exam-btn-disabled w-100" disabled>
+                        <i class="bi bi-lock-fill me-2"></i> Belum Dibuka
+                    </button>
+                {% elif datetime.now() <= u.waktu_selesai %}
+                    <a href="/siswa/ujian/{{ u.id }}" class="btn btn-primary exam-btn w-100">
+                        Kerjakan Ujian <i class="bi bi-arrow-right-circle ms-2"></i>
+                    </a>
+                {% else %}
+                    <button class="btn exam-btn exam-btn-disabled w-100" disabled>
+                        <i class="bi bi-x-circle-fill me-2"></i> Waktu Habis
+                    </button>
+                {% endif %}
+
             </div>
         </div>
         {% endfor %}
     </div>
+    {% else %}
+    
+    <div class="text-center py-5 text-muted bg-white rounded-4 border border-light shadow-sm">
+        <i class="bi bi-clipboard-check display-1 text-light mb-3"></i>
+        <h5 class="fw-bold">Tidak ada ujian aktif</h5>
+        <p class="mb-0">Silakan cek kembali nanti atau hubungi gurumu.</p>
+    </div>
+
+    {% endif %}
 
 </div>
 

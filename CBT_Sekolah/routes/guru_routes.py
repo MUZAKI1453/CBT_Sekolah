@@ -10,6 +10,9 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask import Blueprint, render_template, request, flash, redirect, url_for, send_file, current_app
 from flask_login import login_required, current_user
 from models import db, Mapel, Ujian, JawabanSiswa, User
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from openpyxl.utils import get_column_letter
+from openpyxl.drawing.image import Image as ExcelImage
 
 bp = Blueprint('guru', __name__)
 
@@ -461,11 +464,17 @@ def koreksi(jawaban_id):
     return render_template('guru/koreksi.html', jawaban=jawaban_siswa, soal_essay=soal_essay, jawab_essay=jawab_essay)
 
 
-# ==================== LIHAT NILAI ====================
+# Pastikan import ini ada di paling atas
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
+from openpyxl.utils import get_column_letter
+from openpyxl.drawing.image import Image as ExcelImage
+
+# ==================== LIHAT NILAI (KOP FORMAL TIMES NEW ROMAN) ====================
 @bp.route('/lihat_nilai/<int:ujian_id>', methods=['GET', 'POST'])
 @login_required
 def lihat_nilai(ujian_id):
     if current_user.role != 'guru': return redirect('/')
+    
     ujian = Ujian.query.get_or_404(ujian_id)
     if ujian.mapel.guru_id != current_user.id:
         flash('Anda tidak memiliki akses ke data ini!', 'danger')
@@ -474,31 +483,147 @@ def lihat_nilai(ujian_id):
     data_nilai = JawabanSiswa.query.filter_by(ujian_id=ujian_id).all()
     data_nilai.sort(key=lambda x: (x.siswa.kelas.nama_kelas if x.siswa and x.siswa.kelas else "", x.siswa.nama if x.siswa else ""))
 
-    if request.method == 'POST' and request.form.get('download_excel'):
+    # --- LOGIKA DOWNLOAD EXCEL ---
+    if request.method == 'POST' and 'download_excel' in request.form:
         if not data_nilai:
             flash('Belum ada siswa yang mengerjakan.', 'warning')
             return redirect(request.url)
         
-        list_data = []
-        for j in data_nilai:
-            list_data.append({
-                'NIS': j.siswa.username if j.siswa else '-',
-                'Nama Siswa': j.siswa.nama if j.siswa else '-',
-                'Kelas': j.siswa.kelas.nama_kelas if j.siswa and j.siswa.kelas else '-',
-                'Nilai PG': j.nilai_pg,
-                'Nilai Essay': j.nilai_essay,
-                'Total Nilai': j.total_nilai,
-                'Waktu Submit': j.waktu_submit.strftime('%Y-%m-%d %H:%M') if j.waktu_submit else '-'
-            })
-        df = pd.DataFrame(list_data)
-        output = io.BytesIO()
-        with pd.ExcelWriter(output, engine='openpyxl') as writer:
-            df.to_excel(writer, index=False, sheet_name='Nilai Ujian')
-        output.seek(0)
-        return send_file(output, as_attachment=True, download_name=f'Nilai_{ujian.judul}.xlsx', mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+        try:
+            # 1. Siapkan Data
+            list_data = []
+            for j in data_nilai:
+                list_data.append({
+                    'No': 0,
+                    'NIS': j.siswa.username if j.siswa else '-',
+                    'Nama Siswa': j.siswa.nama if j.siswa else '-',
+                    'Kelas': j.siswa.kelas.nama_kelas if j.siswa and j.siswa.kelas else '-',
+                    'Nilai PG': j.nilai_pg,
+                    'Nilai Essay': j.nilai_essay,
+                    'Total Nilai': j.total_nilai,
+                    'Waktu Submit': j.waktu_submit.strftime('%Y-%m-%d %H:%M') if j.waktu_submit else '-'
+                })
+            
+            for idx, item in enumerate(list_data, 1):
+                item['No'] = idx
+
+            df = pd.DataFrame(list_data)
+            
+            output = io.BytesIO()
+            with pd.ExcelWriter(output, engine='openpyxl') as writer:
+                # Mulai data di baris ke-6 (Baris 1-4 untuk Kop, Baris 5 spasi/border)
+                df.to_excel(writer, index=False, sheet_name='Nilai Ujian', startrow=5)
+                
+                workbook = writer.book
+                worksheet = writer.sheets['Nilai Ujian']
+                
+                # --- DEFINISI STYLE FORMAL ---
+                font_std = Font(name='Times New Roman', size=12)
+                font_bold = Font(name='Times New Roman', size=12, bold=True)
+                font_title = Font(name='Times New Roman', size=14, bold=True) # Nama Sekolah lebih besar
+                
+                border_thin = Border(left=Side(style='thin'), right=Side(style='thin'), 
+                                     top=Side(style='thin'), bottom=Side(style='thin'))
+                
+                # Garis Bawah Kop (Tebal)
+                border_bottom_thick = Border(bottom=Side(style='medium')) 
+
+                # --- A. LOGO (MERGE A1:B3) ---
+                worksheet.merge_cells('A1:B3') 
+                logo_path = os.path.join(current_app.root_path, 'static', 'img', 'logo_sekolah.png')
+                
+                if os.path.exists(logo_path):
+                    img = ExcelImage(logo_path)
+                    img.height = 70 # Sesuaikan tinggi agar pas di 3 baris
+                    img.width = 70  # Jaga aspek rasio
+                    
+                    # Tempel di A1 (titik awal merge)
+                    worksheet.add_image(img, 'A1')
+                    
+                    # Center Alignment untuk cell A1 (mempengaruhi posisi visual jika text, tapi utk gambar manual)
+                    worksheet['A1'].alignment = Alignment(horizontal='center', vertical='center')
+
+                # --- B. TEKS KOP (GESER KE KOLOM C AGAR TIDAK NABRAK LOGO) ---
+                
+                # 1. Nama Sekolah (Baris 1: C1 sampai H1)
+                worksheet.merge_cells('C1:H1')
+                cell_sekolah = worksheet['C1']
+                cell_sekolah.value = "SMA ISLAM PLUS BAITUSSALAM"
+                cell_sekolah.font = font_title
+                cell_sekolah.alignment = Alignment(horizontal="center", vertical="bottom") 
+                
+                # 2. Judul Laporan (Baris 2: C2 sampai H2)
+                worksheet.merge_cells('C2:H2')
+                cell_judul = worksheet['C2']
+                cell_judul.value = f"LAPORAN HASIL UJIAN: {ujian.judul.upper()}"
+                cell_judul.font = font_bold
+                cell_judul.alignment = Alignment(horizontal="center", vertical="center")
+
+                # 3. Info Tambahan (Baris 3: C3 sampai H3)
+                worksheet.merge_cells('C3:H3')
+                cell_info = worksheet['C3']
+                cell_info.value = f"Mapel: {ujian.mapel.nama} | Tanggal Cetak: {datetime.now().strftime('%d %B %Y')}"
+                cell_info.font = Font(name='Times New Roman', size=11, italic=True)
+                cell_info.alignment = Alignment(horizontal="center", vertical="top")
+
+                # --- C. GARIS PEMBATAS KOP ---
+                # Berikan garis bawah tebal di seluruh baris 3 (dari A3 sampai H3)
+                for col in range(1, 9): # A(1) sampai H(8)
+                    cell = worksheet.cell(row=3, column=col)
+                    cell.border = border_bottom_thick
+
+                # --- D. FORMAT TABEL DATA ---
+                header_row = 6
+                
+                # Loop Kolom
+                for i, col in enumerate(df.columns):
+                    col_idx = i + 1
+                    col_letter = get_column_letter(col_idx)
+
+                    # 1. Auto Width (Hitung panjang teks)
+                    max_len = len(str(col))
+                    for cell in worksheet[col_letter]:
+                        if cell.row > header_row:
+                            if cell.value:
+                                max_len = max(max_len, len(str(cell.value)))
+                            # Apply Font Times New Roman ke Data
+                            cell.font = font_std
+                            cell.border = border_thin
+                            
+                            # Center alignment untuk data pendek
+                            if col in ['No', 'Kelas', 'Nilai PG', 'Nilai Essay', 'Total Nilai']:
+                                cell.alignment = Alignment(horizontal="center")
+                    
+                    worksheet.column_dimensions[col_letter].width = max_len + 4
+
+                    # 2. Styling Header Tabel (Baris 6)
+                    cell_header = worksheet.cell(row=header_row, column=col_idx)
+                    cell_header.value = col # Pastikan nama header tertulis
+                    cell_header.font = font_bold
+                    cell_header.alignment = Alignment(horizontal="center", vertical="center")
+                    cell_header.border = border_thin
+                    # Warna Abu-abu Muda (Lebih Formal)
+                    cell_header.fill = PatternFill(start_color="E0E0E0", end_color="E0E0E0", fill_type="solid")
+
+            output.seek(0)
+            
+            safe_judul = secure_filename(ujian.judul)
+            if not safe_judul: safe_judul = f"Ujian_{ujian.id}"
+            filename = f"Rekap_{safe_judul}.xlsx"
+
+            return send_file(
+                output, 
+                as_attachment=True, 
+                download_name=filename, 
+                mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+            
+        except Exception as e:
+            print(f"Error Excel: {e}")
+            flash(f"Gagal membuat Excel: {str(e)}", "danger")
+            return redirect(request.url)
 
     return render_template('guru/lihat_nilai.html', ujian=ujian, data_nilai=data_nilai)
-
 
 # ==================== HTMX REFRESH ====================
 @bp.route('/refresh_tabel_nilai/<int:ujian_id>')

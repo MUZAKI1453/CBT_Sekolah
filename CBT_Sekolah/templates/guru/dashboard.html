@@ -2,291 +2,292 @@
 {% block content %}
 
 <style>
-    /* COLORS */
     :root {
         --primary: #0d6efd;
-        --primary-light: #eaf2ff;
-        --text-title: #1c1c1c;
-        --text-sub: #6c757d;
-        --radius: 14px;
+        --primary-soft: #e7f1ff;
+        --secondary: #6c757d;
+        --success-soft: #d1e7dd;
+        --warning-soft: #fff3cd;
+        --radius: 16px;
     }
 
-    /* PAGE WRAPPER */
-    .dashboard-wrapper {
+    .dashboard-container {
         max-width: 1200px;
         margin: auto;
-        padding: 30px 20px;
+        padding: 25px 20px;
     }
 
-    /* HEADER */
-    .dashboard-header h1 {
-        font-size: 32px;
-        font-weight: 700;
-        color: var(--text-title);
-    }
-    .dashboard-header p {
-        color: var(--text-sub);
-        margin-bottom: 34px;
-    }
-
-    /* CARD MAPEL */
-    .mapel-card {
-        background: white;
-        border-radius: var(--radius);
-        border: 1px solid #e9ecef;
-        padding: 24px;
-        box-shadow: 0 4px 14px rgba(0,0,0,0.05);
-        transition: .2s ease;
-        height: 100%;
-        text-align: center;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-    }
-    .mapel-card:hover {
-        transform: translateY(-6px);
-        box-shadow: 0 8px 22px rgba(0,0,0,0.08);
-    }
-    .mapel-title {
-        font-weight: 700;
-        font-size: 20px;
-        color: var(--text-title);
-        margin-bottom: 5px;
-    }
-    .mapel-icon {
-        font-size: 40px;
-        color: var(--primary);
-        margin-bottom: 10px;
-    }
-
-    /* UPLOAD BTN */
-    .mapel-btn {
-        margin-top: 15px;
-        padding: 10px 18px;
-        background: var(--primary);
+    /* 1. HEADER BANNER STYLE */
+    .hero-card {
+        background: linear-gradient(135deg, #0d6efd 0%, #0043a8 100%);
         color: white;
-        border: none;
-        width: 100%;
-        border-radius: 10px;
-        font-size: 15px;
-        font-weight: 600;
-        transition: 0.15s;
-        text-decoration: none;
-        display: inline-block;
-    }
-    .mapel-btn:hover {
-        background: #0b5ed7;
-        color: white;
-    }
-
-    /* TABLE (DESKTOP) */
-    .exam-table {
         border-radius: var(--radius);
+        padding: 30px;
+        margin-bottom: 30px;
+        box-shadow: 0 10px 30px rgba(13, 110, 253, 0.2);
+        position: relative;
         overflow: hidden;
-        box-shadow: 0 4px 14px rgba(0,0,0,0.05);
-        border: 1px solid #e9ecef;
     }
-    .exam-table thead {
-        background: var(--primary-light);
+    .hero-card::after {
+        content: "";
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 300px;
+        height: 300px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 50%;
     }
-    .exam-table th {
-        font-weight: 600;
-        color: var(--text-title);
-        padding: 14px;
-        border-bottom: none;
-    }
-    .exam-table td {
-        padding: 14px;
-        vertical-align: middle;
-        background: white;
-    }
+    .hero-title { font-weight: 800; font-size: 2rem; margin-bottom: 5px; }
+    .hero-subtitle { opacity: 0.9; font-size: 1.1rem; }
 
-    /* MOBILE EXAM CARD (HP ONLY) */
-    .mobile-exam-card {
+    /* 2. STATS CARDS (KOTAK RINGKASAN) */
+    .stat-card {
         background: white;
-        border: 1px solid #e9ecef;
+        border: 1px solid #edf2f9;
+        border-radius: var(--radius);
+        padding: 20px;
+        height: 100%;
+        transition: transform 0.2s;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+    }
+    .stat-card:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0,0,0,0.05); }
+    
+    .stat-icon {
+        width: 60px; height: 60px;
         border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 16px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.8rem;
     }
-    .mobile-label {
-        font-size: 0.75rem;
-        text-transform: uppercase;
-        color: #adb5bd;
+    .bg-icon-blue { background: var(--primary-soft); color: var(--primary); }
+    .bg-icon-green { background: var(--success-soft); color: #198754; }
+    .bg-icon-yellow { background: var(--warning-soft); color: #ffc107; }
+
+    .stat-info h3 { font-weight: 800; margin: 0; font-size: 1.8rem; color: #333; }
+    .stat-info p { margin: 0; color: #888; font-size: 0.9rem; font-weight: 500; }
+
+    /* 3. SECTION TITLE */
+    .section-title {
         font-weight: 700;
-        letter-spacing: 0.5px;
-        margin-bottom: 2px;
-    }
-    .mobile-val {
-        font-size: 0.95rem;
-        font-weight: 600;
         color: #333;
-        margin-bottom: 10px;
+        margin-bottom: 20px;
+        border-left: 5px solid var(--primary);
+        padding-left: 15px;
+        font-size: 1.25rem;
     }
 
-    /* RESPONSIVE MEDIA QUERIES */
-    @media (max-width: 768px) {
-        .dashboard-wrapper {
-            padding: 20px 15px;
-        }
-        .dashboard-header h1 {
-            font-size: 24px;
-        }
-        .dashboard-header p {
-            font-size: 14px;
-            margin-bottom: 20px;
-        }
-        .mapel-card {
-            padding: 20px;
-            flex-direction: row; /* Icon samping teks di HP */
-            text-align: left;
-            align-items: center;
-            justify-content: flex-start;
-            gap: 15px;
-        }
-        .mapel-icon {
-            margin-bottom: 0;
-            font-size: 32px;
-        }
-        .mapel-content {
-            flex: 1;
-        }
-        .mapel-btn {
-            margin-top: 5px;
-            width: auto;
-            padding: 6px 14px;
-            font-size: 13px;
-        }
+    /* 4. TABLE STYLING */
+    .table-card {
+        background: white;
+        border-radius: var(--radius);
+        border: 1px solid #edf2f9;
+        box-shadow: 0 4px 20px rgba(0,0,0,0.03);
+        overflow: hidden;
+    }
+    .table-modern thead th {
+        background: #f8f9fa !important;
+        color: #555 !important;
+        font-weight: 700;
+        text-transform: uppercase;
+        font-size: 0.8rem;
+        letter-spacing: 0.5px;
+        padding: 15px 20px;
+        border-bottom: 2px solid #eee;
+    }
+    .table-modern tbody td { padding: 15px 20px; vertical-align: middle; }
+    .table-modern tbody tr:hover { background-color: #fcfcfc; }
+
+    /* BUTTONS */
+    .btn-action {
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 0.85rem;
+        padding: 8px 12px;
+        text-align: left;
+        width: 100%;
+        margin-bottom: 5px;
+        display: flex;
+        align-items: center;
+        transition: 0.2s;
+        text-decoration: none !important;
+    }
+    .btn-action:hover { 
+        transform: translateX(5px); 
+        text-decoration: none !important; 
+        filter: brightness(0.95);
+    }
+    
+    .btn-action i { width: 25px; }
+    
+    /* MOBILE CARD */
+    .mobile-card {
+        background: white;
+        border-radius: 12px;
+        padding: 15px;
+        border: 1px solid #eee;
+        margin-bottom: 15px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.02);
     }
 </style>
 
-<div class="dashboard-wrapper">
+<div class="dashboard-container">
 
-    <div class="dashboard-header text-center text-md-start">
-        <h1>Halo, {{ current_user.nama }}</h1>
-        <p>Selamat datang di panel Guru. Kelola materi & ujian dengan mudah.</p>
+    <div class="hero-card">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="hero-title">Halo, {{ current_user.nama }} 👋</div>
+                <div class="hero-subtitle">Selamat datang di Panel Guru. Kelola ujian dan nilai siswa dengan mudah.</div>
+            </div>
+            <div class="col-md-4 text-md-end d-none d-md-block">
+                <i class="bi bi-laptop display-1 opacity-25"></i>
+            </div>
+        </div>
     </div>
 
-    {% if mapel %}
-    <h5 class="mb-3 fw-bold text-primary"><i class="bi bi-journal-bookmark-fill me-2"></i>Mata Pelajaran Anda</h5>
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon bg-icon-blue">
+                    <i class="bi bi-journal-bookmark-fill"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ mapel|length }}</h3>
+                    <p>Mata Pelajaran</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card">
+                <div class="stat-icon bg-icon-green">
+                    <i class="bi bi-file-earmark-text-fill"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ ujian|length }}</h3>
+                    <p>Total Ujian Dibuat</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="stat-card justify-content-center bg-light border-0" style="cursor: default;">
+                <p class="text-center text-muted mb-0 fst-italic">
+                    <i class="bi bi-info-circle me-1"></i> Pilih Mapel di bawah untuk buat soal baru.
+                </p>
+            </div>
+        </div>
+    </div>
 
-    <div class="row g-3 mb-5">
+    <h4 class="section-title">Mata Pelajaran Anda</h4>
+    
+    {% if mapel %}
+    <div class="row g-4 mb-5">
         {% for m in mapel %}
-        <div class="col-lg-4 col-md-6 col-sm-12">
-            <div class="mapel-card">
-                <div class="mapel-icon"><i class="bi bi-book"></i></div>
-                <div class="mapel-content">
-                    <div class="mapel-title">{{ m.nama }}</div>
-                    <div class="text-muted small mb-2">Mata Pelajaran Aktif</div>
-                    <div class="d-grid d-md-block">
-                        <a href="/guru/upload_soal/{{ m.id }}" class="mapel-btn text-center">
-                            Upload Soal Baru
-                        </a>
+        <div class="col-md-6 col-lg-4">
+            <div class="card border-0 shadow-sm h-100" style="border-radius: 12px; overflow:hidden;">
+                <div class="card-body p-4 text-center">
+                    <div class="mb-3">
+                        <span class="d-inline-block p-3 rounded-circle bg-primary bg-opacity-10 text-primary">
+                            <i class="bi bi-book fs-2"></i>
+                        </span>
                     </div>
+                    <h5 class="fw-bold mb-1">{{ m.nama }}</h5>
+                    <p class="text-muted small mb-4">Pengajar: {{ current_user.nama }}</p>
+                    
+                    <a href="/guru/upload_soal/{{ m.id }}" class="btn btn-outline-primary w-100 fw-bold rounded-pill">
+                        <i class="bi bi-plus-lg me-1"></i> Buat Ujian Baru
+                    </a>
                 </div>
             </div>
         </div>
         {% endfor %}
     </div>
     {% else %}
-    <div class="text-center py-5 bg-white rounded-3 shadow-sm border mb-4">
-        <i class="bi bi-journal-x fs-1 text-muted mb-3 d-block"></i>
-        <p class="text-muted mb-0">Anda belum mengajar mata pelajaran apapun.</p>
+    <div class="alert alert-info border-0 shadow-sm rounded-3 mb-5">
+        <i class="bi bi-info-circle-fill me-2"></i> Anda belum terdaftar di mata pelajaran apapun. Hubungi Admin.
     </div>
     {% endif %}
 
-    {% if ujian %}
-    <h5 class="mb-3 fw-bold text-primary"><i class="bi bi-clock-history me-2"></i>Riwayat Ujian Dibuat</h5>
 
-    <div class="table-responsive exam-table d-none d-md-block">
-        <table class="table table-hover align-middle mb-0">
-            <thead>
-                <tr>
-                    <th>Judul Ujian</th>
-                    <th>Mapel</th>
-                    <th>Jadwal Pelaksanaan</th>
-                    <th>Status</th>
-                    <th>Aksi</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for u in ujian %}
-                <tr>
-                    <td>
-                        <div class="fw-bold">{{ u.judul }}</div>
-                        <small class="text-muted">{{ u.durasi_menit }} Menit</small>
-                    </td>
-                    <td><span class="badge bg-light text-dark border">{{ u.mapel.nama }}</span></td>
-                    <td>
-                        <div class="small fw-bold">{{ u.waktu_mulai.strftime('%d %b %Y') }}</div>
-                        <small class="text-muted">{{ u.waktu_mulai.strftime('%H:%M') }} - {{ u.waktu_selesai.strftime('%H:%M') }}</small>
-                    </td>
-                    <td>
-                        {% if datetime.now() < u.waktu_mulai %}
-                            <span class="badge bg-warning text-dark">Belum Dimulai</span>
-                        {% elif datetime.now() <= u.waktu_selesai %}
-                            <span class="badge bg-success">Sedang Berlangsung</span>
-                        {% else %}
-                            <span class="badge bg-secondary">Selesai</span>
-                        {% endif %}
-                    </td>
-                    <td>
-                        <div class="btn-group">
-                            <a href="/guru/preview/{{ u.id }}" class="btn btn-outline-secondary btn-sm" title="Preview"><i class="bi bi-eye"></i></a>
-                            <a href="/guru/edit_ujian/{{ u.id }}" class="btn btn-outline-primary btn-sm" title="Edit"><i class="bi bi-pencil"></i></a>
-                            <a href="/guru/lihat_nilai/{{ u.id }}" class="btn btn-outline-info btn-sm" title="Nilai"><i class="bi bi-bar-chart"></i></a>
-                            <button class="btn btn-outline-danger btn-sm" data-bs-toggle="modal" data-bs-target="#hapusUjian{{ u.id }}" title="Hapus"><i class="bi bi-trash"></i></button>
-                        </div>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <h4 class="section-title">Riwayat Ujian</h4>
+
+    {% if ujian %}
+    
+    <div class="table-card d-none d-md-block">
+        <div class="table-responsive">
+            <table class="table table-modern align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th style="width: 30%;">Judul Ujian</th>
+                        <th>Jadwal</th>
+                        <th>Status</th>
+                        <th style="width: 200px;">Aksi Cepat</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for u in ujian %}
+                    <tr>
+                        <td>
+                            <div class="fw-bold text-dark fs-6">{{ u.judul }}</div>
+                            <span class="badge bg-light text-secondary border mt-1">{{ u.mapel.nama }}</span>
+                        </td>
+                        <td>
+                            <div class="fw-bold text-dark">{{ u.waktu_mulai.strftime('%d %b %Y') }}</div>
+                            <small class="text-muted">{{ u.waktu_mulai.strftime('%H:%M') }} - {{ u.waktu_selesai.strftime('%H:%M') }}</small>
+                        </td>
+                        <td>
+                            {% if datetime.now() < u.waktu_mulai %}
+                                <span class="badge bg-warning text-dark rounded-pill px-3">Belum Mulai</span>
+                            {% elif datetime.now() <= u.waktu_selesai %}
+                                <span class="badge bg-success rounded-pill px-3">Berlangsung</span>
+                            {% else %}
+                                <span class="badge bg-secondary rounded-pill px-3">Selesai</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <a href="/guru/preview/{{ u.id }}" class="btn-action bg-primary text-white border-0 shadow-sm">
+                                <i class="bi bi-eye"></i> Preview
+                            </a>
+                            <a href="/guru/edit_ujian/{{ u.id }}" class="btn-action bg-warning text-dark border-0 shadow-sm">
+                                <i class="bi bi-pencil"></i> Edit Soal
+                            </a>
+                            <a href="/guru/lihat_nilai/{{ u.id }}" class="btn-action bg-info text-white border-0 shadow-sm">
+                                <i class="bi bi-bar-chart"></i> Lihat Nilai
+                            </a>
+                            <button class="btn-action bg-danger text-white border-0 shadow-sm" data-bs-toggle="modal" data-bs-target="#hapusUjian{{ u.id }}">
+                                <i class="bi bi-trash"></i> Hapus
+                            </button>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 
     <div class="d-md-none">
         {% for u in ujian %}
-        <div class="mobile-exam-card">
-            <div class="d-flex justify-content-between align-items-start mb-2">
-                <div>
-                    <h6 class="fw-bold text-primary mb-1">{{ u.judul }}</h6>
-                    <span class="badge bg-light text-dark border">{{ u.mapel.nama }}</span>
-                </div>
-                {% if datetime.now() < u.waktu_mulai %}
-                    <span class="badge bg-warning text-dark" style="font-size: 0.7rem;">Belum</span>
-                {% elif datetime.now() <= u.waktu_selesai %}
-                    <span class="badge bg-success" style="font-size: 0.7rem;">Jalan</span>
+        <div class="mobile-card">
+            <div class="d-flex justify-content-between mb-2">
+                <span class="badge bg-light text-dark border">{{ u.mapel.nama }}</span>
+                {% if datetime.now() <= u.waktu_selesai %}
+                    <span class="badge bg-success">Aktif</span>
                 {% else %}
-                    <span class="badge bg-secondary" style="font-size: 0.7rem;">Selesai</span>
+                    <span class="badge bg-secondary">Selesai</span>
                 {% endif %}
             </div>
-
-            <div class="row g-2 mb-3">
-                <div class="col-6">
-                    <div class="mobile-label">Tanggal</div>
-                    <div class="mobile-val">{{ u.waktu_mulai.strftime('%d %b') }}</div>
-                </div>
-                <div class="col-6">
-                    <div class="mobile-label">Waktu</div>
-                    <div class="mobile-val">{{ u.waktu_mulai.strftime('%H:%M') }} - {{ u.waktu_selesai.strftime('%H:%M') }}</div>
-                </div>
-            </div>
-
-            <div class="row g-2">
-                <div class="col-3">
-                    <a href="/guru/preview/{{ u.id }}" class="btn btn-light border w-100 btn-sm text-secondary"><i class="bi bi-eye"></i></a>
-                </div>
-                <div class="col-3">
-                    <a href="/guru/edit_ujian/{{ u.id }}" class="btn btn-light border w-100 btn-sm text-primary"><i class="bi bi-pencil"></i></a>
-                </div>
-                <div class="col-3">
-                    <a href="/guru/lihat_nilai/{{ u.id }}" class="btn btn-light border w-100 btn-sm text-info"><i class="bi bi-bar-chart"></i></a>
-                </div>
-                <div class="col-3">
-                    <button class="btn btn-light border w-100 btn-sm text-danger" data-bs-toggle="modal" data-bs-target="#hapusUjian{{ u.id }}">
-                        <i class="bi bi-trash"></i>
-                    </button>
+            <h5 class="fw-bold mb-2">{{ u.judul }}</h5>
+            <p class="text-muted small mb-3">
+                <i class="bi bi-calendar me-1"></i> {{ u.waktu_mulai.strftime('%d %b %Y, %H:%M') }}
+            </p>
+            
+            <div class="d-grid gap-2">
+                <a href="/guru/preview/{{ u.id }}" class="btn btn-sm btn-primary">Preview</a>
+                <a href="/guru/lihat_nilai/{{ u.id }}" class="btn btn-sm btn-info text-white">Nilai</a>
+                <div class="btn-group">
+                    <a href="/guru/edit_ujian/{{ u.id }}" class="btn btn-sm btn-warning">Edit</a>
+                    <button class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#hapusUjian{{ u.id }}">Hapus</button>
                 </div>
             </div>
         </div>
@@ -295,20 +296,25 @@
 
     {% for u in ujian %}
     <div class="modal fade" id="hapusUjian{{ u.id }}">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-dialog-centered">
             <form action="/guru/hapus_ujian/{{ u.id }}" method="POST">
-                <div class="modal-content">
-                    <div class="modal-header bg-danger text-white">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header bg-danger text-white border-0">
                         <h5 class="modal-title">Hapus Ujian?</h5>
-                        <button class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
                     </div>
-                    <div class="modal-body">
-                        Apakah Anda yakin ingin menghapus <strong>{{ u.judul }}</strong>?<br>
-                        <small class="text-danger">Nilai siswa akan hilang permanen.</small>
+                    <div class="modal-body py-4">
+                        <p class="mb-0 text-center fs-5">
+                            Yakin ingin menghapus ujian<br>
+                            <strong>"{{ u.judul }}"</strong>?
+                        </p>
+                        <p class="text-center text-danger small mt-2">
+                            <i class="bi bi-exclamation-triangle"></i> Data nilai siswa akan hilang permanen.
+                        </p>
                     </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
-                        <button type="submit" class="btn btn-danger">Ya, Hapus</button>
+                    <div class="modal-footer justify-content-center border-0 pb-4">
+                        <button type="button" class="btn btn-light px-4" data-bs-dismiss="modal">Batal</button>
+                        <button type="submit" class="btn btn-danger px-4 fw-bold">Ya, Hapus</button>
                     </div>
                 </div>
             </form>
@@ -316,6 +322,11 @@
     </div>
     {% endfor %}
 
+    {% else %}
+    <div class="text-center py-5 text-muted">
+        <img src="https://cdn-icons-png.flaticon.com/512/7486/7486744.png" width="100" class="mb-3 opacity-50">
+        <p>Belum ada ujian yang dibuat.</p>
+    </div>
     {% endif %}
 
 </div>

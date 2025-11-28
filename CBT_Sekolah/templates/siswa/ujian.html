@@ -31,6 +31,8 @@
         color: #495057; position: relative;
     }
     .pilihan-box:hover { background-color: #f8f9fa; border-color: #adb5bd; }
+    
+    /* Style saat Checked */
     input:checked + .pilihan-box {
         background-color: #e7f1ff; color: #0d6efd;
         border-color: #0d6efd; box-shadow: 0 4px 6px rgba(13, 110, 253, 0.2);
@@ -42,10 +44,29 @@
         width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
         font-weight: bold; border: 1px solid #dee2e6; background: white; border-radius: 8px;
         font-size: 1.1rem; color: #6c757d; transition: all 0.2s;
+        position: relative;
     }
-    .btn-nomor.active { border: 3px solid #0d6efd !important; color: #0d6efd !important; }
-    .btn-nomor.dijawab { background-color: #198754 !important; color: white !important; border-color: #198754 !important; }
-    .btn-nomor.ragu { background-color: #ffc107 !important; color: black !important; border-color: #ffc107 !important; }
+    
+    /* Border Aktif (Posisi Sekarang) */
+    .btn-nomor.active { 
+        border: 3px solid #0d6efd !important; 
+        color: #0d6efd !important; 
+        z-index: 2;
+    }
+
+    /* Status: Dijawab (Hijau) */
+    .btn-nomor.dijawab { 
+        background-color: #198754 !important; 
+        color: white !important; 
+        border-color: #198754 !important; 
+    }
+
+    /* Status: Ragu (Kuning) - Override Hijau */
+    .btn-nomor.ragu { 
+        background-color: #ffc107 !important; 
+        color: #212529 !important; 
+        border-color: #ffc107 !important; 
+    }
 
     /* 5. OVERLAY SECURITY */
     .watermark-container {
@@ -147,7 +168,7 @@
                             </div>
                             
                             {% if s.gambar %}
-                            <div class="mb-4">
+                            <div class="mb-4 text-center">
                                 <img src="{{ url_for('static', filename='uploads/soal/' + s.gambar) }}" 
                                      class="img-fluid rounded border shadow-sm" 
                                      style="max-height: 400px; width: auto;" 
@@ -155,7 +176,7 @@
                             </div>
                             {% endif %}
 
-                            <div class="fs-5 mb-4 lh-base text-dark">{{ s.soal | safe }}</div>                            
+                            <div class="fs-5 mb-4 lh-base text-dark">{{ s.soal | safe }}</div>
 
                             <div class="opsi-wrapper">
                                 {% for opt in s.opsi_acak %}
@@ -184,15 +205,15 @@
                                 <span class="badge bg-success">No. {{ start_essay + loop.index }}</span>
                                 <span class="badge bg-warning text-dark">Essay (Bobot: {{ e.bobot }})</span>
                             </div>
-                                                        
+                            
                             {% if e.gambar %}
                             <div class="mb-4 text-center">
                                 <img src="{{ url_for('static', filename='uploads/soal/' + e.gambar) }}" 
-                                    class="img-fluid rounded border shadow-sm" 
-                                    style="max-height: 400px; width: auto;">
+                                     class="img-fluid rounded border shadow-sm" 
+                                     style="max-height: 400px; width: auto;">
                             </div>
                             {% endif %}
-
+                            
                             <div class="fs-5 mb-4 lh-base text-dark">{{ e.soal | safe }}</div>
 
                             <textarea name="essay_{{ e.original_index }}" 
@@ -215,7 +236,9 @@
                             {% set total = pg_tampil|length + essay_tampil|length %}
                             {% for i in range(total) %}
                             <div class="col-3">
-                                <button type="button" class="btn btn-nomor" onclick="bukaSoal({{ i }})" id="nav-d-{{ i }}">{{ i + 1 }}</button>
+                                <button type="button" class="btn btn-nomor" onclick="bukaSoal({{ i }})" id="nav-d-{{ i }}">
+                                    {{ i + 1 }}
+                                </button>
                             </div>
                             {% endfor %}
                         </div>
@@ -260,15 +283,14 @@
 </div>
 
 <script>
-    // --- VARIABLES & LOGIC ---
+    // --- SETUP VARIABLES ---
     const UJIAN_ID = "{{ ujian.id }}";
     const USER_ID = "{{ current_user.id }}";
     const BAN_KEY = `banned_${USER_ID}_${UJIAN_ID}`;
     const SAVE_PREFIX = `ans_${USER_ID}_${UJIAN_ID}_`;
+    const RAGU_PREFIX = `ragu_${USER_ID}_${UJIAN_ID}_`; // Kunci untuk simpan status ragu
 
-    // --- NEW FLAG: Untuk menandai proses submit ---
-    let isSubmitting = false; 
-
+    let isSubmitting = false;
     let currentStep = 0;
     const totalStep = parseInt("{{ pg_tampil|length + essay_tampil|length }}");
     const steps = document.querySelectorAll('.soal-step');
@@ -279,79 +301,107 @@
     let isExamActive = false;
     let isWarningActive = false;
 
-    // --- AUTO-SAVE & RESTORE ---
+    // --- FUNGSI UTAMA: CEK STATUS JAWABAN & PEWARNAAN ---
+    // Fungsi ini dipanggil setiap kali ada perubahan, untuk memastikan indikator sinkron
+    function updateIndicatorStatus(idx) {
+        const stepDiv = document.getElementById(`step-${idx}`);
+        const navD = document.getElementById(`nav-d-${idx}`);
+        const navM = document.getElementById(`nav-m-${idx}`);
+        
+        if (!stepDiv) return;
+
+        // 1. Cek apakah ada jawaban?
+        let isAnswered = false;
+        const type = stepDiv.getAttribute('data-type');
+        
+        if (type === 'pg') {
+            const checked = stepDiv.querySelector('input[type="radio"]:checked');
+            if (checked) isAnswered = true;
+        } else if (type === 'essay') {
+            const textVal = stepDiv.querySelector('textarea').value.trim();
+            if (textVal.length > 0) isAnswered = true;
+        }
+
+        // 2. Cek apakah status RAGU tersimpan?
+        const isRagu = localStorage.getItem(RAGU_PREFIX + idx) === 'true';
+
+        // 3. Reset Class
+        if (navD) navD.className = 'btn btn-nomor'; // Reset ke default
+        if (navM) navM.className = 'btn btn-nomor';
+        
+        // 4. Terapkan Class Baru
+        // Urutan Prioritas: Active > Ragu > Dijawab
+        if (idx === currentStep) {
+            if(navD) navD.classList.add('active');
+            if(navM) navM.classList.add('active');
+        }
+
+        if (isRagu) {
+            if(navD) navD.classList.add('ragu');
+            if(navM) navM.classList.add('ragu');
+        } else if (isAnswered) {
+            if(navD) navD.classList.add('dijawab');
+            if(navM) navM.classList.add('dijawab');
+        }
+    }
+
+    // --- SAVE & RESTORE ---
     function saveToLocal(name, value) { localStorage.setItem(SAVE_PREFIX + name, value); }
+    
     function restoreAnswers() {
+        // Restore Input Values
         const inputs = document.querySelectorAll('input[type="radio"], textarea');
         inputs.forEach(el => {
             const savedVal = localStorage.getItem(SAVE_PREFIX + el.name);
             if (savedVal) {
                 if (el.type === 'radio') {
-                    if (el.value === savedVal) { el.checked = true; markAnswered(el.dataset.nomor); }
+                    if (el.value === savedVal) el.checked = true;
                 } else if (el.tagName === 'TEXTAREA') {
                     el.value = savedVal;
-                    if(el.value.trim().length > 0) markAnswered(el.dataset.nomor);
                 }
             }
         });
-    }
-    restoreAnswers();
 
-    // --- LISTENER FORM SUBMIT ---
-    // Mencegah deteksi pelanggaran saat tombol submit ditekan dan dikonfirmasi
-    const formUjian = document.getElementById('formUjian');
-    if (formUjian) {
-        formUjian.addEventListener('submit', function() {
-            isSubmitting = true; // Set flag menjadi true
-        });
-    }
-
-    if (localStorage.getItem(BAN_KEY) === "true") { forceSubmitNow(); }
-
-    function forceSubmitNow() {
-        document.getElementById('security-overlay').style.display = 'none';
-        document.getElementById('warning-overlay').style.display = 'none';
-        document.getElementById('kick-overlay').style.display = 'flex';
-        localStorage.setItem(BAN_KEY, "true");
-        
-        isSubmitting = true; // Hindari violation tambahan saat force submit
-        setTimeout(() => { document.getElementById('formUjian').submit(); }, 500);
-    }
-
-    // --- NAVIGATION LOGIC ---
-    function markAnswered(idx) {
-        const d = document.getElementById(`nav-d-${idx}`);
-        const m = document.getElementById(`nav-m-${idx}`);
-        if(d) { d.classList.remove('ragu'); d.classList.add('dijawab'); }
-        if(m) { m.classList.remove('ragu'); m.classList.add('dijawab'); }
-    }
-    function unmarkAnswered(idx) {
-        const d = document.getElementById(`nav-d-${idx}`);
-        const m = document.getElementById(`nav-m-${idx}`);
-        if(d) d.classList.remove('dijawab');
-        if(m) m.classList.remove('dijawab');
-    }
-
-    window.savePG = function(el) {
-        saveToLocal(el.name, el.value);
-        markAnswered(el.dataset.nomor);
-        document.getElementById('check-ragu').checked = false;
-    }
-    window.saveEssay = function(el) {
-        saveToLocal(el.name, el.value);
-        if(el.value.trim().length > 0) {
-            markAnswered(el.dataset.nomor);
-            document.getElementById('check-ragu').checked = false;
-        } else {
-            unmarkAnswered(el.dataset.nomor);
+        // Setelah nilai di-restore, UPDATE SEMUA INDIKATOR
+        for (let i = 0; i < totalStep; i++) {
+            updateIndicatorStatus(i);
         }
     }
 
+    // --- EVENT HANDLERS ---
+    window.savePG = function(el) {
+        saveToLocal(el.name, el.value);
+        // Jika menjawab, otomatis hilangkan status ragu
+        localStorage.setItem(RAGU_PREFIX + el.dataset.nomor, 'false');
+        document.getElementById('check-ragu').checked = false;
+        
+        updateIndicatorStatus(parseInt(el.dataset.nomor));
+    }
+
+    window.saveEssay = function(el) {
+        saveToLocal(el.name, el.value);
+        // Essay tidak otomatis hilangkan ragu, biarkan manual
+        if(el.value.trim().length > 0) {
+            // localStorage.setItem(RAGU_PREFIX + el.dataset.nomor, 'false');
+        }
+        updateIndicatorStatus(parseInt(el.dataset.nomor));
+    }
+
+    // Handler Tombol Ragu
+    document.getElementById('check-ragu').addEventListener('change', function() {
+        const isChecked = this.checked;
+        localStorage.setItem(RAGU_PREFIX + currentStep, isChecked);
+        updateIndicatorStatus(currentStep);
+    });
+
+    // --- NAVIGATION LOGIC ---
     function updateUI() {
+        // Tampilkan soal yang aktif
         steps.forEach(el => el.style.display = 'none');
         steps[currentStep].style.display = 'block';
         window.scrollTo(0, 0);
 
+        // Atur tombol Next/Prev/Submit
         document.getElementById('btn-prev').disabled = (currentStep === 0);
         const btnNext = document.getElementById('btn-next');
         const btnSubmit = document.getElementById('btn-submit');
@@ -364,12 +414,14 @@
             btnSubmit.classList.add('d-none');
         }
 
-        const btnNav = document.getElementById(`nav-d-${currentStep}`);
-        document.getElementById('check-ragu').checked = btnNav.classList.contains('ragu');
-        
-        document.querySelectorAll('.btn-nomor').forEach(b => b.classList.remove('active'));
-        document.getElementById(`nav-d-${currentStep}`).classList.add('active');
-        document.getElementById(`nav-m-${currentStep}`).classList.add('active');
+        // Sinkronkan Checkbox Ragu dengan status tersimpan
+        const isRagu = localStorage.getItem(RAGU_PREFIX + currentStep) === 'true';
+        document.getElementById('check-ragu').checked = isRagu;
+
+        // Update visual indikator navigasi (agar border biru pindah)
+        for (let i = 0; i < totalStep; i++) {
+            updateIndicatorStatus(i);
+        }
     }
 
     function gantiSoal(n) {
@@ -386,24 +438,21 @@
         if (bsOffcanvas) bsOffcanvas.hide();
     }
 
-    document.getElementById('check-ragu').addEventListener('change', function() {
-        const d = document.getElementById(`nav-d-${currentStep}`);
-        const m = document.getElementById(`nav-m-${currentStep}`);
-        if (this.checked) {
-            if(d) { d.classList.remove('dijawab'); d.classList.add('ragu'); }
-            if(m) { m.classList.remove('dijawab'); m.classList.add('ragu'); }
-        } else {
-            if(d) d.classList.remove('ragu'); 
-            if(m) m.classList.remove('ragu');
-            const step = steps[currentStep];
-            if ((step.dataset.type === 'pg' && step.querySelector('input:checked')) || 
-                (step.dataset.type === 'essay' && step.querySelector('textarea').value.trim() !== '')) {
-                markAnswered(currentStep);
-            }
-        }
-    });
+    // --- SUBMIT HANDLING ---
+    const formUjian = document.getElementById('formUjian');
+    if (formUjian) {
+        formUjian.addEventListener('submit', function() {
+            isSubmitting = true;
+        });
+    }
 
-    // --- TIMER & SECURITY ---
+    // --- INITIALIZATION ---
+    restoreAnswers(); // Jalankan saat load
+    updateUI();       // Atur UI awal
+    if (localStorage.getItem(BAN_KEY) === "true") { forceSubmitNow(); }
+
+
+    // --- TIMER & SECURITY (SAMA SEPERTI SEBELUMNYA) ---
     const timerInterval = setInterval(() => {
         sisaDetik--;
         if (sisaDetik < 0) {
@@ -419,6 +468,15 @@
             `${h < 10 ? '0'+h : h}:${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
     }, 1000);
 
+    function forceSubmitNow() {
+        document.getElementById('security-overlay').style.display = 'none';
+        document.getElementById('warning-overlay').style.display = 'none';
+        document.getElementById('kick-overlay').style.display = 'flex';
+        localStorage.setItem(BAN_KEY, "true");
+        isSubmitting = true;
+        setTimeout(() => { document.getElementById('formUjian').submit(); }, 500);
+    }
+
     window.startExam = function() { requestFullScreenAndRun(); }
     window.resumeExam = function() {
         document.getElementById('warning-overlay').style.display = 'none';
@@ -426,6 +484,9 @@
         document.getElementById('janjiSiswa').checked = false;
         toggleLanjutBtn();
         requestFullScreenAndRun();
+    }
+    window.toggleLanjutBtn = function() {
+        document.getElementById('btnLanjutWarning').disabled = !document.getElementById('janjiSiswa').checked;
     }
 
     function requestFullScreenAndRun() {
@@ -444,15 +505,8 @@
         }
     }
 
-    window.toggleLanjutBtn = function() {
-        document.getElementById('btnLanjutWarning').disabled = !document.getElementById('janjiSiswa').checked;
-    }
-
     function recordViolation() {
-        // --- CEK IS SUBMITTING DISINI ---
-        // Jika sedang submit (isSubmitting = true), abaikan deteksi pelanggaran
         if (isWarningActive || isSubmitting) return; 
-        
         violationCount++;
         if (violationCount >= MAX_VIOLATIONS) {
             forceSubmitNow();
@@ -478,8 +532,6 @@
             e.preventDefault(); e.stopPropagation(); return false;
         }
     });
-
-    updateUI();
 </script>
 
 {% endblock %}

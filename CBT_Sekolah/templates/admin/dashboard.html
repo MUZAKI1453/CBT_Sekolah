@@ -1,80 +1,255 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="container py-4 py-md-5" style="max-width: 1000px;">
+<style>
+    :root {
+        --primary: #0d6efd;
+        --primary-soft: #e7f1ff;
+        --secondary: #6c757d;
+        --success-soft: #d1e7dd;
+        --warning-soft: #fff3cd;
+        --info-soft: #cff4fc;
+        --radius: 16px;
+    }
 
-    <div class="text-center mb-4">
-        <h3 class="fw-semibold text-primary mb-0">Dashboard Administrator</h3>
+    .dashboard-container {
+        max-width: 1200px;
+        margin: auto;
+        padding: 25px 20px;
+    }
+
+    /* 1. HERO BANNER */
+    .hero-card {
+        background: linear-gradient(135deg, #212529 0%, #343a40 100%); /* Admin nuansa gelap/elegan */
+        color: white;
+        border-radius: var(--radius);
+        padding: 35px 30px;
+        margin-bottom: 30px;
+        box-shadow: 0 10px 30px rgba(33, 37, 41, 0.3);
+        position: relative;
+        overflow: hidden;
+    }
+    .hero-card::after {
+        content: "";
+        position: absolute;
+        top: -50%;
+        right: -10%;
+        width: 300px;
+        height: 300px;
+        background: rgba(255,255,255,0.05);
+        border-radius: 50%;
+    }
+    .hero-title { font-weight: 800; font-size: 2rem; margin-bottom: 5px; }
+    .hero-subtitle { opacity: 0.8; font-size: 1rem; font-weight: 400; }
+
+    /* 2. STATS CARDS */
+    .stat-card {
+        background: white;
+        border: 1px solid #edf2f9;
+        border-radius: var(--radius);
+        padding: 20px;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+        transition: transform 0.2s;
+    }
+    .stat-card:hover { transform: translateY(-5px); box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
+    
+    .stat-icon {
+        width: 60px; height: 60px;
+        border-radius: 14px;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 1.8rem;
+    }
+    /* Warna-warni Ikon */
+    .bg-icon-blue { background: var(--primary-soft); color: var(--primary); }
+    .bg-icon-green { background: var(--success-soft); color: #198754; }
+    .bg-icon-yellow { background: var(--warning-soft); color: #ffc107; }
+    .bg-icon-cyan { background: var(--info-soft); color: #0dcaf0; }
+
+    .stat-info h3 { font-weight: 800; margin: 0; font-size: 2rem; color: #333; line-height: 1; }
+    .stat-info p { margin: 0; color: #888; font-size: 0.9rem; font-weight: 600; margin-top: 5px; }
+
+    /* 3. WIDGET JAM */
+    .clock-card {
+        background: white;
+        border-radius: var(--radius);
+        padding: 30px;
+        text-align: center;
+        border: 1px solid #edf2f9;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.03);
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+    }
+    #digital-clock {
+        font-size: 3.5rem;
+        font-weight: 800;
+        color: var(--primary);
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+        letter-spacing: -2px;
+    }
+    #date-text {
+        font-size: 1rem;
+        font-weight: 500;
+        color: #6c757d;
+        margin-top: 5px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    /* 4. QUICK ACTIONS */
+    .section-title {
+        font-weight: 800;
+        color: #333;
+        margin-bottom: 20px;
+        font-size: 1.25rem;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .section-title::before {
+        content: ""; width: 5px; height: 25px; background: #333; border-radius: 4px;
+    }
+
+    .btn-quick {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 15px 20px;
+        background: white;
+        border: 1px solid #edf2f9;
+        border-radius: 12px;
+        color: #555;
+        font-weight: 600;
+        text-decoration: none;
+        transition: 0.2s;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+    }
+    .btn-quick:hover {
+        transform: translateX(5px);
+        background: #f8f9fa;
+        color: var(--primary);
+        border-color: var(--primary-soft);
+    }
+    .btn-quick i { font-size: 1.2rem; }
+</style>
+
+<div class="dashboard-container">
+
+    <div class="hero-card">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="hero-title">Dashboard Administrator</div>
+                <div class="hero-subtitle">
+                    Selamat datang kembali. Kelola data sekolah dan monitoring sistem CBT dengan mudah dan efisien.
+                </div>
+            </div>
+            <div class="col-md-4 text-md-end d-none d-md-block">
+                <i class="bi bi-shield-check display-1 opacity-25"></i>
+            </div>
+        </div>
     </div>
 
-    <div class="row g-3 mb-4">
+    <div class="row g-4 mb-4">
         <div class="col-6 col-md-3">
-            <div class="card border-0 shadow-sm bg-primary text-white text-center h-100">
-                <div class="card-body py-3 d-flex flex-column justify-content-center">
-                    <i class="bi bi-building fs-4 mb-1"></i>
-                    <h4 class="mb-0 fw-bold">{{ total_kelas }}</h4>
-                    <small class="opacity-90 small-label">Kelas</small>
+            <div class="stat-card">
+                <div class="stat-icon bg-icon-blue">
+                    <i class="bi bi-building"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ total_kelas }}</h3>
+                    <p>Total Kelas</p>
                 </div>
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="card border-0 shadow-sm bg-success text-white text-center h-100">
-                <div class="card-body py-3 d-flex flex-column justify-content-center">
-                    <i class="bi bi-people fs-4 mb-1"></i>
-                    <h4 class="mb-0 fw-bold">{{ total_siswa }}</h4>
-                    <small class="opacity-90 small-label">Siswa</small>
+            <div class="stat-card">
+                <div class="stat-icon bg-icon-green">
+                    <i class="bi bi-people"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ total_siswa }}</h3>
+                    <p>Total Siswa</p>
                 </div>
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="card border-0 shadow-sm bg-warning text-white text-center h-100">
-                <div class="card-body py-3 d-flex flex-column justify-content-center">
-                    <i class="bi bi-person-workspace fs-4 mb-1"></i>
-                    <h4 class="mb-0 fw-bold">{{ total_guru }}</h4>
-                    <small class="opacity-90 small-label">Guru</small>
+            <div class="stat-card">
+                <div class="stat-icon bg-icon-yellow">
+                    <i class="bi bi-person-workspace"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ total_guru }}</h3>
+                    <p>Total Guru</p>
                 </div>
             </div>
         </div>
         <div class="col-6 col-md-3">
-            <div class="card border-0 shadow-sm bg-info text-white text-center h-100">
-                <div class="card-body py-3 d-flex flex-column justify-content-center">
-                    <i class="bi bi-journal-text fs-4 mb-1"></i>
-                    <h4 class="mb-0 fw-bold">{{ total_mapel }}</h4>
-                    <small class="opacity-90 small-label">Mapel</small>
+            <div class="stat-card">
+                <div class="stat-icon bg-icon-cyan">
+                    <i class="bi bi-journal-text"></i>
+                </div>
+                <div class="stat-info">
+                    <h3>{{ total_mapel }}</h3>
+                    <p>Mata Pelajaran</p>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row justify-content-center g-3">
-        <div class="col-12 col-md-3">
-            <div class="card border-0 shadow-sm rounded-3 bg-white h-100">
-                <div class="card-body d-flex flex-column justify-content-center align-items-center py-4 text-center" style="min-height: 140px;">
-
-                    <h2 id="digital-clock" class="fw-bold text-primary mb-1" style="font-size: 2.5rem; letter-spacing: -1px;">
-                        00:00
-                    </h2>
-
-                    <div id="date-text" class="text-secondary fw-medium" style="font-size: 0.9rem;">
-                        Memuat...
-                    </div>
-
+    <div class="row g-4">
+        <div class="col-md-8">
+            <h5 class="section-title">Kelola Data Master</h5>
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <a href="/admin/kelola_siswa" class="btn-quick">
+                        <span><i class="bi bi-people me-2 text-success"></i> Kelola Data Siswa</span>
+                        <i class="bi bi-chevron-right small text-muted"></i>
+                    </a>
                 </div>
+                <div class="col-md-6">
+                    <a href="/admin/kelola_guru" class="btn-quick">
+                        <span><i class="bi bi-person-badge me-2 text-warning"></i> Kelola Data Guru</span>
+                        <i class="bi bi-chevron-right small text-muted"></i>
+                    </a>
+                </div>
+                <div class="col-md-6">
+                    <a href="/admin/kelola_kelas" class="btn-quick">
+                        <span><i class="bi bi-building me-2 text-primary"></i> Kelola Data Kelas</span>
+                        <i class="bi bi-chevron-right small text-muted"></i>
+                    </a>
+                </div>
+                <div class="col-md-6">
+                    <a href="/admin/kelola_mapel" class="btn-quick">
+                        <span><i class="bi bi-journal-bookmark me-2 text-info"></i> Kelola Mata Pelajaran</span>
+                        <i class="bi bi-chevron-right small text-muted"></i>
+                    </a>
+                </div>
+                <div class="col-12">
+                    <a href="/admin/ujian" class="btn-quick bg-light border-0">
+                        <span><i class="bi bi-laptop me-2 text-dark"></i> Monitoring Ujian Aktif</span>
+                        <span class="badge bg-danger rounded-pill">Penting</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <h5 class="section-title">Waktu Server</h5>
+            <div class="clock-card">
+                <div id="digital-clock">00:00</div>
+                <div id="date-text">Memuat Tanggal...</div>
             </div>
         </div>
     </div>
 
 </div>
-
-<style>
-    .small-label { font-size: 0.8rem; }
-
-    /* Font angka jam agar tidak 'bergetar' saat detik berubah */
-    #digital-clock {
-        font-variant-numeric: tabular-nums;
-        line-height: 1;
-    }
-</style>
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -83,25 +258,15 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function updateClock() {
         const now = new Date();
-
-        // 1. Update Jam (Format: 15:37)
-        // Opsi hour12: false memastikan format 24 jam
         const timeString = now.toLocaleTimeString('id-ID', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: false
-        }).replace('.', ':'); // Pastikan pemisah adalah titik dua
+            hour: '2-digit', minute: '2-digit', hour12: false
+        }).replace('.', ':');
 
-        clockEl.innerText = timeString;
-
-        // 2. Update Tanggal (Format: Minggu, 23 November 2025)
         const dateString = now.toLocaleDateString('id-ID', {
-            weekday: 'long',
-            day: 'numeric',
-            month: 'long',
-            year: 'numeric'
+            weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
         });
 
+        clockEl.innerText = timeString;
         dateEl.innerText = dateString;
     }
 
