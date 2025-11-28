@@ -1,13 +1,15 @@
-from flask import Blueprint, render_template, request, flash, redirect, url_for, send_file
-from flask_login import login_required, current_user
-from models import db, Mapel, Ujian, JawabanSiswa, User
-from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime
+import os
 import json
 import re
-import pdfplumber
-import pandas as pd
 import io
+import pandas as pd
+import pdfplumber
+from datetime import datetime
+from werkzeug.utils import secure_filename
+from werkzeug.security import generate_password_hash, check_password_hash
+from flask import Blueprint, render_template, request, flash, redirect, url_for, send_file, current_app
+from flask_login import login_required, current_user
+from models import db, Mapel, Ujian, JawabanSiswa, User
 
 bp = Blueprint('guru', __name__)
 
@@ -68,13 +70,14 @@ def parse_pdf_lines(lines):
                     'data': {
                         'soal': isi_soal,
                         'a': '', 'b': '', 'c': '', 'd': '', 'e': '',
-                        'kunci': found_key_val
+                        'kunci': found_key_val,
+                        'gambar': ''  # Default kosong untuk PDF
                     }
                 }
             elif found_bobot_val:
                  current_soal = {
                     'tipe': 'essay',
-                    'data': {'soal': isi_soal, 'bobot': found_bobot_val}
+                    'data': {'soal': isi_soal, 'bobot': found_bobot_val, 'gambar': ''}
                 }
             else:
                 # Default PG jika belum ada tanda
@@ -83,7 +86,8 @@ def parse_pdf_lines(lines):
                     'data': {
                         'soal': isi_soal,
                         'a': '', 'b': '', 'c': '', 'd': '', 'e': '',
-                        'kunci': 'A'
+                        'kunci': 'A',
+                        'gambar': ''
                     }
                 }
             last_state = 'soal'
@@ -101,7 +105,8 @@ def parse_pdf_lines(lines):
                      current_soal['tipe'] = 'essay'
                      current_soal['data'] = {
                          'soal': current_soal['data']['soal'], 
-                         'bobot': found_bobot_val
+                         'bobot': found_bobot_val,
+                         'gambar': ''
                      }
 
              # Jika masih ada sisa teks di baris itu, masukkan ke konten
@@ -197,7 +202,7 @@ def upload_soal(mapel_id):
 
                 lines = [line.strip() for line in full_text.split('\n') if line.strip()]
                 
-                # Panggil Helper Function Baru
+                # Panggil Helper Function
                 pg_list, essay_list = parse_pdf_lines(lines)
 
                 if not pg_list and not essay_list:
@@ -231,7 +236,7 @@ def upload_soal(mapel_id):
     return render_template('guru/upload_soal.html', mapel=mapel)
 
 
-# ==================== EDIT UJIAN (MANUAL + UPLOAD) ====================
+# ==================== EDIT UJIAN (MANUAL + UPLOAD GAMBAR) ====================
 @bp.route('/edit_ujian/<int:ujian_id>', methods=['GET', 'POST'])
 @login_required
 def edit_ujian(ujian_id):
@@ -262,7 +267,7 @@ def edit_ujian(ujian_id):
 
         file = request.files.get('file_pdf')
 
-        # --- A. EDIT DENGAN UPLOAD PDF BARU ---
+        # --- A. EDIT DENGAN UPLOAD PDF BARU (TIMPA SEMUA) ---
         if file and file.filename != '':
             if not file.filename.lower().endswith('.pdf'):
                 flash('File harus format PDF!', 'danger')
@@ -278,7 +283,6 @@ def edit_ujian(ujian_id):
 
                 lines = [line.strip() for line in full_text.split('\n') if line.strip()]
                 
-                # Gunakan helper yang sama
                 new_pg, new_essay = parse_pdf_lines(lines)
 
                 if not new_pg and not new_essay:
@@ -287,14 +291,15 @@ def edit_ujian(ujian_id):
 
                 ujian.soal_pg = json.dumps(new_pg, ensure_ascii=False)
                 ujian.soal_essay = json.dumps(new_essay, ensure_ascii=False)
-                flash('Soal berhasil diperbarui dari file PDF baru!', 'success')
+                flash('Soal berhasil diperbarui dari file PDF baru! Gambar lama (jika ada) akan hilang.', 'success')
 
             except Exception as e:
                 flash(f'Error membaca PDF: {str(e)}', 'danger')
                 return redirect(request.url)
 
-        # --- B. EDIT MANUAL ---
+        # --- B. EDIT MANUAL DENGAN GAMBAR ---
         else:
+            # === PILIHAN GANDA ===
             soal_pg = request.form.getlist('pg_soal[]')
             opt_a = request.form.getlist('pg_a[]')
             opt_b = request.form.getlist('pg_b[]')
@@ -302,31 +307,70 @@ def edit_ujian(ujian_id):
             opt_d = request.form.getlist('pg_d[]')
             opt_e = request.form.getlist('pg_e[]')
             kunci = request.form.getlist('pg_kunci[]')
+            
+            # Menangkap file gambar baru & nama gambar lama
+            img_pg_files = request.files.getlist('pg_img[]') 
+            img_pg_old = request.form.getlist('pg_old_img[]')
 
             manual_pg_list = []
+            
+            # Pastikan folder upload ada
+            upload_folder = os.path.join(current_app.root_path, 'static', 'uploads', 'soal')
+            if not os.path.exists(upload_folder):
+                os.makedirs(upload_folder)
+
             for i in range(len(soal_pg)):
                 if soal_pg[i].strip():
+                    # Default gunakan gambar lama jika ada
+                    gambar_final = img_pg_old[i] if i < len(img_pg_old) else ""
+                    
+                    # Jika ada upload file baru pada index ini
+                    if i < len(img_pg_files):
+                        file_gbr = img_pg_files[i]
+                        if file_gbr and file_gbr.filename:
+                            # Buat nama unik: PG_UjianID_Index_Timestamp_NamaFile
+                            filename = secure_filename(f"PG_{ujian_id}_{i}_{int(datetime.now().timestamp())}_{file_gbr.filename}")
+                            save_path = os.path.join(upload_folder, filename)
+                            file_gbr.save(save_path)
+                            gambar_final = filename
+
                     manual_pg_list.append({
                         'soal': soal_pg[i],
                         'a': opt_a[i], 'b': opt_b[i], 'c': opt_c[i],
                         'd': opt_d[i], 'e': opt_e[i],
-                        'kunci': kunci[i]
+                        'kunci': kunci[i],
+                        'gambar': gambar_final
                     })
 
+            # === ESSAY ===
             soal_essay = request.form.getlist('essay_soal[]')
             bobot_essay = request.form.getlist('essay_bobot[]')
+            
+            img_essay_files = request.files.getlist('essay_img[]')
+            img_essay_old = request.form.getlist('essay_old_img[]')
 
             manual_essay_list = []
             for i in range(len(soal_essay)):
                 if soal_essay[i].strip():
+                    gambar_final = img_essay_old[i] if i < len(img_essay_old) else ""
+
+                    if i < len(img_essay_files):
+                        file_gbr = img_essay_files[i]
+                        if file_gbr and file_gbr.filename:
+                            filename = secure_filename(f"ES_{ujian_id}_{i}_{int(datetime.now().timestamp())}_{file_gbr.filename}")
+                            save_path = os.path.join(upload_folder, filename)
+                            file_gbr.save(save_path)
+                            gambar_final = filename
+
                     manual_essay_list.append({
                         'soal': soal_essay[i],
-                        'bobot': int(bobot_essay[i]) if bobot_essay[i] else 0
+                        'bobot': int(bobot_essay[i]) if bobot_essay[i] else 0,
+                        'gambar': gambar_final
                     })
 
             ujian.soal_pg = json.dumps(manual_pg_list, ensure_ascii=False)
             ujian.soal_essay = json.dumps(manual_essay_list, ensure_ascii=False)
-            flash('Perubahan manual berhasil disimpan!', 'success')
+            flash('Perubahan manual dan gambar berhasil disimpan!', 'success')
 
         db.session.commit()
         return redirect('/guru/dashboard')
@@ -337,21 +381,37 @@ def edit_ujian(ujian_id):
                            essay_list=essay_existing)
 
 
-# ==================== HAPUS UJIAN ====================
+# ==================== HAPUS UJIAN (REVISI FIX ERROR) ====================
 @bp.route('/hapus_ujian/<int:ujian_id>', methods=['POST'])
 @login_required
 def hapus_ujian(ujian_id):
     if current_user.role != 'guru': return redirect('/')
+    
+    # Ambil data ujian
     ujian = Ujian.query.get_or_404(ujian_id)
+    
+    # Validasi kepemilikan
     if ujian.mapel.guru_id != current_user.id:
         flash('Akses ditolak!', 'danger')
         return redirect('/guru/dashboard')
 
-    db.session.delete(ujian)
-    db.session.commit()
-    flash('Ujian berhasil dihapus!', 'success')
-    return redirect('/guru/dashboard')
+    try:
+        # 1. Hapus dulu semua jawaban siswa yang terkait dengan ujian ini
+        # (Ini solusi ampuh agar tidak kena error Foreign Key constraint)
+        JawabanSiswa.query.filter_by(ujian_id=ujian_id).delete()
 
+        # 2. Baru hapus ujiannya
+        db.session.delete(ujian)
+        db.session.commit()
+        
+        flash('Ujian berhasil dihapus beserta data jawabannya!', 'success')
+        
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Gagal menghapus ujian: {str(e)}', 'danger')
+        print(f"Error Hapus Ujian: {e}") # Cek terminal untuk detail error jika masih gagal
+
+    return redirect('/guru/dashboard')
 
 # ==================== PREVIEW UJIAN ====================
 @bp.route('/preview/<int:ujian_id>')

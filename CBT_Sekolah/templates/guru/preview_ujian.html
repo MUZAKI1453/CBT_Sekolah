@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% block content %}
-<div class="container mt-4">
+<div class="container mt-4 mb-5">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <div>
             <h2 class="mb-0">{{ ujian.judul }}</h2>
@@ -16,23 +16,44 @@
         <div class="card-body">
             {% if pg %}
                 {% for s in pg %}
-                <div class="mb-4 border-bottom pb-3">
+                <div class="mb-4 border-bottom pb-4">
                     <div class="d-flex">
-                        <span class="fw-bold me-2">{{ loop.index }}.</span>
-                        <div>{{ s.soal }}</div>
-                    </div>
-                    
-                    <div class="ms-4 mt-2 row">
-                        {% for opt in ['a', 'b', 'c', 'd', 'e'] %}
-                            {% if s[opt] %} <div class="col-md-6 mb-1">
-                                <div class="p-2 border rounded 
-                                    {% if s.kunci == opt|upper %} bg-primary bg-opacity-10 border-primary text-primary fw-bold {% endif %}">
-                                    {{ opt|upper }}. {{ s[opt] }}
-                                    {% if s.kunci == opt|upper %} <i class="bi bi-check-circle-fill ms-2"></i>{% endif %}
-                                </div>
+                        <div class="me-3">
+                            <span class="badge bg-primary fs-6 rounded-circle shadow-sm" style="width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
+                                {{ loop.index }}
+                            </span>
+                        </div>
+                        
+                        <div class="w-100">
+                            {% if s.gambar %}
+                            <div class="mb-3">
+                                <img src="{{ url_for('static', filename='uploads/soal/' + s.gambar) }}" 
+                                     class="img-fluid rounded border shadow-sm" style="max-height: 300px;">
                             </div>
                             {% endif %}
-                        {% endfor %}
+
+                            <div class="mb-3 fs-5 text-dark">{{ s.soal }}</div>
+
+                            <div class="d-flex flex-column gap-2">
+                                {% for opt in ['a', 'b', 'c', 'd', 'e'] %}
+                                    {% if s[opt] %} 
+                                    <div class="p-2 border rounded d-flex align-items-center
+                                        {% if s.kunci == opt|upper %} bg-success bg-opacity-10 border-success text-success fw-bold {% else %} bg-light {% endif %}">
+                                        
+                                        <span class="badge {% if s.kunci == opt|upper %}bg-success{% else %}bg-secondary{% endif %} me-2" style="width: 30px;">
+                                            {{ opt|upper }}
+                                        </span>
+                                        
+                                        <span class="flex-grow-1">{{ s[opt] }}</span>
+
+                                        {% if s.kunci == opt|upper %} 
+                                            <span class="badge bg-success ms-2">Jawaban Benar <i class="bi bi-check-circle-fill ms-1"></i></span>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        </div>
                     </div>
                 </div>
                 {% endfor %}
@@ -49,11 +70,31 @@
         <div class="card-body">
             {% if essay %}
                 {% for e in essay %}
-                <div class="mb-3">
-                    <p class="mb-1">
-                        <strong>{{ loop.index }}.</strong> {{ e.soal }}
-                    </p>
-                    <span class="badge bg-warning text-dark">Bobot Poin: {{ e.bobot }}</span>
+                <div class="mb-4 border-bottom pb-3">
+                    <div class="d-flex mb-2">
+                        <div class="me-3">
+                            <span class="badge bg-warning text-dark fs-6 rounded-circle shadow-sm" style="width: 35px; height: 35px; display: flex; align-items: center; justify-content: center;">
+                                {{ loop.index }}
+                            </span>
+                        </div>
+
+                        <div class="w-100">
+                            {% if e.gambar %}
+                            <div class="mb-3">
+                                <img src="{{ url_for('static', filename='uploads/soal/' + e.gambar) }}" 
+                                     class="img-fluid rounded border shadow-sm" style="max-height: 300px;">
+                            </div>
+                            {% endif %}
+
+                            <div class="fs-5">{{ e.soal }}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="ms-5">
+                        <span class="badge bg-light text-dark border px-3 py-2">
+                            Poin: <strong>{{ e.bobot }}</strong>
+                        </span>
+                    </div>
                 </div>
                 {% endfor %}
             {% else %}

@@ -1,6 +1,29 @@
 {% extends "base.html" %}
 {% block content %}
 
+<style>
+    /* CSS COUNTER AGAR NOMOR URUT OTOMATIS */
+    #container-pg { counter-reset: counter-pg; }
+    .item-pg { counter-increment: counter-pg; }
+    .nomor-soal-pg::after {
+        content: " " counter(counter-pg);
+    }
+
+    #container-essay { counter-reset: counter-essay; }
+    .item-essay { counter-increment: counter-essay; }
+    .nomor-soal-essay::after {
+        content: " " counter(counter-essay);
+    }
+
+    /* Style tambahan untuk Opsi Vertikal */
+    .option-row {
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 8px;
+        margin-bottom: 5px;
+    }
+</style>
+
 <div class="container mt-4 mb-5">
     <form method="POST" enctype="multipart/form-data">
         
@@ -16,24 +39,30 @@
             <div class="card-header bg-light fw-bold">Pengaturan Umum</div>
             <div class="card-body">
                 <div class="row g-3">
-                    <div class="col-md-6">
-                        <label>Judul Ujian</label>
+                    <div class="col-md-8">
+                        <label class="form-label fw-semibold">Judul Ujian</label>
                         <input type="text" name="judul" value="{{ ujian.judul }}" class="form-control" required>
                     </div>
-                    <div class="col-md-2">
-                        <label>Durasi (Menit)</label>
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold">Durasi (Menit)</label>
                         <input type="number" name="durasi" value="{{ ujian.durasi_menit }}" class="form-control" required>
                     </div>
-                    <div class="col-md-2">
-                        <label>Mulai</label>
-                        <input type="datetime-local" name="waktu_mulai" value="{{ ujian.waktu_mulai.strftime('%Y-%m-%dT%H:%M') }}" class="form-control" required>
+                </div>
+                <div class="row g-3 mt-2">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Waktu Mulai</label>
+                        <input type="datetime-local" name="waktu_mulai" 
+                               value="{{ ujian.waktu_mulai.strftime('%Y-%m-%dT%H:%M') }}" 
+                               class="form-control" required>
                     </div>
-                    <div class="col-md-2">
-                        <label>Selesai</label>
-                        <input type="datetime-local" name="waktu_selesai" value="{{ ujian.waktu_selesai.strftime('%Y-%m-%dT%H:%M') }}" class="form-control" required>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold">Waktu Selesai</label>
+                        <input type="datetime-local" name="waktu_selesai" 
+                               value="{{ ujian.waktu_selesai.strftime('%Y-%m-%dT%H:%M') }}" 
+                               class="form-control" required>
                     </div>
                 </div>
-                <div class="mt-3 p-3 bg-warning bg-opacity-10 border border-warning rounded">
+                <div class="mt-4 p-3 bg-warning bg-opacity-10 border border-warning rounded">
                     <label class="small fw-bold text-warning">Timpa dengan Upload PDF Baru (Opsional)</label>
                     <input type="file" name="file_pdf" accept=".pdf" class="form-control form-control-sm">
                     <small class="text-muted fst-italic">Biarkan kosong jika hanya ingin mengedit manual di bawah ini.</small>
@@ -50,31 +79,61 @@
             </div>
             <div class="card-body" id="container-pg">
                 {% for s in pg_list %}
-                <div class="border rounded p-3 mb-3 position-relative item-pg">
-                    <button type="button" class="btn-close position-absolute top-0 end-0 m-2" onclick="hapusElemen(this)"></button>
+                <div class="border rounded p-3 mb-4 position-relative item-pg bg-white shadow-sm">
                     
-                    <div class="mb-2">
-                        <label class="fw-bold small">Pertanyaan</label>
-                        <textarea name="pg_soal[]" class="form-control mb-2" rows="2" required>{{ s.soal }}</textarea>
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                        <div class="badge bg-primary fs-6 nomor-soal-pg">Soal No.</div>
+                        
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" role="switch" onchange="toggleImg(this)" {% if s.gambar %}checked{% endif %}>
+                                <label class="form-check-label small fw-bold text-muted">Gambar</label>
+                            </div>
+                            <button type="button" class="btn btn-danger btn-sm px-3" onclick="hapusElemen(this)">
+                                <i class="bi bi-trash"></i> Hapus
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="img-container mb-3 p-3 border rounded bg-light {% if not s.gambar %}d-none{% endif %}">
+                        <label class="small text-muted fw-bold mb-1">Upload Gambar</label>
+                        <div class="row align-items-center">
+                            <div class="col-md-9">
+                                <input type="file" name="pg_img[]" class="form-control" accept="image/*">
+                                <input type="hidden" name="pg_old_img[]" value="{{ s.gambar if s.gambar else '' }}">
+                            </div>
+                            {% if s.gambar %}
+                            <div class="col-md-3 text-end">
+                                <a href="{{ url_for('static', filename='uploads/soal/' + s.gambar) }}" target="_blank">
+                                    <img src="{{ url_for('static', filename='uploads/soal/' + s.gambar) }}" class="img-thumbnail" style="height: 60px;">
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="fw-bold small text-secondary">Pertanyaan</label>
+                        <textarea name="pg_soal[]" class="form-control" rows="2" required>{{ s.soal }}</textarea>
                     </div>
                     
-                    <div class="row g-2 align-items-center">
+                    <div class="mb-3">
+                        <label class="fw-bold small text-secondary mb-1">Pilihan Jawaban</label>
                         {% for opt in ['a','b','c','d','e'] %}
-                        <div class="col-md-2">
-                            <div class="input-group input-group-sm">
-                                <span class="input-group-text fw-bold">{{ opt|upper }}</span>
-                                <input type="text" name="pg_{{ opt }}[]" value="{{ s[opt] }}" class="form-control">
-                            </div>
+                        <div class="option-row d-flex align-items-center">
+                            <span class="badge bg-secondary me-2" style="width: 30px;">{{ opt|upper }}</span>
+                            <input type="text" name="pg_{{ opt }}[]" value="{{ s[opt] }}" class="form-control" placeholder="Jawaban opsi {{ opt|upper }}...">
                         </div>
                         {% endfor %}
-                        
-                        <div class="col-md-2">
-                            <select name="pg_kunci[]" class="form-select form-select-sm bg-success text-white fw-bold">
-                                {% for k in ['A','B','C','D','E'] %}
-                                <option value="{{ k }}" {% if s.kunci == k %}selected{% endif %}>Kunci: {{ k }}</option>
-                                {% endfor %}
-                            </select>
-                        </div>
+                    </div>
+
+                    <div>
+                        <label class="fw-bold small text-success">Kunci Jawaban</label>
+                        <select name="pg_kunci[]" class="form-select bg-success text-white fw-bold">
+                            {% for k in ['A','B','C','D','E'] %}
+                            <option value="{{ k }}" {% if s.kunci == k %}selected{% endif %}>Jawaban Benar: {{ k }}</option>
+                            {% endfor %}
+                        </select>
                     </div>
                 </div>
                 {% endfor %}
@@ -90,16 +149,48 @@
             </div>
             <div class="card-body" id="container-essay">
                 {% for e in essay_list %}
-                <div class="border rounded p-3 mb-3 position-relative item-essay">
-                    <button type="button" class="btn-close position-absolute top-0 end-0 m-2" onclick="hapusElemen(this)"></button>
+                <div class="border rounded p-3 mb-4 position-relative item-essay bg-white shadow-sm">
+                    
+                    <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                        <div class="badge bg-warning text-dark fs-6 nomor-soal-essay">Essay No.</div>
+                        
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="form-check form-switch mb-0">
+                                <input class="form-check-input" type="checkbox" role="switch" onchange="toggleImg(this)" {% if e.gambar %}checked{% endif %}>
+                                <label class="form-check-label small fw-bold text-muted">Gambar</label>
+                            </div>
+                            <button type="button" class="btn btn-danger btn-sm px-3" onclick="hapusElemen(this)">
+                                <i class="bi bi-trash"></i> Hapus
+                            </button>
+                        </div>
+                    </div>
+
                     <div class="row">
                         <div class="col-md-10">
-                            <label class="fw-bold small">Pertanyaan Essay</label>
-                            <textarea name="essay_soal[]" class="form-control" rows="2" required>{{ e.soal }}</textarea>
+                            <div class="img-container mb-3 p-3 border rounded bg-light {% if not e.gambar %}d-none{% endif %}">
+                                <label class="small text-muted fw-bold mb-1">Upload Gambar</label>
+                                <div class="row align-items-center">
+                                    <div class="col-md-9">
+                                        <input type="file" name="essay_img[]" class="form-control" accept="image/*">
+                                        <input type="hidden" name="essay_old_img[]" value="{{ e.gambar if e.gambar else '' }}">
+                                    </div>
+                                    {% if e.gambar %}
+                                    <div class="col-md-3 text-end">
+                                        <a href="{{ url_for('static', filename='uploads/soal/' + e.gambar) }}" target="_blank">
+                                            <img src="{{ url_for('static', filename='uploads/soal/' + e.gambar) }}" class="img-thumbnail" style="height: 60px;">
+                                        </a>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+
+                            <label class="fw-bold small text-secondary">Pertanyaan Essay</label>
+                            <textarea name="essay_soal[]" class="form-control mb-2" rows="3" required>{{ e.soal }}</textarea>
                         </div>
-                        <div class="col-md-2">
-                            <label class="fw-bold small">Bobot Nilai</label>
-                            <input type="number" name="essay_bobot[]" value="{{ e.bobot }}" class="form-control" required>
+                        
+                        <div class="col-md-2 border-start">
+                            <label class="fw-bold small text-secondary">Poin</label>
+                            <input type="number" name="essay_bobot[]" value="{{ e.bobot }}" class="form-control mb-3 text-center fw-bold fs-5" required>
                         </div>
                     </div>
                 </div>
@@ -111,35 +202,73 @@
 </div>
 
 <script>
+    // FUNGSI HAPUS YANG DIPERBAIKI (Lebih Aman)
     function hapusElemen(btn) {
-        if(confirm('Hapus soal ini?')) {
-            btn.parentElement.remove();
+        if(confirm('Yakin ingin menghapus soal ini?')) {
+            // Mencari elemen terdekat dengan class .item-pg atau .item-essay
+            const item = btn.closest('.item-pg, .item-essay');
+            if (item) {
+                item.remove();
+            }
+        }
+    }
+
+    function toggleImg(checkbox) {
+        const parent = checkbox.closest('.item-pg, .item-essay');
+        const container = parent.querySelector('.img-container');
+        if(checkbox.checked) {
+            container.classList.remove('d-none');
+        } else {
+            container.classList.add('d-none');
         }
     }
 
     function tambahPG() {
         const html = `
-        <div class="border rounded p-3 mb-3 position-relative item-pg">
-            <button type="button" class="btn-close position-absolute top-0 end-0 m-2" onclick="hapusElemen(this)"></button>
-            <div class="mb-2">
-                <label class="fw-bold small">Pertanyaan Baru</label>
-                <textarea name="pg_soal[]" class="form-control mb-2" rows="2" required></textarea>
-            </div>
-            <div class="row g-2 align-items-center">
-                <div class="col-md-2"><div class="input-group input-group-sm"><span class="input-group-text fw-bold">A</span><input type="text" name="pg_a[]" class="form-control"></div></div>
-                <div class="col-md-2"><div class="input-group input-group-sm"><span class="input-group-text fw-bold">B</span><input type="text" name="pg_b[]" class="form-control"></div></div>
-                <div class="col-md-2"><div class="input-group input-group-sm"><span class="input-group-text fw-bold">C</span><input type="text" name="pg_c[]" class="form-control"></div></div>
-                <div class="col-md-2"><div class="input-group input-group-sm"><span class="input-group-text fw-bold">D</span><input type="text" name="pg_d[]" class="form-control"></div></div>
-                <div class="col-md-2"><div class="input-group input-group-sm"><span class="input-group-text fw-bold">E</span><input type="text" name="pg_e[]" class="form-control"></div></div>
-                <div class="col-md-2">
-                    <select name="pg_kunci[]" class="form-select form-select-sm bg-success text-white fw-bold">
-                        <option value="A">Kunci: A</option>
-                        <option value="B">Kunci: B</option>
-                        <option value="C">Kunci: C</option>
-                        <option value="D">Kunci: D</option>
-                        <option value="E">Kunci: E</option>
-                    </select>
+        <div class="border rounded p-3 mb-4 position-relative item-pg bg-white shadow-sm">
+            
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                <div class="badge bg-primary fs-6 nomor-soal-pg">Soal No.</div>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" role="switch" onchange="toggleImg(this)">
+                        <label class="form-check-label small fw-bold text-muted">Gambar</label>
+                    </div>
+                    <button type="button" class="btn btn-danger btn-sm px-3" onclick="hapusElemen(this)">
+                        <i class="bi bi-trash"></i> Hapus
+                    </button>
                 </div>
+            </div>
+
+            <div class="img-container mb-3 p-3 border rounded bg-light d-none">
+                <label class="small text-muted fw-bold mb-1">Gambar Baru</label>
+                <input type="file" name="pg_img[]" class="form-control" accept="image/*">
+                <input type="hidden" name="pg_old_img[]" value="">
+            </div>
+
+            <div class="mb-3">
+                <label class="fw-bold small text-secondary">Pertanyaan Baru</label>
+                <textarea name="pg_soal[]" class="form-control" rows="2" required></textarea>
+            </div>
+            
+            <div class="mb-3">
+                <label class="fw-bold small text-secondary mb-1">Pilihan Jawaban</label>
+                <div class="option-row d-flex align-items-center"><span class="badge bg-secondary me-2" style="width: 30px;">A</span><input type="text" name="pg_a[]" class="form-control" placeholder="Opsi A..."></div>
+                <div class="option-row d-flex align-items-center"><span class="badge bg-secondary me-2" style="width: 30px;">B</span><input type="text" name="pg_b[]" class="form-control" placeholder="Opsi B..."></div>
+                <div class="option-row d-flex align-items-center"><span class="badge bg-secondary me-2" style="width: 30px;">C</span><input type="text" name="pg_c[]" class="form-control" placeholder="Opsi C..."></div>
+                <div class="option-row d-flex align-items-center"><span class="badge bg-secondary me-2" style="width: 30px;">D</span><input type="text" name="pg_d[]" class="form-control" placeholder="Opsi D..."></div>
+                <div class="option-row d-flex align-items-center"><span class="badge bg-secondary me-2" style="width: 30px;">E</span><input type="text" name="pg_e[]" class="form-control" placeholder="Opsi E..."></div>
+            </div>
+
+            <div>
+                <label class="fw-bold small text-success">Kunci Jawaban</label>
+                <select name="pg_kunci[]" class="form-select bg-success text-white fw-bold">
+                    <option value="A">Jawaban Benar: A</option>
+                    <option value="B">Jawaban Benar: B</option>
+                    <option value="C">Jawaban Benar: C</option>
+                    <option value="D">Jawaban Benar: D</option>
+                    <option value="E">Jawaban Benar: E</option>
+                </select>
             </div>
         </div>`;
         document.getElementById('container-pg').insertAdjacentHTML('beforeend', html);
@@ -147,16 +276,34 @@
 
     function tambahEssay() {
         const html = `
-        <div class="border rounded p-3 mb-3 position-relative item-essay">
-            <button type="button" class="btn-close position-absolute top-0 end-0 m-2" onclick="hapusElemen(this)"></button>
+        <div class="border rounded p-3 mb-4 position-relative item-essay bg-white shadow-sm">
+            <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+                <div class="badge bg-warning text-dark fs-6 nomor-soal-essay">Essay No.</div>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" role="switch" onchange="toggleImg(this)">
+                        <label class="form-check-label small fw-bold text-muted">Gambar</label>
+                    </div>
+                    <button type="button" class="btn btn-danger btn-sm px-3" onclick="hapusElemen(this)">
+                        <i class="bi bi-trash"></i> Hapus
+                    </button>
+                </div>
+            </div>
+
             <div class="row">
                 <div class="col-md-10">
-                    <label class="fw-bold small">Pertanyaan Essay Baru</label>
-                    <textarea name="essay_soal[]" class="form-control" rows="2" required></textarea>
+                    <div class="img-container mb-3 p-3 border rounded bg-light d-none">
+                        <label class="small text-muted fw-bold mb-1">Gambar Baru</label>
+                        <input type="file" name="essay_img[]" class="form-control" accept="image/*">
+                        <input type="hidden" name="essay_old_img[]" value="">
+                    </div>
+
+                    <label class="fw-bold small text-secondary">Pertanyaan Essay Baru</label>
+                    <textarea name="essay_soal[]" class="form-control mb-2" rows="3" required></textarea>
                 </div>
-                <div class="col-md-2">
-                    <label class="fw-bold small">Bobot Nilai</label>
-                    <input type="number" name="essay_bobot[]" value="10" class="form-control" required>
+                <div class="col-md-2 border-start">
+                    <label class="fw-bold small text-secondary">Poin</label>
+                    <input type="number" name="essay_bobot[]" value="10" class="form-control mb-3 text-center fw-bold fs-5" required>
                 </div>
             </div>
         </div>`;

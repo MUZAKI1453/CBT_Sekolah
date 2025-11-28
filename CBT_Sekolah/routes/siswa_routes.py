@@ -113,6 +113,7 @@ def ujian(ujian_id):
         pg_tampil.append({
             'original_index': idx,
             'soal': item['soal'],
+            'gambar': item.get('gambar', ''),
             'opsi_acak': opsi_list
         })
     random.shuffle(pg_tampil)
@@ -123,6 +124,7 @@ def ujian(ujian_id):
         essay_tampil.append({
             'original_index': idx,
             'soal': item['soal'],
+            'gambar': item.get('gambar', ''),
             'bobot': item['bobot']
         })
     random.shuffle(essay_tampil)

@@ -7,6 +7,14 @@ instance/
 *.db
 *.sqlite3
 
-# Abaikan environment variables (keamanan)
+# Abaikan file media dan gambar yang di-upload
+uploads/
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+
+# Abaikan file lingkungan virtual
 .env
 venv/

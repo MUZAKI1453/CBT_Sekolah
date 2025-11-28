@@ -21,46 +21,23 @@
 
     .exam-container { margin-top: 80px; margin-bottom: 100px; position: relative; z-index: 1; }
 
-    /* 3. BOX JAWABAN (KEMBALI KE STYLE ORIGINAL) */
-    /* Sembunyikan bulatan radio button asli */
-    .input-hidden {
-        position: absolute;
-        left: -9999px;
-        opacity: 0;
-    }
-
-    /* Style Box agar bisa diklik seluruhnya */
+    /* 3. BOX JAWABAN */
+    .input-hidden { position: absolute; left: -9999px; opacity: 0; }
     .pilihan-box {
-        display: flex; 
-        align-items: center;
-        padding: 15px 20px;
-        border: 2px solid #e9ecef;
-        border-radius: 12px;
-        cursor: pointer;
-        transition: all 0.2s ease-in-out;
-        background: white;
-        margin-bottom: 12px;
-        font-weight: 500;
-        color: #495057;
-        position: relative;
+        display: flex; align-items: center; padding: 15px 20px;
+        border: 2px solid #e9ecef; border-radius: 12px;
+        cursor: pointer; transition: all 0.2s ease-in-out;
+        background: white; margin-bottom: 12px; font-weight: 500;
+        color: #495057; position: relative;
     }
-
-    /* Efek Hover */
-    .pilihan-box:hover {
-        background-color: #f8f9fa;
-        border-color: #adb5bd;
-    }
-
-    /* Saat Radio Checked -> Ubah Warna Box (HIJAU/BIRU) */
+    .pilihan-box:hover { background-color: #f8f9fa; border-color: #adb5bd; }
     input:checked + .pilihan-box {
-        background-color: #e7f1ff; /* Biru muda */
-        color: #0d6efd;
-        border-color: #0d6efd;
-        box-shadow: 0 4px 6px rgba(13, 110, 253, 0.2);
+        background-color: #e7f1ff; color: #0d6efd;
+        border-color: #0d6efd; box-shadow: 0 4px 6px rgba(13, 110, 253, 0.2);
         font-weight: bold;
     }
 
-    /* 4. TOMBOL NAVIGASI NOMOR */
+    /* 4. TOMBOL NAVIGASI */
     .btn-nomor {
         width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
         font-weight: bold; border: 1px solid #dee2e6; background: white; border-radius: 8px;
@@ -70,7 +47,7 @@
     .btn-nomor.dijawab { background-color: #198754 !important; color: white !important; border-color: #198754 !important; }
     .btn-nomor.ragu { background-color: #ffc107 !important; color: black !important; border-color: #ffc107 !important; }
 
-    /* 5. WATERMARK & OVERLAY (FITUR KEAMANAN) */
+    /* 5. OVERLAY SECURITY */
     .watermark-container {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         z-index: 0; pointer-events: none; overflow: hidden; opacity: 0.04;
@@ -80,7 +57,6 @@
         width: 300px; height: 200px; display: flex; align-items: center; justify-content: center;
         transform: rotate(-15deg); font-weight: 900; font-size: 1.2rem; color: #000; text-align: center;
     }
-
     .overlay-screen {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         z-index: 9999; display: flex; flex-direction: column;
@@ -170,12 +146,20 @@
                                 <span class="badge bg-light text-dark border">Pilihan Ganda</span>
                             </div>
                             
-                            <div class="fs-5 mb-4 lh-base text-dark">{{ s.soal | safe }}</div>
+                            {% if s.gambar %}
+                            <div class="mb-4">
+                                <img src="{{ url_for('static', filename='uploads/soal/' + s.gambar) }}" 
+                                     class="img-fluid rounded border shadow-sm" 
+                                     style="max-height: 400px; width: auto;" 
+                                     alt="Gambar Soal">
+                            </div>
+                            {% endif %}
+
+                            <div class="fs-5 mb-4 lh-base text-dark">{{ s.soal | safe }}</div>                            
 
                             <div class="opsi-wrapper">
                                 {% for opt in s.opsi_acak %}
                                 <div class="mb-2 position-relative">
-                                    
                                     <input type="radio" 
                                            class="input-hidden input-jawaban-pg" 
                                            name="pg_{{ s.original_index }}" 
@@ -187,7 +171,6 @@
                                     <label class="pilihan-box" for="opt_{{ s.original_index }}_{{ opt.kode }}">
                                         <span>{{ opt.teks }}</span>
                                     </label>
-
                                 </div>
                                 {% endfor %}
                             </div>
@@ -201,7 +184,17 @@
                                 <span class="badge bg-success">No. {{ start_essay + loop.index }}</span>
                                 <span class="badge bg-warning text-dark">Essay (Bobot: {{ e.bobot }})</span>
                             </div>
+                                                        
+                            {% if e.gambar %}
+                            <div class="mb-4 text-center">
+                                <img src="{{ url_for('static', filename='uploads/soal/' + e.gambar) }}" 
+                                    class="img-fluid rounded border shadow-sm" 
+                                    style="max-height: 400px; width: auto;">
+                            </div>
+                            {% endif %}
+
                             <div class="fs-5 mb-4 lh-base text-dark">{{ e.soal | safe }}</div>
+
                             <textarea name="essay_{{ e.original_index }}" 
                                       class="form-control bg-light input-jawaban-essay" rows="8" 
                                       placeholder="Ketik jawaban..." 
@@ -267,11 +260,14 @@
 </div>
 
 <script>
-    // --- SETUP VARIABLES ---
+    // --- VARIABLES & LOGIC ---
     const UJIAN_ID = "{{ ujian.id }}";
     const USER_ID = "{{ current_user.id }}";
     const BAN_KEY = `banned_${USER_ID}_${UJIAN_ID}`;
     const SAVE_PREFIX = `ans_${USER_ID}_${UJIAN_ID}_`;
+
+    // --- NEW FLAG: Untuk menandai proses submit ---
+    let isSubmitting = false; 
 
     let currentStep = 0;
     const totalStep = parseInt("{{ pg_tampil|length + essay_tampil|length }}");
@@ -283,27 +279,15 @@
     let isExamActive = false;
     let isWarningActive = false;
 
-    // ============================================================
-    // --- 1. AUTO-SAVE & RESTORE (MENCEGAH NILAI 0 SAAT KICK) ---
-    // ============================================================
-    
-    // Simpan ke Browser Storage
-    function saveToLocal(name, value) {
-        localStorage.setItem(SAVE_PREFIX + name, value);
-    }
-
-    // Kembalikan Jawaban dari Storage (Dijalankan saat load)
+    // --- AUTO-SAVE & RESTORE ---
+    function saveToLocal(name, value) { localStorage.setItem(SAVE_PREFIX + name, value); }
     function restoreAnswers() {
-        // Cari semua input
         const inputs = document.querySelectorAll('input[type="radio"], textarea');
         inputs.forEach(el => {
             const savedVal = localStorage.getItem(SAVE_PREFIX + el.name);
             if (savedVal) {
                 if (el.type === 'radio') {
-                    if (el.value === savedVal) {
-                        el.checked = true;
-                        markAnswered(el.dataset.nomor); // Warnai navigasi
-                    }
+                    if (el.value === savedVal) { el.checked = true; markAnswered(el.dataset.nomor); }
                 } else if (el.tagName === 'TEXTAREA') {
                     el.value = savedVal;
                     if(el.value.trim().length > 0) markAnswered(el.dataset.nomor);
@@ -311,43 +295,36 @@
             }
         });
     }
-
-    // Panggil Restore segera
     restoreAnswers();
 
-    // ============================================================
-    // --- 2. LOGIKA ANTI-REFRESH (AUTO SUBMIT JIKA BANNED) ---
-    // ============================================================
-    
-    if (localStorage.getItem(BAN_KEY) === "true") {
-        forceSubmitNow();
+    // --- LISTENER FORM SUBMIT ---
+    // Mencegah deteksi pelanggaran saat tombol submit ditekan dan dikonfirmasi
+    const formUjian = document.getElementById('formUjian');
+    if (formUjian) {
+        formUjian.addEventListener('submit', function() {
+            isSubmitting = true; // Set flag menjadi true
+        });
     }
+
+    if (localStorage.getItem(BAN_KEY) === "true") { forceSubmitNow(); }
 
     function forceSubmitNow() {
         document.getElementById('security-overlay').style.display = 'none';
         document.getElementById('warning-overlay').style.display = 'none';
         document.getElementById('kick-overlay').style.display = 'flex';
+        localStorage.setItem(BAN_KEY, "true");
         
-        localStorage.setItem(BAN_KEY, "true"); // Kunci selamanya
-
-        // Submit setelah 0.5 detik agar input ter-restore dulu
-        setTimeout(() => {
-            document.getElementById('formUjian').submit();
-        }, 500);
+        isSubmitting = true; // Hindari violation tambahan saat force submit
+        setTimeout(() => { document.getElementById('formUjian').submit(); }, 500);
     }
 
-    // ============================================================
-    // --- 3. LOGIKA PEWARNAAN & NAVIGASI ---
-    // ============================================================
-
-    // Fungsi Mark Hijau (Dipanggil oleh onchange input)
+    // --- NAVIGATION LOGIC ---
     function markAnswered(idx) {
         const d = document.getElementById(`nav-d-${idx}`);
         const m = document.getElementById(`nav-m-${idx}`);
         if(d) { d.classList.remove('ragu'); d.classList.add('dijawab'); }
         if(m) { m.classList.remove('ragu'); m.classList.add('dijawab'); }
     }
-
     function unmarkAnswered(idx) {
         const d = document.getElementById(`nav-d-${idx}`);
         const m = document.getElementById(`nav-m-${idx}`);
@@ -355,14 +332,11 @@
         if(m) m.classList.remove('dijawab');
     }
 
-    // Handler PG (Dipanggil saat radio button berubah/diklik label)
     window.savePG = function(el) {
         saveToLocal(el.name, el.value);
         markAnswered(el.dataset.nomor);
         document.getElementById('check-ragu').checked = false;
     }
-
-    // Handler Essay (Dipanggil saat mengetik)
     window.saveEssay = function(el) {
         saveToLocal(el.name, el.value);
         if(el.value.trim().length > 0) {
@@ -373,7 +347,6 @@
         }
     }
 
-    // Navigasi UI
     function updateUI() {
         steps.forEach(el => el.style.display = 'none');
         steps[currentStep].style.display = 'block';
@@ -413,7 +386,6 @@
         if (bsOffcanvas) bsOffcanvas.hide();
     }
 
-    // Tombol Ragu
     document.getElementById('check-ragu').addEventListener('change', function() {
         const d = document.getElementById(`nav-d-${currentStep}`);
         const m = document.getElementById(`nav-m-${currentStep}`);
@@ -423,8 +395,6 @@
         } else {
             if(d) d.classList.remove('ragu'); 
             if(m) m.classList.remove('ragu');
-            
-            // Cek ulang jika sudah ada jawaban
             const step = steps[currentStep];
             if ((step.dataset.type === 'pg' && step.querySelector('input:checked')) || 
                 (step.dataset.type === 'essay' && step.querySelector('textarea').value.trim() !== '')) {
@@ -433,10 +403,7 @@
         }
     });
 
-    // ============================================================
-    // --- 4. TIMER & SECURITY LOGIC ---
-    // ============================================================
-
+    // --- TIMER & SECURITY ---
     const timerInterval = setInterval(() => {
         sisaDetik--;
         if (sisaDetik < 0) {
@@ -453,7 +420,6 @@
     }, 1000);
 
     window.startExam = function() { requestFullScreenAndRun(); }
-    
     window.resumeExam = function() {
         document.getElementById('warning-overlay').style.display = 'none';
         isWarningActive = false;
@@ -482,12 +448,14 @@
         document.getElementById('btnLanjutWarning').disabled = !document.getElementById('janjiSiswa').checked;
     }
 
-    function recordViolation(reason) {
-        if (isWarningActive) return; 
-
+    function recordViolation() {
+        // --- CEK IS SUBMITTING DISINI ---
+        // Jika sedang submit (isSubmitting = true), abaikan deteksi pelanggaran
+        if (isWarningActive || isSubmitting) return; 
+        
         violationCount++;
         if (violationCount >= MAX_VIOLATIONS) {
-            forceSubmitNow(); // KICK DAN SUBMIT JAWABAN
+            forceSubmitNow();
         } else {
             isExamActive = false;
             isWarningActive = true;
@@ -495,7 +463,6 @@
         }
     }
 
-    // Sensors
     document.addEventListener('visibilitychange', () => { if (document.hidden && isExamActive) recordViolation(); });
     window.addEventListener('blur', () => { 
         if (isExamActive && document.activeElement.tagName !== "IFRAME") {
@@ -513,6 +480,6 @@
     });
 
     updateUI();
-
 </script>
+
 {% endblock %}
