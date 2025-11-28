@@ -148,11 +148,19 @@ def parse_pdf_lines(lines):
 @bp.route('/dashboard')
 @login_required
 def dashboard():
-    if current_user.role != 'guru':
+    # UPDATE: Izinkan Guru ATAU Admin
+    if current_user.role not in ['guru', 'admin']:
         return redirect('/')
 
-    mapel = Mapel.query.filter_by(guru_id=current_user.id).all()
-    ujian = Ujian.query.join(Mapel).filter(Mapel.guru_id == current_user.id).order_by(Ujian.waktu_mulai.desc()).all()
+    # UPDATE: Jika Admin, tampilkan SEMUA data
+    if current_user.role == 'admin':
+        mapel = Mapel.query.all()
+        ujian = Ujian.query.order_by(Ujian.waktu_mulai.desc()).all()
+    else:
+        # Jika Guru, hanya data miliknya
+        mapel = Mapel.query.filter_by(guru_id=current_user.id).all()
+        ujian = Ujian.query.join(Mapel).filter(Mapel.guru_id == current_user.id).order_by(Ujian.waktu_mulai.desc()).all()
+
     return render_template('guru/dashboard.html', mapel=mapel, ujian=ujian, datetime=datetime)
 
 
@@ -160,11 +168,14 @@ def dashboard():
 @bp.route('/upload_soal/<int:mapel_id>', methods=['GET', 'POST'])
 @login_required
 def upload_soal(mapel_id):
-    if current_user.role != 'guru':
+    # UPDATE: Izinkan Guru ATAU Admin
+    if current_user.role not in ['guru', 'admin']:
         return redirect('/')
 
     mapel = Mapel.query.get_or_404(mapel_id)
-    if mapel.guru_id != current_user.id:
+    
+    # UPDATE: Bypass cek pemilik jika user adalah Admin
+    if current_user.role != 'admin' and mapel.guru_id != current_user.id:
         flash('Anda tidak berhak mengunggah soal untuk mapel ini!', 'danger')
         return redirect('/guru/dashboard')
 
@@ -243,11 +254,14 @@ def upload_soal(mapel_id):
 @bp.route('/edit_ujian/<int:ujian_id>', methods=['GET', 'POST'])
 @login_required
 def edit_ujian(ujian_id):
-    if current_user.role != 'guru':
+    # UPDATE: Izinkan Guru ATAU Admin
+    if current_user.role not in ['guru', 'admin']:
         return redirect('/')
 
     ujian = Ujian.query.get_or_404(ujian_id)
-    if ujian.mapel.guru_id != current_user.id:
+    
+    # UPDATE: Bypass cek pemilik jika Admin
+    if current_user.role != 'admin' and ujian.mapel.guru_id != current_user.id:
         flash('Akses ditolak!', 'danger')
         return redirect('/guru/dashboard')
 
@@ -384,23 +398,24 @@ def edit_ujian(ujian_id):
                            essay_list=essay_existing)
 
 
-# ==================== HAPUS UJIAN (REVISI FIX ERROR) ====================
+# ==================== HAPUS UJIAN ====================
 @bp.route('/hapus_ujian/<int:ujian_id>', methods=['POST'])
 @login_required
 def hapus_ujian(ujian_id):
-    if current_user.role != 'guru': return redirect('/')
+    # UPDATE: Izinkan Guru ATAU Admin
+    if current_user.role not in ['guru', 'admin']: 
+        return redirect('/')
     
     # Ambil data ujian
     ujian = Ujian.query.get_or_404(ujian_id)
     
-    # Validasi kepemilikan
-    if ujian.mapel.guru_id != current_user.id:
+    # UPDATE: Bypass cek pemilik jika Admin
+    if current_user.role != 'admin' and ujian.mapel.guru_id != current_user.id:
         flash('Akses ditolak!', 'danger')
         return redirect('/guru/dashboard')
 
     try:
         # 1. Hapus dulu semua jawaban siswa yang terkait dengan ujian ini
-        # (Ini solusi ampuh agar tidak kena error Foreign Key constraint)
         JawabanSiswa.query.filter_by(ujian_id=ujian_id).delete()
 
         # 2. Baru hapus ujiannya
@@ -412,7 +427,7 @@ def hapus_ujian(ujian_id):
     except Exception as e:
         db.session.rollback()
         flash(f'Gagal menghapus ujian: {str(e)}', 'danger')
-        print(f"Error Hapus Ujian: {e}") # Cek terminal untuk detail error jika masih gagal
+        print(f"Error Hapus Ujian: {e}")
 
     return redirect('/guru/dashboard')
 
@@ -420,9 +435,14 @@ def hapus_ujian(ujian_id):
 @bp.route('/preview/<int:ujian_id>')
 @login_required
 def preview(ujian_id):
-    if current_user.role != 'guru': return redirect('/')
+    # UPDATE: Izinkan Guru ATAU Admin
+    if current_user.role not in ['guru', 'admin']: 
+        return redirect('/')
+    
     ujian = Ujian.query.get_or_404(ujian_id)
-    if ujian.mapel.guru_id != current_user.id:
+    
+    # UPDATE: Bypass cek pemilik jika Admin
+    if current_user.role != 'admin' and ujian.mapel.guru_id != current_user.id:
         flash('Akses ditolak!', 'danger')
         return redirect('/guru/dashboard')
     
@@ -435,10 +455,15 @@ def preview(ujian_id):
 @bp.route('/koreksi/<int:jawaban_id>', methods=['GET', 'POST'])
 @login_required
 def koreksi(jawaban_id):
-    if current_user.role != 'guru': return redirect('/')
+    # UPDATE: Izinkan Guru ATAU Admin
+    if current_user.role not in ['guru', 'admin']: 
+        return redirect('/')
+    
     jawaban_siswa = JawabanSiswa.query.get_or_404(jawaban_id)
     ujian = jawaban_siswa.ujian
-    if ujian.mapel.guru_id != current_user.id:
+    
+    # UPDATE: Bypass cek pemilik jika Admin
+    if current_user.role != 'admin' and ujian.mapel.guru_id != current_user.id:
         flash('Akses ditolak!', 'danger')
         return redirect('/guru/dashboard')
 
@@ -464,19 +489,18 @@ def koreksi(jawaban_id):
     return render_template('guru/koreksi.html', jawaban=jawaban_siswa, soal_essay=soal_essay, jawab_essay=jawab_essay)
 
 
-# Pastikan import ini ada di paling atas
-from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
-from openpyxl.utils import get_column_letter
-from openpyxl.drawing.image import Image as ExcelImage
-
 # ==================== LIHAT NILAI (KOP FORMAL TIMES NEW ROMAN) ====================
 @bp.route('/lihat_nilai/<int:ujian_id>', methods=['GET', 'POST'])
 @login_required
 def lihat_nilai(ujian_id):
-    if current_user.role != 'guru': return redirect('/')
+    # UPDATE: Izinkan Guru ATAU Admin
+    if current_user.role not in ['guru', 'admin']: 
+        return redirect('/')
     
     ujian = Ujian.query.get_or_404(ujian_id)
-    if ujian.mapel.guru_id != current_user.id:
+    
+    # UPDATE: Bypass cek pemilik jika Admin
+    if current_user.role != 'admin' and ujian.mapel.guru_id != current_user.id:
         flash('Anda tidak memiliki akses ke data ini!', 'danger')
         return redirect('/guru/dashboard')
 
@@ -629,9 +653,16 @@ def lihat_nilai(ujian_id):
 @bp.route('/refresh_tabel_nilai/<int:ujian_id>')
 @login_required
 def refresh_tabel_nilai(ujian_id):
-    if current_user.role != 'guru': return ('', 403)
+    # UPDATE: Izinkan Guru ATAU Admin
+    if current_user.role not in ['guru', 'admin']: 
+        return ('', 403)
+    
     ujian = Ujian.query.get_or_404(ujian_id)
-    if ujian.mapel.guru_id != current_user.id: return ('', 403)
+    
+    # UPDATE: Bypass cek pemilik jika Admin
+    if current_user.role != 'admin' and ujian.mapel.guru_id != current_user.id: 
+        return ('', 403)
+    
     data_nilai = JawabanSiswa.query.filter_by(ujian_id=ujian_id).all()
     data_nilai.sort(key=lambda x: (x.siswa.kelas.nama_kelas if x.siswa and x.siswa.kelas else "", x.siswa.nama if x.siswa else ""))
     return render_template('guru/partials/tabel_nilai_body.html', data_nilai=data_nilai)
@@ -641,9 +672,16 @@ def refresh_tabel_nilai(ujian_id):
 @bp.route('/reset_peserta/<int:jawaban_id>', methods=['POST'])
 @login_required
 def reset_peserta(jawaban_id):
-    if current_user.role != 'guru': return ('', 403)
+    # UPDATE: Izinkan Guru ATAU Admin
+    if current_user.role not in ['guru', 'admin']: 
+        return ('', 403)
+    
     jawaban = JawabanSiswa.query.get_or_404(jawaban_id)
-    if jawaban.ujian.mapel.guru_id != current_user.id: return ('', 403)
+    
+    # UPDATE: Bypass cek pemilik jika Admin
+    if current_user.role != 'admin' and jawaban.ujian.mapel.guru_id != current_user.id: 
+        return ('', 403)
+    
     db.session.delete(jawaban)
     db.session.commit()
     return ('', 204)
@@ -653,7 +691,10 @@ def reset_peserta(jawaban_id):
 @bp.route('/ganti_password', methods=['GET', 'POST'])
 @login_required
 def ganti_password():
-    if current_user.role != 'guru': return redirect('/')
+    # UPDATE: Izinkan Guru ATAU Admin
+    if current_user.role not in ['guru', 'admin']: 
+        return redirect('/')
+    
     if request.method == 'POST':
         old_pass = request.form['old_pass']
         new_pass = request.form['new_pass']

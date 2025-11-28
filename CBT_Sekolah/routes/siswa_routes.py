@@ -12,7 +12,10 @@ bp = Blueprint('siswa', __name__)
 @bp.route('/dashboard')
 @login_required
 def dashboard():
-    if current_user.role != 'siswa': return redirect('/')
+    # UPDATE: Izinkan Siswa ATAU Admin (untuk preview)
+    if current_user.role not in ['siswa', 'admin']: 
+        return redirect('/')
+    
     ujian = Ujian.query.filter(Ujian.waktu_selesai > datetime.now()).order_by(Ujian.waktu_mulai).all()
 
     return render_template('siswa/dashboard.html', ujian=ujian, datetime=datetime)
@@ -22,7 +25,9 @@ def dashboard():
 @bp.route('/ujian/<int:ujian_id>', methods=['GET', 'POST'])
 @login_required
 def ujian(ujian_id):
-    if current_user.role != 'siswa': return redirect('/')
+    # UPDATE: Izinkan Siswa ATAU Admin (untuk simulasi)
+    if current_user.role not in ['siswa', 'admin']: 
+        return redirect('/')
 
     ujian = Ujian.query.get_or_404(ujian_id)
     now = datetime.now()
@@ -35,6 +40,7 @@ def ujian(ujian_id):
         flash('Waktu ujian sudah habis!', 'danger')
         return redirect('/siswa/dashboard')
 
+    # Cek apakah user (Siswa/Admin) sudah pernah mengerjakan
     if JawabanSiswa.query.filter_by(siswa_id=current_user.id, ujian_id=ujian_id).first():
         flash('Anda sudah mengerjakan ujian ini!', 'info')
         return redirect('/siswa/dashboard')
@@ -84,6 +90,7 @@ def ujian(ujian_id):
             jawaban_essay_siswa[str(i)] = jawaban
 
         # --- 4. SIMPAN KE DATABASE ---
+        # Catatan: Jika Admin mengerjakan, data tersimpan dengan ID Admin
         jwb = JawabanSiswa(
             siswa_id=current_user.id,
             ujian_id=ujian_id,
@@ -136,11 +143,13 @@ def ujian(ujian_id):
                            sisa_waktu_detik=sisa_waktu_detik)
 
 
-# ==================== GANTI PASSWORD (FITUR BARU) ====================
+# ==================== GANTI PASSWORD ====================
 @bp.route('/ganti_password', methods=['GET', 'POST'])
 @login_required
 def ganti_password():
-    if current_user.role != 'siswa': return redirect('/')
+    # UPDATE: Izinkan Siswa ATAU Admin
+    if current_user.role not in ['siswa', 'admin']: 
+        return redirect('/')
 
     if request.method == 'POST':
         old_pass = request.form['old_pass']
@@ -163,7 +172,9 @@ def ganti_password():
             # 4. Update Password (Hash Dulu!)
             current_user.password = generate_password_hash(new_pass)
             db.session.commit()
-            flash('Password berhasil diubah! Silakan login ulang nanti.', 'success')
+            
+            # Jika admin mengganti password di sini, yang terganti adalah password akun admin sendiri
+            flash('Password berhasil diubah!', 'success')
             return redirect('/siswa/dashboard')
 
     return render_template('siswa/ganti_password.html')

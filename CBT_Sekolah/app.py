@@ -83,13 +83,13 @@ with app.app_context():
     if not User.query.filter_by(username='admin', role='admin').first():
         admin = User(
             username='admin',
-            password=generate_password_hash('admin123'),
+            password=generate_password_hash('ad123min'),
             role='admin',
             nama='Administrator'
         )
         db.session.add(admin)
         db.session.commit()
-        print("Admin default dibuat → username: admin | password: admin123")
+        print("Admin default dibuat → username: admin | password: ad123min")
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=False)
