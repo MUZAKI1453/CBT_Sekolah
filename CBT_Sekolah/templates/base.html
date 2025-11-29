@@ -193,6 +193,8 @@
                                 <li><a class="dropdown-item" href="/siswa/ganti_password"><i class="bi bi-key me-2"></i> Ganti Password</a></li>
                             {% elif current_user.role == 'guru' %}
                                 <li><a class="dropdown-item" href="/guru/ganti_password"><i class="bi bi-key me-2"></i> Ganti Password</a></li>
+                            {% elif current_user.role == 'admin' %}
+                                <li><a class="dropdown-item" href="/admin/ganti_password"><i class="bi bi-key me-2"></i> Ganti Password</a></li>
                             {% endif %}
                             
                             <li>

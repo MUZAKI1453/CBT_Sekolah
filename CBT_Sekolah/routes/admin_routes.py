@@ -359,3 +359,37 @@ def ujian():
         return redirect(url_for('admin.ujian'))
     data_ujian = Ujian.query.order_by(Ujian.waktu_mulai.desc()).all()
     return render_template('admin/ujian.html', ujian=data_ujian, datetime=datetime)
+
+# ==================== GANTI PASSWORD ADMIN ====================
+@bp.route('/ganti_password', methods=['GET', 'POST'])
+@login_required
+def ganti_password():
+    # Cek hak akses admin
+    if current_user.role != 'admin':
+        return redirect('/')
+
+    if request.method == 'POST':
+        old_pass = request.form['old_pass']
+        new_pass = request.form['new_pass']
+        confirm_pass = request.form['confirm_pass']
+
+        # 1. Cek Password Lama
+        if not check_password_hash(current_user.password, old_pass):
+            flash('Password lama salah!', 'danger')
+        
+        # 2. Cek Konfirmasi Password Baru
+        elif new_pass != confirm_pass:
+            flash('Konfirmasi password baru tidak cocok!', 'warning')
+
+        # 3. Validasi Panjang Password
+        elif len(new_pass) < 6:
+            flash('Password baru minimal 6 karakter!', 'warning')
+
+        else:
+            # 4. Update Password (Hash ulang)
+            current_user.password = generate_password_hash(new_pass)
+            db.session.commit()
+            flash('Password Admin berhasil diubah!', 'success')
+            return redirect('/admin/dashboard')
+
+    return render_template('admin/ganti_password.html')
