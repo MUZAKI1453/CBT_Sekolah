@@ -181,18 +181,28 @@
                             <div class="opsi-wrapper">
                                 {% for opt in s.opsi_acak %}
                                 <div class="mb-2 position-relative">
-                                    <input type="radio" 
-                                           class="input-hidden input-jawaban-pg" 
-                                           name="pg_{{ s.original_index }}" 
-                                           id="opt_{{ s.original_index }}_{{ opt.kode }}" 
-                                           value="{{ opt.kode }}" 
-                                           data-nomor="{{ loop.index0 }}"
-                                           onchange="savePG(this)">
-                                    
-                                    <label class="pilihan-box" for="opt_{{ s.original_index }}_{{ opt.kode }}">
-                                        <span>{{ opt.teks }}</span>
-                                    </label>
-                                </div>
+                                        <input type="radio" 
+                                            class="input-hidden input-jawaban-pg" 
+                                            name="pg_{{ s.original_index }}" 
+                                            id="opt_{{ s.original_index }}_{{ opt.kode }}" 
+                                            value="{{ opt.kode }}" 
+                                            data-nomor="{{ loop.index0 }}"
+                                            onchange="savePG(this)">
+                                        
+                                        <label class="pilihan-box d-block" for="opt_{{ s.original_index }}_{{ opt.kode }}">
+                                            
+                                            {% if opt.gambar %}
+                                            <div class="mb-2">
+                                                <img src="{{ url_for('static', filename='uploads/soal/' + opt.gambar) }}" 
+                                                    class="img-fluid rounded border" 
+                                                    style="max-height: 150px; object-fit: contain;">
+                                            </div>
+                                            {% endif %}
+
+                                            <span>{{ opt.teks }}</span>
+                                            
+                                        </label>
+                                    </div>
                                 {% endfor %}
                             </div>
                         </div>

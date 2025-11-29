@@ -114,9 +114,18 @@ def ujian(ujian_id):
     for idx, item in enumerate(pg_db):
         opsi_list = []
         for kode in ['a', 'b', 'c', 'd', 'e']:
-            if item.get(kode):
-                opsi_list.append({'kode': kode.upper(), 'teks': item[kode]})
+            # Cek apakah ada teks ATAU ada gambar
+            has_text = item.get(kode)
+            has_img = item.get(f'{kode}_gambar')
+
+            if has_text or has_img:
+                opsi_list.append({
+                    'kode': kode.upper(),
+                    'teks': item.get(kode, ''),        # Teks opsi
+                    'gambar': item.get(f'{kode}_gambar', '') # Gambar opsi (NEW)
+                })
         random.shuffle(opsi_list)
+        
         pg_tampil.append({
             'original_index': idx,
             'soal': item['soal'],

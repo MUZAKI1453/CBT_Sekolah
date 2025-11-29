@@ -3,19 +3,27 @@ from flask_login import LoginManager, login_required, logout_user, login_user
 from config import Config
 from models import db, User
 from werkzeug.security import generate_password_hash, check_password_hash
-from sqlalchemy import event  # TAMBAHKAN INI
+from sqlalchemy import event
 from waitress import serve
+import logging
 
 app = Flask(__name__)
 app.config.from_object(Config)
 db.init_app(app)
 
-# === AKTIFKAN FOREIGN KEYS DI SQLITE (HARUS DI DALAM app_context!) ===
+# ==========================================
+# OPTIMASI DATABASE (SQLITE PRAGMA)
+# ==========================================
 with app.app_context():
     @event.listens_for(db.engine, "connect")
     def set_sqlite_pragma(dbapi_connection, connection_record):
         cursor = dbapi_connection.cursor()
+        # Aktifkan Foreign Keys
         cursor.execute("PRAGMA foreign_keys = ON")
+        # Aktifkan Write-Ahead Logging (WAL) untuk performa tinggi saat banyak akses
+        cursor.execute("PRAGMA journal_mode = WAL")
+        # Sinkronisasi normal agar lebih cepat (sedikit risiko jika mati lampu, tapi performa naik drastis)
+        cursor.execute("PRAGMA synchronous = NORMAL")
         cursor.close()
 
 login_manager = LoginManager(app)
@@ -53,7 +61,7 @@ def login_unified():
 
     if user and check_password_hash(user.password, password):
         login_user(user)
-        flash(f'Selamat datang, {user.nama or user.username}!', 'success')
+        # flash(f'Selamat datang, {user.nama or user.username}!', 'success') # Opsional: Matikan flash login agar lebih ringan
 
         if role == 'admin':
             return redirect('/admin/dashboard')
@@ -91,5 +99,20 @@ with app.app_context():
         db.session.commit()
         print("Admin default dibuat → username: admin | password: admin123")
 
+# ==========================================
+# KONFIGURASI SERVER PRODUCTION (WAITRESS)
+# ==========================================
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=False)
+    print("="*50)
+    print(" SERVER CBT SIAP (MODE PRODUCTION)")
+    print(" Kapasitas: 75 Concurrent Users")
+    print(" Database: SQLite (WAL Mode)")
+    print(" Akses Lokal: http://localhost:5000")
+    print("="*50)
+    
+    # Logger agar error terlihat di terminal
+    logger = logging.getLogger('waitress')
+    logger.setLevel(logging.INFO)
+    
+    # threads=75: Agar 73 siswa bisa request bersamaan tanpa antri lama
+    serve(app, host='0.0.0.0', port=5000, threads=75)

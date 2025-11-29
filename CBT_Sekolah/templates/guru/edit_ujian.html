@@ -5,34 +5,91 @@
     /* CSS COUNTER AGAR NOMOR URUT OTOMATIS */
     #container-pg { counter-reset: counter-pg; }
     .item-pg { counter-increment: counter-pg; }
-    .nomor-soal-pg::after {
-        content: " " counter(counter-pg);
-    }
+    .nomor-soal-pg::after { content: " " counter(counter-pg); }
 
     #container-essay { counter-reset: counter-essay; }
     .item-essay { counter-increment: counter-essay; }
-    .nomor-soal-essay::after {
-        content: " " counter(counter-essay);
-    }
+    .nomor-soal-essay::after { content: " " counter(counter-essay); }
 
-    /* Style tambahan untuk Opsi Vertikal */
+    /* STYLE OPSI VERTIKAL */
     .option-row {
         background-color: #f8f9fa;
-        padding: 10px;
         border-radius: 8px;
-        margin-bottom: 5px;
+        transition: 0.2s;
+        border: 1px solid #dee2e6;
+    }
+    .option-row:hover {
+        background-color: #f1f3f5;
+        border-color: #ced4da;
+    }
+    
+    /* PREVIEW GAMBAR */
+    .img-preview-box {
+        background-color: #fff;
+        padding: 10px;
+        border: 1px dashed #ccc;
+        border-radius: 6px;
+        text-align: center;
+        margin-bottom: 10px;
+    }
+    .img-preview-box img {
+        max-width: 100%;
+        max-height: 250px;
+        object-fit: contain;
+        border-radius: 4px;
+    }
+
+    /* --- UPDATE: RESPONSIVE & STICKY ACTION BAR --- */
+    
+    /* Margin kiri opsi: besar di desktop, kecil di HP */
+    .indent-responsive { margin-left: 3rem !important; }
+
+    @media (max-width: 576px) {
+        .indent-responsive { margin-left: 0.5rem !important; }
+        
+        /* Tombol Simpan Melayang di Bawah Layar (Khusus HP) */
+        .mobile-sticky-action {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: white;
+            padding: 12px 15px;
+            box-shadow: 0 -4px 10px rgba(0,0,0,0.1);
+            z-index: 1050;
+            display: flex;
+            gap: 10px;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        /* Tambah padding bawah body agar konten tidak tertutup tombol sticky */
+        body { padding-bottom: 80px; }
     }
 </style>
 
 <div class="container mt-4 mb-5">
     <form method="POST" enctype="multipart/form-data">
         
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h2>Edit Ujian: {{ ujian.judul }}</h2>
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
             <div>
-                <a href="/guru/dashboard" class="btn btn-secondary">Batal</a>
-                <button type="submit" class="btn btn-primary px-4">Simpan Perubahan</button>
+                <h2 class="mb-0 fw-bold fs-3">{{ ujian.judul }}</h2>
+                <div class="text-muted small">
+                    <i class="bi bi-book me-1"></i> {{ ujian.mapel.nama }} &bull; 
+                    <i class="bi bi-clock me-1"></i> {{ ujian.durasi_menit }} Menit
+                </div>
             </div>
+            
+            <div class="d-none d-sm-flex gap-2">
+                <a href="/guru/dashboard" class="btn btn-secondary px-4">Batal</a>
+                <button type="submit" class="btn btn-primary px-4 fw-bold">
+                    <i class="bi bi-save me-1"></i> Simpan Perubahan
+                </button>
+            </div>
+        </div>
+
+        <div class="mobile-sticky-action d-flex d-sm-none">
+            <a href="/guru/dashboard" class="btn btn-outline-secondary flex-fill">Batal</a>
+            <button type="submit" class="btn btn-primary flex-fill fw-bold shadow-sm">
+                Simpan
+            </button>
         </div>
 
         <div class="card shadow mb-4">
@@ -83,11 +140,10 @@
                     
                     <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
                         <div class="badge bg-primary fs-6 nomor-soal-pg">Soal No.</div>
-                        
                         <div class="d-flex align-items-center gap-3">
                             <div class="form-check form-switch mb-0">
                                 <input class="form-check-input" type="checkbox" role="switch" onchange="toggleImg(this)" {% if s.gambar %}checked{% endif %}>
-                                <label class="form-check-label small fw-bold text-muted">Gambar</label>
+                                <label class="form-check-label small fw-bold text-muted">Gambar Soal</label>
                             </div>
                             <button type="button" class="btn btn-danger btn-sm px-3" onclick="hapusElemen(this)">
                                 <i class="bi bi-trash"></i> Hapus
@@ -96,20 +152,20 @@
                     </div>
 
                     <div class="img-container mb-3 p-3 border rounded bg-light {% if not s.gambar %}d-none{% endif %}">
-                        <label class="small text-muted fw-bold mb-1">Upload Gambar</label>
-                        <div class="row align-items-center">
-                            <div class="col-md-9">
-                                <input type="file" name="pg_img[]" class="form-control" accept="image/*">
-                                <input type="hidden" name="pg_old_img[]" value="{{ s.gambar if s.gambar else '' }}">
-                            </div>
-                            {% if s.gambar %}
-                            <div class="col-md-3 text-end">
-                                <a href="{{ url_for('static', filename='uploads/soal/' + s.gambar) }}" target="_blank">
-                                    <img src="{{ url_for('static', filename='uploads/soal/' + s.gambar) }}" class="img-thumbnail" style="height: 60px;">
-                                </a>
-                            </div>
-                            {% endif %}
+                        {% if s.gambar %}
+                        <div class="img-preview-box">
+                            <label class="d-block small text-muted mb-1">Preview Gambar Saat Ini:</label>
+                            <a href="{{ url_for('static', filename='uploads/soal/' + s.gambar) }}" target="_blank">
+                                <img src="{{ url_for('static', filename='uploads/soal/' + s.gambar) }}" alt="Soal">
+                            </a>
                         </div>
+                        {% endif %}
+                        
+                        <label class="small text-muted fw-bold mb-1">
+                            {% if s.gambar %}Ganti Gambar Soal:{% else %}Upload Gambar Soal:{% endif %}
+                        </label>
+                        <input type="file" name="pg_img[]" class="form-control" accept="image/*">
+                        <input type="hidden" name="pg_old_img[]" value="{{ s.gambar if s.gambar else '' }}">
                     </div>
 
                     <div class="mb-3">
@@ -118,11 +174,37 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label class="fw-bold small text-secondary mb-1">Pilihan Jawaban</label>
+                        <label class="fw-bold small text-secondary mb-2">Pilihan Jawaban</label>
                         {% for opt in ['a','b','c','d','e'] %}
-                        <div class="option-row d-flex align-items-center">
-                            <span class="badge bg-secondary me-2" style="width: 30px;">{{ opt|upper }}</span>
-                            <input type="text" name="pg_{{ opt }}[]" value="{{ s[opt] }}" class="form-control" placeholder="Jawaban opsi {{ opt|upper }}...">
+                        <div class="option-row p-3 mb-3 position-relative">
+                            
+                            <div class="d-flex align-items-center mb-2">
+                                <span class="badge bg-secondary me-2 fs-6" style="width: 35px;">{{ opt|upper }}</span>
+                                <input type="text" name="pg_{{ opt }}[]" value="{{ s[opt] }}" class="form-control" placeholder="Teks jawaban opsi {{ opt|upper }}...">
+                            </div>
+
+                            <div class="form-check form-switch indent-responsive mb-2">
+                                <input class="form-check-input" type="checkbox" role="switch" onchange="toggleOptImg(this)" 
+                                       {% if s[opt + '_gambar'] %}checked{% endif %}>
+                                <label class="form-check-label small fw-bold text-muted">Sertakan Gambar</label>
+                            </div>
+                            
+                            <div class="opt-img-container indent-responsive p-2 border rounded bg-white {% if not s[opt + '_gambar'] %}d-none{% endif %}">
+                                
+                                {% if s[opt + '_gambar'] %}
+                                <div class="img-preview-box">
+                                    <label class="d-block small text-muted mb-1">Gambar Opsi {{ opt|upper }} Saat Ini:</label>
+                                    <a href="{{ url_for('static', filename='uploads/soal/' + s[opt + '_gambar']) }}" target="_blank">
+                                        <img src="{{ url_for('static', filename='uploads/soal/' + s[opt + '_gambar']) }}">
+                                    </a>
+                                </div>
+                                {% endif %}
+
+                                <label class="small text-muted fw-bold mb-1">Upload / Ganti Gambar Opsi {{ opt|upper }}</label>
+                                <input type="file" name="pg_img_{{ opt }}[]" class="form-control form-control-sm" accept="image/*">
+                                <input type="hidden" name="pg_old_img_{{ opt }}[]" value="{{ s[opt + '_gambar'] if s[opt + '_gambar'] else '' }}">
+                            </div>
+
                         </div>
                         {% endfor %}
                     </div>
@@ -150,14 +232,12 @@
             <div class="card-body" id="container-essay">
                 {% for e in essay_list %}
                 <div class="border rounded p-3 mb-4 position-relative item-essay bg-white shadow-sm">
-                    
                     <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
                         <div class="badge bg-warning text-dark fs-6 nomor-soal-essay">Essay No.</div>
-                        
                         <div class="d-flex align-items-center gap-3">
                             <div class="form-check form-switch mb-0">
                                 <input class="form-check-input" type="checkbox" role="switch" onchange="toggleImg(this)" {% if e.gambar %}checked{% endif %}>
-                                <label class="form-check-label small fw-bold text-muted">Gambar</label>
+                                <label class="form-check-label small fw-bold text-muted">Gambar Soal</label>
                             </div>
                             <button type="button" class="btn btn-danger btn-sm px-3" onclick="hapusElemen(this)">
                                 <i class="bi bi-trash"></i> Hapus
@@ -168,26 +248,23 @@
                     <div class="row">
                         <div class="col-md-10">
                             <div class="img-container mb-3 p-3 border rounded bg-light {% if not e.gambar %}d-none{% endif %}">
-                                <label class="small text-muted fw-bold mb-1">Upload Gambar</label>
-                                <div class="row align-items-center">
-                                    <div class="col-md-9">
-                                        <input type="file" name="essay_img[]" class="form-control" accept="image/*">
-                                        <input type="hidden" name="essay_old_img[]" value="{{ e.gambar if e.gambar else '' }}">
-                                    </div>
-                                    {% if e.gambar %}
-                                    <div class="col-md-3 text-end">
-                                        <a href="{{ url_for('static', filename='uploads/soal/' + e.gambar) }}" target="_blank">
-                                            <img src="{{ url_for('static', filename='uploads/soal/' + e.gambar) }}" class="img-thumbnail" style="height: 60px;">
-                                        </a>
-                                    </div>
-                                    {% endif %}
+                                {% if e.gambar %}
+                                <div class="img-preview-box">
+                                    <label class="d-block small text-muted mb-1">Preview Gambar:</label>
+                                    <a href="{{ url_for('static', filename='uploads/soal/' + e.gambar) }}" target="_blank">
+                                        <img src="{{ url_for('static', filename='uploads/soal/' + e.gambar) }}">
+                                    </a>
                                 </div>
+                                {% endif %}
+
+                                <label class="small text-muted fw-bold mb-1">Upload / Ganti Gambar</label>
+                                <input type="file" name="essay_img[]" class="form-control" accept="image/*">
+                                <input type="hidden" name="essay_old_img[]" value="{{ e.gambar if e.gambar else '' }}">
                             </div>
 
                             <label class="fw-bold small text-secondary">Pertanyaan Essay</label>
                             <textarea name="essay_soal[]" class="form-control mb-2" rows="3" required>{{ e.soal }}</textarea>
                         </div>
-                        
                         <div class="col-md-2 border-start">
                             <label class="fw-bold small text-secondary">Poin</label>
                             <input type="number" name="essay_bobot[]" value="{{ e.bobot }}" class="form-control mb-3 text-center fw-bold fs-5" required>
@@ -202,17 +279,15 @@
 </div>
 
 <script>
-    // FUNGSI HAPUS YANG DIPERBAIKI (Lebih Aman)
+    // 1. FUNGSI HAPUS ELEMEN
     function hapusElemen(btn) {
         if(confirm('Yakin ingin menghapus soal ini?')) {
-            // Mencari elemen terdekat dengan class .item-pg atau .item-essay
             const item = btn.closest('.item-pg, .item-essay');
-            if (item) {
-                item.remove();
-            }
+            if (item) item.remove();
         }
     }
 
+    // 2. TOGGLE GAMBAR UTAMA (Soal PG / Essay)
     function toggleImg(checkbox) {
         const parent = checkbox.closest('.item-pg, .item-essay');
         const container = parent.querySelector('.img-container');
@@ -223,6 +298,19 @@
         }
     }
 
+    // 3. TOGGLE GAMBAR OPSI (Khusus Opsi A-E)
+    function toggleOptImg(checkbox) {
+        // Cari container gambar terdekat dalam satu baris opsi
+        const row = checkbox.closest('.option-row');
+        const container = row.querySelector('.opt-img-container');
+        if(checkbox.checked) {
+            container.classList.remove('d-none');
+        } else {
+            container.classList.add('d-none');
+        }
+    }
+
+    // 4. TAMBAH SOAL PG BARU (Update: Struktur Responsif)
     function tambahPG() {
         const html = `
         <div class="border rounded p-3 mb-4 position-relative item-pg bg-white shadow-sm">
@@ -232,7 +320,7 @@
                 <div class="d-flex align-items-center gap-3">
                     <div class="form-check form-switch mb-0">
                         <input class="form-check-input" type="checkbox" role="switch" onchange="toggleImg(this)">
-                        <label class="form-check-label small fw-bold text-muted">Gambar</label>
+                        <label class="form-check-label small fw-bold text-muted">Gambar Soal</label>
                     </div>
                     <button type="button" class="btn btn-danger btn-sm px-3" onclick="hapusElemen(this)">
                         <i class="bi bi-trash"></i> Hapus
@@ -241,7 +329,7 @@
             </div>
 
             <div class="img-container mb-3 p-3 border rounded bg-light d-none">
-                <label class="small text-muted fw-bold mb-1">Gambar Baru</label>
+                <label class="small text-muted fw-bold mb-1">Upload Gambar Soal Baru</label>
                 <input type="file" name="pg_img[]" class="form-control" accept="image/*">
                 <input type="hidden" name="pg_old_img[]" value="">
             </div>
@@ -252,12 +340,25 @@
             </div>
             
             <div class="mb-3">
-                <label class="fw-bold small text-secondary mb-1">Pilihan Jawaban</label>
-                <div class="option-row d-flex align-items-center"><span class="badge bg-secondary me-2" style="width: 30px;">A</span><input type="text" name="pg_a[]" class="form-control" placeholder="Opsi A..."></div>
-                <div class="option-row d-flex align-items-center"><span class="badge bg-secondary me-2" style="width: 30px;">B</span><input type="text" name="pg_b[]" class="form-control" placeholder="Opsi B..."></div>
-                <div class="option-row d-flex align-items-center"><span class="badge bg-secondary me-2" style="width: 30px;">C</span><input type="text" name="pg_c[]" class="form-control" placeholder="Opsi C..."></div>
-                <div class="option-row d-flex align-items-center"><span class="badge bg-secondary me-2" style="width: 30px;">D</span><input type="text" name="pg_d[]" class="form-control" placeholder="Opsi D..."></div>
-                <div class="option-row d-flex align-items-center"><span class="badge bg-secondary me-2" style="width: 30px;">E</span><input type="text" name="pg_e[]" class="form-control" placeholder="Opsi E..."></div>
+                <label class="fw-bold small text-secondary mb-2">Pilihan Jawaban</label>
+                ${['a','b','c','d','e'].map(opt => `
+                <div class="option-row p-3 mb-3 position-relative">
+                    <div class="d-flex align-items-center mb-2">
+                        <span class="badge bg-secondary me-2 fs-6" style="width: 35px;">${opt.toUpperCase()}</span>
+                        <input type="text" name="pg_${opt}[]" class="form-control" placeholder="Teks opsi ${opt.toUpperCase()}...">
+                    </div>
+
+                    <div class="form-check form-switch indent-responsive mb-2">
+                        <input class="form-check-input" type="checkbox" role="switch" onchange="toggleOptImg(this)">
+                        <label class="form-check-label small fw-bold text-muted">Sertakan Gambar</label>
+                    </div>
+                    
+                    <div class="opt-img-container indent-responsive p-2 border rounded bg-white d-none">
+                        <label class="small text-muted fw-bold mb-1">Upload Gambar Opsi ${opt.toUpperCase()}</label>
+                        <input type="file" name="pg_img_${opt}[]" class="form-control form-control-sm" accept="image/*">
+                        <input type="hidden" name="pg_old_img_${opt}[]" value="">
+                    </div>
+                </div>`).join('')}
             </div>
 
             <div>
@@ -274,6 +375,7 @@
         document.getElementById('container-pg').insertAdjacentHTML('beforeend', html);
     }
 
+    // 5. TAMBAH SOAL ESSAY BARU
     function tambahEssay() {
         const html = `
         <div class="border rounded p-3 mb-4 position-relative item-essay bg-white shadow-sm">
@@ -282,7 +384,7 @@
                 <div class="d-flex align-items-center gap-3">
                     <div class="form-check form-switch mb-0">
                         <input class="form-check-input" type="checkbox" role="switch" onchange="toggleImg(this)">
-                        <label class="form-check-label small fw-bold text-muted">Gambar</label>
+                        <label class="form-check-label small fw-bold text-muted">Gambar Soal</label>
                     </div>
                     <button type="button" class="btn btn-danger btn-sm px-3" onclick="hapusElemen(this)">
                         <i class="bi bi-trash"></i> Hapus
@@ -293,7 +395,7 @@
             <div class="row">
                 <div class="col-md-10">
                     <div class="img-container mb-3 p-3 border rounded bg-light d-none">
-                        <label class="small text-muted fw-bold mb-1">Gambar Baru</label>
+                        <label class="small text-muted fw-bold mb-1">Upload Gambar Baru</label>
                         <input type="file" name="essay_img[]" class="form-control" accept="image/*">
                         <input type="hidden" name="essay_old_img[]" value="">
                     </div>

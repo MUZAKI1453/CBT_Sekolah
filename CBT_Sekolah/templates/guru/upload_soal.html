@@ -1,46 +1,80 @@
 {% extends "base.html" %}
 {% block content %}
 
-<div class="container mt-4">
+<style>
+    /* RESPONSIVE & STICKY ACTION BAR */
+    @media (max-width: 576px) {
+        /* Tombol Melayang di Bawah Layar (Khusus HP) */
+        .mobile-sticky-action {
+            position: fixed;
+            bottom: 0; left: 0; right: 0;
+            background: white;
+            padding: 12px 15px;
+            box-shadow: 0 -4px 10px rgba(0,0,0,0.1);
+            z-index: 1050;
+            display: flex;
+            gap: 10px;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        /* Tambah padding bawah body agar konten tidak tertutup tombol sticky */
+        body { padding-bottom: 80px; }
+        
+        /* Sembunyikan tombol desktop di HP */
+        .desktop-actions { display: none !important; }
+    }
+</style>
+
+<div class="container mt-4 mb-5">
     <div class="row justify-content-center">
         <div class="col-lg-8">
 
-            <div class="card shadow-lg border-0 rounded-3">
+            <form method="POST" enctype="multipart/form-data">
+                
+                <div class="card shadow-lg border-0 rounded-3 overflow-hidden">
 
-                <div class="d-flex justify-content-between align-items-center px-4 py-3"
-                     style="background-color:#0d6efd; border-top-left-radius:8px; border-top-right-radius:8px;">
-                    <h5 class="text-white fw-semibold mb-0">
-                        <i class="bi bi-file-earmark-plus"></i> Buat Ujian Baru — {{ mapel.nama }}
-                    </h5>
-                    <a href="{{ url_for('guru.dashboard') }}" class="text-white fs-4" style="text-decoration:none;">
-                        <i class="bi bi-x-lg"></i>
-                    </a>
-                </div>
-
-                <div class="card-body p-4">
-
-                    <div class="alert alert-info border-0 shadow-sm">
-                        <strong><i class="bi bi-info-circle"></i> Opsi Pembuatan Soal:</strong>
-                        <ul class="mb-0 mt-2 small">
-                            <li><strong>Manual:</strong> Isi judul & waktu, biarkan file kosong. Nanti input soal satu per satu.</li>
-                            <li><strong>Otomatis (Upload PDF):</strong> Upload file PDF sesuai format untuk import soal sekaligus.</li>
-                        </ul>
+                    <div class="px-4 py-3 bg-primary text-white d-flex justify-content-between align-items-center">
+                        <div>
+                            <h5 class="fw-bold mb-0">
+                                <i class="bi bi-file-earmark-plus me-2"></i> Buat Ujian Baru
+                            </h5>
+                            <small class="opacity-75">{{ mapel.nama }}</small>
+                        </div>
+                        <a href="{{ url_for('guru.dashboard') }}" class="text-white fs-4 text-decoration-none opacity-75 hover-opacity-100">
+                            <i class="bi bi-x-lg"></i>
+                        </a>
                     </div>
 
-                    <form method="POST" enctype="multipart/form-data">
+                    <div class="card-body p-4">
+
+                        <div class="alert alert-info border-0 shadow-sm mb-4">
+                            <div class="d-flex">
+                                <i class="bi bi-info-circle-fill fs-4 me-3"></i>
+                                <div>
+                                    <strong>Opsi Pembuatan Soal:</strong>
+                                    <ul class="mb-0 mt-1 small ps-3">
+                                        <li><strong>Manual:</strong> Isi detail di bawah, biarkan file kosong. Input soal satu per satu nanti.</li>
+                                        <li><strong>Otomatis:</strong> Upload file PDF soal untuk import sekaligus.</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
 
                         <div class="row g-3">
                             <div class="col-md-8">
                                 <label class="form-label fw-semibold">Judul Ujian</label>
                                 <input type="text" name="judul" class="form-control shadow-sm"
-                                       placeholder="Contoh: Biologi Kelas 10" required>
+                                       placeholder="Contoh: BIOLOGI - Kelas 11" required>
                             </div>
 
                             <div class="col-md-4">
                                 <label class="form-label fw-semibold">Durasi (Menit)</label>
-                                <input type="number" name="durasi" id="durasi"
-                                       value="90" min="10" max="180"
-                                       class="form-control shadow-sm" required>
+                                <div class="input-group shadow-sm">
+                                    <input type="number" name="durasi" id="durasi"
+                                           value="60" min="10" max="180"
+                                           class="form-control" required>
+                                    <span class="input-group-text bg-light">Menit</span>
+                                </div>
                             </div>
                         </div>
 
@@ -57,38 +91,33 @@
                             </div>
                         </div>
 
-                        <div class="mt-3">
-                            <label class="form-label fw-semibold">Upload File Soal PDF <small class="text-muted fw-normal">(Opsional)</small></label>
-                            <div class="input-group shadow-sm">
-                                <span class="input-group-text bg-primary text-white">
-                                    <i class="bi bi-filetype-pdf"></i>
-                                </span>
-                                <input type="file"
-                                       name="file_pdf"
-                                       accept=".pdf"
-                                       class="form-control">
-                            </div>
-                            <div class="form-text text-muted small">
-                                Kosongkan jika ingin membuat soal secara manual (ketik langsung).
-                            </div>
+                        <div class="mt-4 p-3 border rounded bg-light">
+                            <label class="form-label fw-bold text-primary mb-1">
+                                <i class="bi bi-file-earmark-pdf-fill me-1"></i> Upload File Soal PDF
+                            </label>
+                            <div class="small text-muted mb-2">Opsional. Kosongkan jika ingin mengetik soal manual.</div>
+                            
+                            <input type="file" name="file_pdf" accept=".pdf" class="form-control">
                         </div>
 
-                        <div class="d-flex justify-content-end gap-2 mt-4">
-                            <a href="{{ url_for('guru.dashboard') }}"
-                               class="btn btn-secondary px-4 rounded-3">
-                                Batal
-                            </a>
-
-                            <button type="submit"
-                                    class="btn btn-primary px-4 rounded-3">
-                                <i class="bi bi-save"></i> Simpan & Lanjut
+                        <div class="d-flex justify-content-end gap-2 mt-4 desktop-actions">
+                            <a href="{{ url_for('guru.dashboard') }}" class="btn btn-secondary px-4 rounded-3">Batal</a>
+                            <button type="submit" class="btn btn-primary px-4 rounded-3 fw-bold">
+                                <i class="bi bi-arrow-right-circle me-1"></i> Simpan & Lanjut
                             </button>
                         </div>
 
-                    </form>
-
+                    </div>
                 </div>
-            </div>
+
+                <div class="mobile-sticky-action d-md-none">
+                    <a href="{{ url_for('guru.dashboard') }}" class="btn btn-outline-secondary flex-fill">Batal</a>
+                    <button type="submit" class="btn btn-primary flex-fill fw-bold shadow-sm">
+                        Simpan & Lanjut
+                    </button>
+                </div>
+
+            </form>
 
         </div>
     </div>
@@ -96,6 +125,7 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Set Waktu Default: Mulai Sekarang, Selesai 2 Jam lagi
     const now = new Date();
     now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
     const nowString = now.toISOString().slice(0, 16);
@@ -103,7 +133,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('waktu_mulai').value = nowString;
 
     const future = new Date(now);
-    future.setHours(future.getHours() + 2);
+    future.setHours(future.getHours() + 2); // Default durasi window 2 jam
     const futureString = future.toISOString().slice(0, 16);
     document.getElementById('waktu_selesai').value = futureString;
 });
