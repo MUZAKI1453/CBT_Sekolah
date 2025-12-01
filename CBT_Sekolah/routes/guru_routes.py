@@ -445,21 +445,24 @@ def preview(ujian_id):
     return render_template('guru/preview_ujian.html', ujian=ujian, pg=pg, essay=essay)
 
 
-# ==================== KOREKSI ESSAY ====================
+# ==================== KOREKSI ESSAY DAN PG ====================
 @bp.route('/koreksi/<int:jawaban_id>', methods=['GET', 'POST'])
 @login_required
 def koreksi(jawaban_id):
-    if current_user.role not in ['guru', 'admin']: 
+    if current_user.role not in ['guru', 'admin']:
         return redirect('/')
-    
+
     jawaban_siswa = JawabanSiswa.query.get_or_404(jawaban_id)
     ujian = jawaban_siswa.ujian
-    
+
     if current_user.role != 'admin' and ujian.mapel.guru_id != current_user.id:
         flash('Akses ditolak!', 'danger')
         return redirect('/guru/dashboard')
 
+    # DECODE SOAL & JAWABAN
+    soal_pg = json.loads(ujian.soal_pg) if ujian.soal_pg else []
     soal_essay = json.loads(ujian.soal_essay) if ujian.soal_essay else []
+    jawab_pg = json.loads(jawaban_siswa.jawaban_pg) if jawaban_siswa.jawaban_pg else {}
     jawab_essay = json.loads(jawaban_siswa.jawaban_essay) if jawaban_siswa.jawaban_essay else {}
 
     if request.method == 'POST':
@@ -478,8 +481,13 @@ def koreksi(jawaban_id):
         flash(f'Nilai berhasil disimpan! Total Essay: {total_skor_essay}', 'success')
         return redirect(url_for('guru.lihat_nilai', ujian_id=ujian.id))
 
-    return render_template('guru/koreksi.html', jawaban=jawaban_siswa, soal_essay=soal_essay, jawab_essay=jawab_essay)
-
+    # KIRIM soal_pg & jawab_pg KE TEMPLATE!
+    return render_template('guru/koreksi.html',
+                           jawaban=jawaban_siswa,
+                           soal_pg=soal_pg,
+                           soal_essay=soal_essay,
+                           jawab_pg=jawab_pg,
+                           jawab_essay=jawab_essay)
 
 # ==================== LIHAT NILAI ====================
 @bp.route('/lihat_nilai/<int:ujian_id>', methods=['GET', 'POST'])

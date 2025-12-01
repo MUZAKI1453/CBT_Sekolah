@@ -4,6 +4,7 @@
 <div class="container mt-4 mb-5">
     <form method="POST">
         
+        <!-- HEADER INFO SISWA -->
         <div class="card shadow-sm border-0 mb-4 bg-light">
             <div class="card-body d-flex justify-content-between align-items-center">
                 <div>
@@ -19,55 +20,118 @@
             </div>
         </div>
 
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="fw-bold text-primary"><i class="bi bi-pencil-square"></i> Koreksi Jawaban Essay</h5>
-            <a href="/guru/lihat_nilai/{{ jawaban.ujian_id }}" class="btn btn-secondary">Kembali</a>
+        <!-- JUDUL + TOMBOL KEMBALI -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h5 class="fw-bold text-primary">
+                Koreksi Jawaban Siswa
+            </h5>
+            <a href="/guru/lihat_nilai/{{ jawaban.ujian_id }}" class="btn btn-secondary">
+                Kembali
+            </a>
         </div>
 
-        {% if soal_essay %}
-            {% for s in soal_essay %}
-            <div class="card shadow-sm mb-3 border-0">
-                <div class="card-body">
-                    
-                    <div class="mb-3">
-                        <span class="badge bg-primary mb-2">Soal No. {{ loop.index }}</span>
-                        <div class="fw-medium">{{ s.soal }}</div>
-                    </div>
+        <!-- I. JAWABAN PILIHAN GANDA — BIRU -->
+        {% if soal_pg %}
+        <div class="card shadow-sm border-0 mb-5">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0 fw-bold">I. Jawaban Pilihan Ganda</h5>
+            </div>
+            <div class="card-body">
+                {% for s in soal_pg %}
+                <div class="mb-4 border-bottom pb-4">
+                    <div class="d-flex gap-3">
+                        <div class="flex-shrink-0">
+                            <span class="badge bg-primary fs-6 rounded-circle d-flex align-items-center justify-content-center shadow-sm" style="width: 38px; height: 38px;">
+                                {{ loop.index }}
+                            </span>
+                        </div>
+                        <div class="flex-grow-1">
+                            <div class="mb-3 fs-5 text-dark lh-base">{{ s.soal }}</div>
 
-                    <div class="mb-3 p-3 bg-light border rounded">
-                        <label class="small text-muted fw-bold mb-1">Jawaban Siswa:</label>
-                        <div class="text-dark">
-                            {{ jawab_essay[loop.index0|string] if jawab_essay[loop.index0|string] else '<span class="text-danger fst-italic">Tidak dijawab</span>' | safe }}
+                            <div class="row row-cols-1 row-cols-lg-2 g-3">
+                                {% for opt in ['a', 'b', 'c', 'd', 'e'] %}
+                                    {% if s[opt] %}
+                                    <div class="col">
+                                        <div class="p-3 border rounded h-100 d-flex flex-column
+                                            {% if s.kunci == opt|upper %} bg-success bg-opacity-10 border-success text-success fw-bold {% endif %}
+                                            {% if jawab_pg.get((loop.index0)|string) == opt|upper %} bg-warning bg-opacity-20 border-warning {% endif %}">
+                                            <div class="d-flex align-items-start gap-3 mb-2">
+                                                <span class="badge bg-secondary text-white flex-shrink-0" style="width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;">
+                                                    {{ opt|upper }}
+                                                </span>
+                                                <div class="flex-grow-1 text-break">
+                                                    {{ s[opt] }}
+                                                </div>
+                                            </div>
+                                            <div class="ms-auto d-flex gap-2">
+                                                {% if jawab_pg.get((loop.index0)|string) == opt|upper %}
+                                                    <span class="badge bg-warning text-dark small">Jawaban Siswa</span>
+                                                {% endif %}
+                                                {% if s.kunci == opt|upper %}
+                                                    <span class="badge bg-success small">Benar</span>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
                         </div>
                     </div>
-
-                    <div class="row align-items-center">
-                        <div class="col-md-3">
-                            <label class="fw-bold small text-success">Berikan Nilai (Max: {{ s.bobot }})</label>
-                            <input type="number" name="nilai_{{ loop.index0 }}" 
-                                   class="form-control border-success fw-bold" 
-                                   min="0" max="{{ s.bobot }}" 
-                                   placeholder="0" required>
-                        </div>
-                    </div>
-
                 </div>
+                {% endfor %}
             </div>
-            {% endfor %}
-
-            <div class="card shadow-sm border-0 sticky-bottom">
-                <div class="card-body">
-                    <button type="submit" class="btn btn-primary btn-lg w-100 fw-bold shadow">
-                        <i class="bi bi-save"></i> SIMPAN NILAI ESSAY
-                    </button>
-                </div>
-            </div>
-
-        {% else %}
-            <div class="alert alert-info text-center">
-                Ujian ini tidak memiliki soal essay.
-            </div>
+        </div>
         {% endif %}
+
+        <!-- II. KOREKSI JAWABAN ESSAY — SEKARANG BIRU SAMA SEPERTI HEADER I -->
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0 fw-bold">II. Koreksi Jawaban Essay</h5>
+            </div>
+            <div class="card-body">
+                {% if soal_essay %}
+                    {% for s in soal_essay %}
+                    <div class="card shadow-sm mb-3 border-0">
+                        <div class="card-body">
+                            <div class="mb-3">
+                                <span class="badge bg-primary mb-2">Soal No. {{ loop.index }}</span>
+                                <div class="fw-medium">{{ s.soal }}</div>
+                            </div>
+
+                            <div class="mb-3 p-3 bg-light border rounded">
+                                <label class="small text-muted fw-bold mb-1">Jawaban Siswa:</label>
+                                <div class="text-dark">
+                                    {{ jawab_essay[loop.index0|string] if jawab_essay[loop.index0|string] else '<span class="text-danger fst-italic">Tidak dijawab</span>' | safe }}
+                                </div>
+                            </div>
+
+                            <div class="row align-items-center">
+                                <div class="col-md-3">
+                                    <label class="fw-bold small text-success">Berikan Nilai (Max: {{ s.bobot }})</label>
+                                    <input type="number" name="nilai_{{ loop.index0 }}"
+                                           class="form-control border-success fw-bold text-center"
+                                           min="0" max="{{ s.bobot }}"
+                                           value="0" required>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+
+                    <div class="text-center mt-5">
+                        <button type="submit" class="btn btn-primary btn-lg px-5 shadow">
+                            SIMPAN NILAI ESSAY
+                        </button>
+                    </div>
+
+                {% else %}
+                    <div class="text-center py-5 text-muted">
+                        Ujian ini tidak memiliki soal essay.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
 
     </form>
 </div>
@@ -76,21 +140,14 @@
     document.querySelectorAll('input[type="number"]').forEach(input => {
         input.addEventListener('input', function() {
             let max = parseInt(this.getAttribute('max'));
-            let val = parseInt(this.value);
+            let val = parseInt(this.value) || 0;
             if (val > max) {
                 alert('Nilai tidak boleh melebihi bobot soal (' + max + ')');
                 this.value = max;
             }
+            if (val < 0) this.value = 0;
         });
     });
 </script>
-
-<style>
-    .sticky-bottom {
-        position: sticky;
-        bottom: 20px;
-        z-index: 100;
-    }
-</style>
 
 {% endblock %}
