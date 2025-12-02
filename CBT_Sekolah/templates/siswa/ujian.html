@@ -146,10 +146,9 @@
 <div id="kick-overlay" class="overlay-screen">
     <div class="spinner-border text-light mb-4" style="width: 3rem; height: 3rem;"></div>
     <h1 class="fw-bold display-5">DISKUALIFIKASI</h1>
-    <p class="fs-4">Anda telah melewati batas toleransi.</p>
+    <p class="fs-4">Anda telah melewati batas toleransi pelanggaran (5x).</p>
     <p class="text-white-50 small">Sistem sedang mengirim jawaban Anda...</p>
 </div>
-
 
 <div class="container exam-container">
     <form method="POST" id="formUjian">
@@ -161,8 +160,9 @@
                     <div class="card-body p-4">
                         
                         {% for s in pg_tampil %}
-                        <div class="soal-step" id="step-{{ loop.index0 }}" data-type="pg">
-                            <div class="d-flex justify-content-between mb-3">
+                        <div class="soal-step" id="step-{{ loop.index0 }}" 
+                             data-type="pg" 
+                             data-original-index="{{ s.original_index }}"> <div class="d-flex justify-content-between mb-3">
                                 <span class="badge bg-primary">No. {{ loop.index }}</span>
                                 <span class="badge bg-light text-dark border">Pilihan Ganda</span>
                             </div>
@@ -181,28 +181,30 @@
                             <div class="opsi-wrapper">
                                 {% for opt in s.opsi_acak %}
                                 <div class="mb-2 position-relative">
-                                        <input type="radio" 
-                                            class="input-hidden input-jawaban-pg" 
-                                            name="pg_{{ s.original_index }}" 
-                                            id="opt_{{ s.original_index }}_{{ opt.kode }}" 
-                                            value="{{ opt.kode }}" 
-                                            data-nomor="{{ loop.index0 }}"
-                                            onchange="savePG(this)">
+                                    <input type="radio" 
+                                           class="input-hidden input-jawaban-pg" 
+                                           name="pg_{{ s.original_index }}" 
+                                           id="opt_{{ s.original_index }}_{{ opt.kode }}" 
+                                           value="{{ opt.kode }}" 
+                                           data-nomor="{{ loop.index0 }}"
+                                           onchange="savePG(this)">
                                         
-                                        <label class="pilihan-box d-block" for="opt_{{ s.original_index }}_{{ opt.kode }}">
-                                            
-                                            {% if opt.gambar %}
-                                            <div class="mb-2">
-                                                <img src="{{ url_for('static', filename='uploads/soal/' + opt.gambar) }}" 
-                                                    class="img-fluid rounded border" 
-                                                    style="max-height: 150px; object-fit: contain;">
-                                            </div>
-                                            {% endif %}
+                                    <label class="pilihan-box d-block" for="opt_{{ s.original_index }}_{{ opt.kode }}">
+                                        
+                                        {% if opt.gambar %}
+                                        <div class="mb-2">
+                                            <img src="{{ url_for('static', filename='uploads/soal/' + opt.gambar) }}" 
+                                                 class="img-fluid rounded border" 
+                                                 style="max-height: 150px; object-fit: contain;">
+                                        </div>
+                                        {% endif %}
 
+                                        <span class="d-flex">
+                                            <span class="fw-bold me-2">{{ opt.kode }}.</span>
                                             <span>{{ opt.teks }}</span>
-                                            
-                                        </label>
-                                    </div>
+                                        </span>
+                                    </label>
+                                </div>
                                 {% endfor %}
                             </div>
                         </div>
@@ -210,8 +212,9 @@
 
                         {% set start_essay = pg_tampil|length %}
                         {% for e in essay_tampil %}
-                        <div class="soal-step" id="step-{{ start_essay + loop.index0 }}" data-type="essay">
-                            <div class="d-flex justify-content-between mb-3">
+                        <div class="soal-step" id="step-{{ start_essay + loop.index0 }}" 
+                             data-type="essay" 
+                             data-original-index="{{ e.original_index }}"> <div class="d-flex justify-content-between mb-3">
                                 <span class="badge bg-success">No. {{ start_essay + loop.index }}</span>
                                 <span class="badge bg-warning text-dark">Essay (Bobot: {{ e.bobot }})</span>
                             </div>
@@ -298,7 +301,7 @@
     const USER_ID = "{{ current_user.id }}";
     const BAN_KEY = `banned_${USER_ID}_${UJIAN_ID}`;
     const SAVE_PREFIX = `ans_${USER_ID}_${UJIAN_ID}_`;
-    const RAGU_PREFIX = `ragu_${USER_ID}_${UJIAN_ID}_`; // Kunci untuk simpan status ragu
+    const RAGU_PREFIX = `ragu_${USER_ID}_${UJIAN_ID}_`; 
 
     let isSubmitting = false;
     let currentStep = 0;
@@ -306,13 +309,47 @@
     const steps = document.querySelectorAll('.soal-step');
     let sisaDetik = parseInt("{{ sisa_waktu_detik }}");
 
+    // --- SETTING PELANGGARAN ---
     let violationCount = 0;
-    const MAX_VIOLATIONS = 5; 
+    const MAX_VIOLATIONS = 5; // Batas Toleransi 5 Kali
     let isExamActive = false;
     let isWarningActive = false;
 
+    // --- FUNGSI SUARA PERINGATAN (GENERATED BEEP) ---
+    function playWarningSound() {
+        try {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (!AudioContext) return;
+            
+            const ctx = new AudioContext();
+            const osc = ctx.createOscillator();
+            const gainNode = ctx.createGain();
+
+            osc.connect(gainNode);
+            gainNode.connect(ctx.destination);
+
+            // Tipe suara: Sawtooth (tajam seperti alarm)
+            osc.type = 'sawtooth'; 
+            
+            // Efek Sirine: Nada turun naik cepat
+            const now = ctx.currentTime;
+            osc.frequency.setValueAtTime(800, now); 
+            osc.frequency.linearRampToValueAtTime(600, now + 0.1);
+            osc.frequency.linearRampToValueAtTime(800, now + 0.2);
+            osc.frequency.linearRampToValueAtTime(600, now + 0.3);
+
+            // Volume: Mulai 10% lalu fade out
+            gainNode.gain.setValueAtTime(0.1, now); 
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+
+            osc.start();
+            osc.stop(now + 0.5); // Durasi bunyi 0.5 detik
+        } catch (e) {
+            console.log("Audio warning error:", e);
+        }
+    }
+
     // --- FUNGSI UTAMA: CEK STATUS JAWABAN & PEWARNAAN ---
-    // Fungsi ini dipanggil setiap kali ada perubahan, untuk memastikan indikator sinkron
     function updateIndicatorStatus(idx) {
         const stepDiv = document.getElementById(`step-${idx}`);
         const navD = document.getElementById(`nav-d-${idx}`);
@@ -320,7 +357,9 @@
         
         if (!stepDiv) return;
 
-        // 1. Cek apakah ada jawaban?
+        // [FIX] Ambil ID Asli Soal untuk cek status Ragu (bukan index tampilan)
+        const originalIndex = stepDiv.getAttribute('data-original-index');
+        
         let isAnswered = false;
         const type = stepDiv.getAttribute('data-type');
         
@@ -332,15 +371,14 @@
             if (textVal.length > 0) isAnswered = true;
         }
 
-        // 2. Cek apakah status RAGU tersimpan?
-        const isRagu = localStorage.getItem(RAGU_PREFIX + idx) === 'true';
+        // Gunakan originalIndex sebagai kunci
+        const isRagu = localStorage.getItem(RAGU_PREFIX + originalIndex) === 'true';
 
-        // 3. Reset Class
-        if (navD) navD.className = 'btn btn-nomor'; // Reset ke default
+        // Reset Class
+        if (navD) navD.className = 'btn btn-nomor'; 
         if (navM) navM.className = 'btn btn-nomor';
         
-        // 4. Terapkan Class Baru
-        // Urutan Prioritas: Active > Ragu > Dijawab
+        // Terapkan Class Baru
         if (idx === currentStep) {
             if(navD) navD.classList.add('active');
             if(navM) navM.classList.add('active');
@@ -359,7 +397,6 @@
     function saveToLocal(name, value) { localStorage.setItem(SAVE_PREFIX + name, value); }
     
     function restoreAnswers() {
-        // Restore Input Values
         const inputs = document.querySelectorAll('input[type="radio"], textarea');
         inputs.forEach(el => {
             const savedVal = localStorage.getItem(SAVE_PREFIX + el.name);
@@ -372,7 +409,6 @@
             }
         });
 
-        // Setelah nilai di-restore, UPDATE SEMUA INDIKATOR
         for (let i = 0; i < totalStep; i++) {
             updateIndicatorStatus(i);
         }
@@ -381,37 +417,36 @@
     // --- EVENT HANDLERS ---
     window.savePG = function(el) {
         saveToLocal(el.name, el.value);
-        // Jika menjawab, otomatis hilangkan status ragu
-        localStorage.setItem(RAGU_PREFIX + el.dataset.nomor, 'false');
-        document.getElementById('check-ragu').checked = false;
         
+        // [FIX] Hapus status ragu menggunakan ID Asli saat dijawab
+        const originalIndex = el.name.replace('pg_', ''); 
+        localStorage.setItem(RAGU_PREFIX + originalIndex, 'false');
+        
+        document.getElementById('check-ragu').checked = false;
         updateIndicatorStatus(parseInt(el.dataset.nomor));
     }
 
     window.saveEssay = function(el) {
         saveToLocal(el.name, el.value);
-        // Essay tidak otomatis hilangkan ragu, biarkan manual
-        if(el.value.trim().length > 0) {
-            // localStorage.setItem(RAGU_PREFIX + el.dataset.nomor, 'false');
-        }
         updateIndicatorStatus(parseInt(el.dataset.nomor));
     }
 
-    // Handler Tombol Ragu
+    // [FIX] Handler Tombol Ragu menggunakan ID Asli
     document.getElementById('check-ragu').addEventListener('change', function() {
         const isChecked = this.checked;
-        localStorage.setItem(RAGU_PREFIX + currentStep, isChecked);
+        const currentStepDiv = document.getElementById(`step-${currentStep}`);
+        const originalIndex = currentStepDiv.getAttribute('data-original-index');
+        
+        localStorage.setItem(RAGU_PREFIX + originalIndex, isChecked);
         updateIndicatorStatus(currentStep);
     });
 
     // --- NAVIGATION LOGIC ---
     function updateUI() {
-        // Tampilkan soal yang aktif
         steps.forEach(el => el.style.display = 'none');
         steps[currentStep].style.display = 'block';
         window.scrollTo(0, 0);
 
-        // Atur tombol Next/Prev/Submit
         document.getElementById('btn-prev').disabled = (currentStep === 0);
         const btnNext = document.getElementById('btn-next');
         const btnSubmit = document.getElementById('btn-submit');
@@ -424,11 +459,13 @@
             btnSubmit.classList.add('d-none');
         }
 
-        // Sinkronkan Checkbox Ragu dengan status tersimpan
-        const isRagu = localStorage.getItem(RAGU_PREFIX + currentStep) === 'true';
+        // [FIX] Sinkronkan Checkbox Ragu dengan ID Asli
+        const currentStepDiv = document.getElementById(`step-${currentStep}`);
+        const originalIndex = currentStepDiv.getAttribute('data-original-index');
+        const isRagu = localStorage.getItem(RAGU_PREFIX + originalIndex) === 'true';
         document.getElementById('check-ragu').checked = isRagu;
 
-        // Update visual indikator navigasi (agar border biru pindah)
+        // Update indikator
         for (let i = 0; i < totalStep; i++) {
             updateIndicatorStatus(i);
         }
@@ -457,12 +494,11 @@
     }
 
     // --- INITIALIZATION ---
-    restoreAnswers(); // Jalankan saat load
-    updateUI();       // Atur UI awal
+    restoreAnswers(); 
+    updateUI();       
     if (localStorage.getItem(BAN_KEY) === "true") { forceSubmitNow(); }
 
-
-    // --- TIMER & SECURITY (SAMA SEPERTI SEBELUMNYA) ---
+    // --- TIMER & SECURITY ---
     const timerInterval = setInterval(() => {
         sisaDetik--;
         if (sisaDetik < 0) {
@@ -487,7 +523,18 @@
         setTimeout(() => { document.getElementById('formUjian').submit(); }, 500);
     }
 
-    window.startExam = function() { requestFullScreenAndRun(); }
+    window.startExam = function() { 
+        // Pancing AudioContext agar aktif saat user klik tombol mulai
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+            const ctx = new AudioContext();
+            ctx.resume().then(() => {
+                ctx.close(); // Hanya untuk 'memanaskan' browser agar mengizinkan audio
+            });
+        }
+        requestFullScreenAndRun(); 
+    }
+
     window.resumeExam = function() {
         document.getElementById('warning-overlay').style.display = 'none';
         isWarningActive = false;
@@ -495,6 +542,7 @@
         toggleLanjutBtn();
         requestFullScreenAndRun();
     }
+
     window.toggleLanjutBtn = function() {
         document.getElementById('btnLanjutWarning').disabled = !document.getElementById('janjiSiswa').checked;
     }
@@ -515,8 +563,13 @@
         }
     }
 
+    // --- LOGIKA PELANGGARAN + SUARA ---
     function recordViolation() {
         if (isWarningActive || isSubmitting) return; 
+        
+        // Mainkan Suara Peringatan
+        playWarningSound();
+        
         violationCount++;
         if (violationCount >= MAX_VIOLATIONS) {
             forceSubmitNow();

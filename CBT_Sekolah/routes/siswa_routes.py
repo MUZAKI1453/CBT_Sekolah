@@ -109,7 +109,12 @@ def ujian(ujian_id):
 
     # --- PENGACAKAN TAMPILAN (GET REQUEST) ---
 
-    # 1. Acak PG
+    # [FIX] Set Seed agar urutan acak KONSISTEN per siswa per ujian
+    # Ini mencegah soal berubah urutan saat siswa melakukan refresh halaman
+    seed_key = f"{current_user.id}_{ujian_id}"
+    random.seed(seed_key)
+
+    # 1. Acak PG (Tapi Opsi Tidak Diacak)
     pg_tampil = []
     for idx, item in enumerate(pg_db):
         opsi_list = []
@@ -124,7 +129,9 @@ def ujian(ujian_id):
                     'teks': item.get(kode, ''),        # Teks opsi
                     'gambar': item.get(f'{kode}_gambar', '') # Gambar opsi (NEW)
                 })
-        # random.shuffle(opsi_list)
+        
+        # [UPDATE] Nonaktifkan pengacakan opsi agar urutan tetap A, B, C, D, E
+        # random.shuffle(opsi_list) 
         
         pg_tampil.append({
             'original_index': idx,
@@ -132,7 +139,8 @@ def ujian(ujian_id):
             'gambar': item.get('gambar', ''),
             'opsi_acak': opsi_list
         })
-    random.shuffle(pg_tampil)
+    
+    random.shuffle(pg_tampil) # Urutan SOAL tetap diacak (konsisten karena seed)
 
     # 2. Acak Essay
     essay_tampil = []
@@ -143,7 +151,7 @@ def ujian(ujian_id):
             'gambar': item.get('gambar', ''),
             'bobot': item['bobot']
         })
-    random.shuffle(essay_tampil)
+    random.shuffle(essay_tampil) # Urutan ESSAY juga diacak
 
     return render_template('siswa/ujian.html',
                            ujian=ujian,

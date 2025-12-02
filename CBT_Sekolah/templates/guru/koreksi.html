@@ -2,7 +2,7 @@
 {% block content %}
 
 <style>
-    /* Styling Konsisten */
+    /* UI/UX Konsisten dengan Preview & Ujian */
     .badge-nomor {
         width: 35px; 
         height: 35px; 
@@ -10,31 +10,48 @@
         align-items: center; 
         justify-content: center;
         flex-shrink: 0; 
+        font-weight: bold;
     }
     
     .img-soal {
-        max-height: 300px;
-        width: auto;
+        max-height: 400px;
+        width: 100%;
         object-fit: contain;
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
     }
 
     .img-opsi {
         max-height: 150px;
         width: auto;
         object-fit: contain;
+        background-color: white;
     }
 
+    .card-opsi {
+        transition: all 0.2s;
+        height: 100%;
+    }
+    .card-opsi:hover {
+        background-color: #fcfcfc;
+    }
+
+    /* Mobile adjustments */
     @media (max-width: 576px) {
         .card-info-siswa {
             flex-direction: column;
             align-items: flex-start !important;
-            gap: 10px;
+            gap: 15px;
         }
         .nilai-box {
             width: 100%;
             text-align: left !important;
-            border-top: 1px solid #dee2e6;
-            padding-top: 10px;
+            border-top: 1px solid #eee;
+            padding-top: 15px;
+            margin-top: 5px;
+        }
+        .nilai-box h2 {
+            font-size: 2.5rem;
         }
     }
 </style>
@@ -42,43 +59,43 @@
 <div class="container mt-4 mb-5">
     <form method="POST">
         
-        <div class="card shadow-sm border-0 mb-4 bg-white rounded-3">
-            <div class="card-body d-flex justify-content-between align-items-center card-info-siswa">
+        <div class="card shadow-sm border-0 mb-4 bg-white rounded-4 overflow-hidden">
+            <div class="card-body p-4 d-flex justify-content-between align-items-center card-info-siswa">
                 <div>
                     <h4 class="mb-1 fw-bold text-dark">{{ jawaban.siswa.nama }}</h4>
-                    <p class="mb-0 text-muted">
-                        <i class="bi bi-person-badge me-1"></i> {{ jawaban.siswa.username }} &bull; 
-                        <i class="bi bi-grid me-1"></i> {{ jawaban.siswa.kelas.nama_kelas }}
+                    <p class="mb-0 text-muted d-flex align-items-center flex-wrap gap-2">
+                        <span class="badge bg-light text-dark border"><i class="bi bi-person-badge me-1"></i> {{ jawaban.siswa.username }}</span>
+                        <span class="badge bg-light text-dark border"><i class="bi bi-grid me-1"></i> {{ jawaban.siswa.kelas.nama_kelas }}</span>
                     </p>
                 </div>
                 <div class="text-end nilai-box">
-                    <small class="text-muted d-block text-uppercase fw-bold" style="font-size: 0.75rem;">Nilai Pilihan Ganda</small>
-                    <h2 class="text-primary fw-bold m-0">{{ jawaban.nilai_pg }}</h2>
+                    <small class="text-secondary d-block text-uppercase fw-bold ls-1" style="font-size: 0.7rem; letter-spacing: 1px;">Nilai Pilihan Ganda</small>
+                    <h2 class="text-primary fw-bold m-0 lh-1">{{ jawaban.nilai_pg }}</h2>
                 </div>
             </div>
         </div>
 
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h5 class="fw-bold text-secondary mb-0">
-                <i class="bi bi-pencil-square me-2"></i>Koreksi Jawaban
+            <h5 class="fw-bold text-secondary mb-0 d-flex align-items-center">
+                <i class="bi bi-pencil-square me-2 text-warning"></i>Koreksi Jawaban
             </h5>
-            <a href="/guru/lihat_nilai/{{ jawaban.ujian_id }}" class="btn btn-secondary shadow-sm">
+            <a href="/guru/lihat_nilai/{{ jawaban.ujian_id }}" class="btn btn-outline-secondary shadow-sm rounded-pill px-4 fw-bold">
                 <i class="bi bi-arrow-left me-1"></i> Kembali
             </a>
         </div>
 
         {% if soal_pg %}
-        <div class="card shadow-sm border-0 mb-4 rounded-3">
-            <div class="card-header bg-primary text-white py-3">
+        <div class="card shadow-sm border-0 mb-4 rounded-4">
+            <div class="card-header bg-primary text-white py-3 px-4">
                 <h6 class="mb-0 fw-bold"><i class="bi bi-check2-square me-2"></i>I. Jawaban Pilihan Ganda</h6>
             </div>
-            <div class="card-body">
+            <div class="card-body p-4">
                 {% for s in soal_pg %}
                 
-                {# === PERBAIKAN UTAMA: SIMPAN INDEX SOAL DARI LOOP LUAR === #}
+                {# === [FIX PENTING] Kunci index soal ke variabel i_soal === #}
                 {% set i_soal = loop.index0 %} 
                 
-                <div class="mb-4 border-bottom pb-4">
+                <div class="mb-5 border-bottom pb-4 last-no-border">
                     <div class="d-flex gap-3">
                         <div class="flex-shrink-0">
                             <span class="badge bg-primary fs-6 rounded-circle shadow-sm badge-nomor">
@@ -88,23 +105,23 @@
                         <div class="flex-grow-1" style="min-width: 0;">
                             
                             {% if s.gambar %}
-                            <div class="mb-3">
+                            <div class="mb-3 text-center text-md-start">
                                 <a href="{{ url_for('static', filename='uploads/soal/' + s.gambar) }}" target="_blank">
                                     <img src="{{ url_for('static', filename='uploads/soal/' + s.gambar) }}" 
-                                         class="img-fluid rounded border shadow-sm img-soal bg-light" 
+                                         class="img-fluid rounded border shadow-sm img-soal" 
                                          alt="Gambar Soal">
                                 </a>
                             </div>
                             {% endif %}
 
-                            <div class="mb-3 fs-5 text-dark lh-base text-break">{{ s.soal }}</div>
+                            <div class="mb-4 fs-5 text-dark lh-base text-break">{{ s.soal }}</div>
 
                             <div class="row row-cols-1 row-cols-md-2 g-3">
                                 {% for opt in ['a', 'b', 'c', 'd', 'e'] %}
                                     {% if s[opt] or s[opt + '_gambar'] %}
                                     <div class="col">
-                                        {# === GUNAKAN i_soal (Bukan loop.index0) UNTUK CEK JAWABAN === #}
-                                        <div class="p-3 border rounded h-100 d-flex flex-column position-relative
+                                        {# === GUNAKAN i_soal UNTUK CEK JAWABAN (JANGAN GUNAKAN loop.index) === #}
+                                        <div class="p-3 border rounded card-opsi d-flex flex-column position-relative
                                             {% if s.kunci == opt|upper %} bg-success bg-opacity-10 border-success {% endif %}
                                             {% if jawab_pg.get(i_soal|string) == opt|upper and s.kunci != opt|upper %} bg-danger bg-opacity-10 border-danger {% endif %}">
                                             
@@ -118,7 +135,7 @@
                                                     <div class="mb-2">
                                                         <a href="{{ url_for('static', filename='uploads/soal/' + s[opt + '_gambar']) }}" target="_blank">
                                                             <img src="{{ url_for('static', filename='uploads/soal/' + s[opt + '_gambar']) }}" 
-                                                                 class="img-fluid rounded border bg-white img-opsi" 
+                                                                 class="img-fluid rounded border img-opsi" 
                                                                  alt="Opsi">
                                                         </a>
                                                     </div>
@@ -130,16 +147,16 @@
                                                 </div>
                                             </div>
 
-                                            <div class="mt-auto d-flex flex-wrap gap-2 justify-content-end">
-                                                {# === GUNAKAN i_soal DI SINI JUGA === #}
+                                            <div class="mt-auto d-flex flex-wrap gap-2 justify-content-end pt-2">
+                                                {# === BADGE INDIKATOR === #}
                                                 {% if jawab_pg.get(i_soal|string) == opt|upper %}
-                                                    <span class="badge bg-dark text-white shadow-sm">
-                                                        <i class="bi bi-person-fill me-1"></i>Dijawab Siswa
+                                                    <span class="badge bg-dark text-white shadow-sm border">
+                                                        <i class="bi bi-person-fill me-1"></i>Siswa
                                                     </span>
                                                 {% endif %}
                                                 {% if s.kunci == opt|upper %}
                                                     <span class="badge bg-success shadow-sm">
-                                                        <i class="bi bi-check-lg me-1"></i>Kunci Jawaban
+                                                        <i class="bi bi-check-lg me-1"></i>Kunci
                                                     </span>
                                                 {% endif %}
                                             </div>
@@ -157,18 +174,19 @@
         </div>
         {% endif %}
 
-        <div class="card shadow-sm border-0 rounded-3">
-            <div class="card-header bg-warning text-dark py-3">
-                <h6 class="mb-0 fw-bold"><i class="bi bi-pencil me-2"></i>II. Koreksi Jawaban Essay</h6>
+        <div class="card shadow-sm border-0 rounded-4">
+            <div class="card-header bg-warning text-dark py-3 px-4">
+                <h6 class="mb-0 fw-bold"><i class="bi bi-file-text me-2"></i>II. Koreksi Jawaban Essay</h6>
             </div>
-            <div class="card-body">
+            <div class="card-body p-4">
                 {% if soal_essay %}
                     {% for s in soal_essay %}
-                    {# Simpan index untuk Essay juga (Good Practice) #}
+                    
+                    {# === Kunci index essay juga === #}
                     {% set i_essay = loop.index0 %}
                     
-                    <div class="card shadow-sm mb-4 border-0 bg-light">
-                        <div class="card-body">
+                    <div class="card shadow-sm mb-4 border-0 bg-light rounded-3">
+                        <div class="card-body p-4">
                             <div class="d-flex gap-3 mb-3">
                                 <span class="badge bg-warning text-dark fs-6 rounded-circle shadow-sm badge-nomor align-self-start">
                                     {{ loop.index }}
@@ -176,7 +194,7 @@
                                 <div class="w-100">
                                     
                                     {% if s.gambar %}
-                                    <div class="mb-3">
+                                    <div class="mb-3 text-center text-md-start">
                                         <a href="{{ url_for('static', filename='uploads/soal/' + s.gambar) }}" target="_blank">
                                             <img src="{{ url_for('static', filename='uploads/soal/' + s.gambar) }}" 
                                                  class="img-fluid rounded border shadow-sm img-soal bg-white" 
@@ -189,26 +207,29 @@
                                 </div>
                             </div>
 
-                            <div class="p-3 bg-white border rounded mb-3 shadow-sm">
-                                <label class="small text-secondary fw-bold mb-2 text-uppercase ls-1">Jawaban Siswa:</label>
-                                <div class="text-dark fs-6" style="white-space: pre-wrap;">{{ jawab_essay[i_essay|string] if jawab_essay[i_essay|string] else '<span class="text-danger fst-italic"><i class="bi bi-x-circle me-1"></i>Tidak ada jawaban</span>' | safe }}</div>
+                            <div class="p-3 bg-white border rounded-3 mb-3 shadow-sm position-relative">
+                                <span class="position-absolute top-0 start-0 translate-middle badge rounded-pill bg-primary border border-white shadow-sm" style="margin-left: 15px; margin-top: 10px;">
+                                    JAWABAN SISWA
+                                </span>
+                                <div class="text-dark fs-6 mt-2" style="white-space: pre-wrap;">{{ jawab_essay[i_essay|string] if jawab_essay[i_essay|string] else '<span class="text-danger fst-italic opacity-50"><i class="bi bi-x-circle me-1"></i>Tidak ada jawaban</span>' | safe }}</div>
                             </div>
 
-                            <div class="row align-items-center bg-white p-3 rounded border mx-0">
-                                <div class="col-md-8 mb-2 mb-md-0">
-                                    <div class="text-muted small">
-                                        <i class="bi bi-info-circle me-1"></i> Masukkan nilai antara <strong>0 - {{ s.bobot }}</strong>
+                            <div class="row align-items-center bg-white p-3 rounded-3 border mx-0">
+                                <div class="col-md-7 mb-2 mb-md-0">
+                                    <div class="text-muted small d-flex align-items-center">
+                                        <i class="bi bi-info-circle-fill text-info fs-5 me-2"></i> 
+                                        <span>Berikan nilai antara <strong>0 - {{ s.bobot }}</strong></span>
                                     </div>
                                 </div>
-                                <div class="col-md-4">
-                                    <div class="input-group">
-                                        <span class="input-group-text bg-success text-white fw-bold">Nilai</span>
+                                <div class="col-md-5">
+                                    <div class="input-group input-group-lg">
+                                        <span class="input-group-text bg-success text-white fw-bold border-0">NILAI</span>
                                         <input type="number" name="nilai_{{ i_essay }}"
-                                               class="form-control fw-bold text-center fs-5 text-primary"
+                                               class="form-control fw-bold text-center text-primary border-success"
                                                min="0" max="{{ s.bobot }}"
                                                value="{{ jawaban.nilai_essay_per_soal[i_essay] if jawaban.nilai_essay_per_soal else 0 }}" 
                                                required>
-                                        <span class="input-group-text bg-light text-muted">/ {{ s.bobot }}</span>
+                                        <span class="input-group-text bg-light text-muted border-start-0">/ {{ s.bobot }}</span>
                                     </div>
                                 </div>
                             </div>
@@ -216,16 +237,16 @@
                     </div>
                     {% endfor %}
 
-                    <div class="d-grid gap-2 mt-4 sticky-bottom-md">
-                        <button type="submit" class="btn btn-primary btn-lg fw-bold shadow">
-                            <i class="bi bi-save me-2"></i> SIMPAN NILAI ESSAY
+                    <div class="d-grid gap-2 mt-5">
+                        <button type="submit" class="btn btn-primary btn-lg fw-bold shadow-sm py-3 rounded-pill">
+                            <i class="bi bi-save-fill me-2"></i> SIMPAN NILAI ESSAY
                         </button>
                     </div>
 
                 {% else %}
                     <div class="text-center py-5 text-muted">
                         <i class="bi bi-journal-x display-1 mb-3 d-block opacity-25"></i>
-                        <p>Ujian ini tidak memiliki soal essay.</p>
+                        <p class="mb-0">Ujian ini tidak memiliki soal essay.</p>
                     </div>
                 {% endif %}
             </div>
@@ -235,12 +256,14 @@
 </div>
 
 <script>
+    // Validasi Nilai agar tidak melebihi bobot
     document.querySelectorAll('input[type="number"]').forEach(input => {
         input.addEventListener('input', function() {
             let max = parseInt(this.getAttribute('max'));
             let val = parseInt(this.value) || 0;
+            
             if (val > max) {
-                alert('Nilai tidak boleh melebihi bobot soal (' + max + ')');
+                alert('Nilai maksimal untuk soal ini adalah ' + max);
                 this.value = max;
             }
             if (val < 0) this.value = 0;
