@@ -39,15 +39,12 @@
         border-radius: 4px;
     }
 
-    /* --- UPDATE: RESPONSIVE & STICKY ACTION BAR --- */
-    
-    /* Margin kiri opsi: besar di desktop, kecil di HP */
+    /* RESPONSIVE & STICKY ACTION BAR */
     .indent-responsive { margin-left: 3rem !important; }
 
     @media (max-width: 576px) {
         .indent-responsive { margin-left: 0.5rem !important; }
-        
-        /* Tombol Simpan Melayang di Bawah Layar (Khusus HP) */
+
         .mobile-sticky-action {
             position: fixed;
             bottom: 0; left: 0; right: 0;
@@ -59,24 +56,23 @@
             gap: 10px;
             border-top: 1px solid #dee2e6;
         }
-        
-        /* Tambah padding bawah body agar konten tidak tertutup tombol sticky */
+
         body { padding-bottom: 80px; }
     }
 </style>
 
 <div class="container mt-4 mb-5">
     <form method="POST" enctype="multipart/form-data">
-        
+
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center mb-4 gap-3">
             <div>
                 <h2 class="mb-0 fw-bold fs-3">{{ ujian.judul }}</h2>
                 <div class="text-muted small">
-                    <i class="bi bi-book me-1"></i> {{ ujian.mapel.nama }} &bull; 
+                    <i class="bi bi-book me-1"></i> {{ ujian.mapel.nama }} &bull;
                     <i class="bi bi-clock me-1"></i> {{ ujian.durasi_menit }} Menit
                 </div>
             </div>
-            
+
             <div class="d-none d-sm-flex gap-2">
                 <a href="/guru/dashboard" class="btn btn-secondary px-4">Batal</a>
                 <button type="submit" class="btn btn-primary px-4 fw-bold">
@@ -108,14 +104,14 @@
                 <div class="row g-3 mt-2">
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Waktu Mulai</label>
-                        <input type="datetime-local" name="waktu_mulai" 
-                               value="{{ ujian.waktu_mulai.strftime('%Y-%m-%dT%H:%M') }}" 
+                        <input type="datetime-local" name="waktu_mulai"
+                               value="{{ ujian.waktu_mulai.strftime('%Y-%m-%dT%H:%M') }}"
                                class="form-control" required>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-semibold">Waktu Selesai</label>
-                        <input type="datetime-local" name="waktu_selesai" 
-                               value="{{ ujian.waktu_selesai.strftime('%Y-%m-%dT%H:%M') }}" 
+                        <input type="datetime-local" name="waktu_selesai"
+                               value="{{ ujian.waktu_selesai.strftime('%Y-%m-%dT%H:%M') }}"
                                class="form-control" required>
                     </div>
                 </div>
@@ -137,7 +133,7 @@
             <div class="card-body" id="container-pg">
                 {% for s in pg_list %}
                 <div class="border rounded p-3 mb-4 position-relative item-pg bg-white shadow-sm">
-                    
+
                     <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
                         <div class="badge bg-primary fs-6 nomor-soal-pg">Soal No.</div>
                         <div class="d-flex align-items-center gap-3">
@@ -160,7 +156,7 @@
                             </a>
                         </div>
                         {% endif %}
-                        
+
                         <label class="small text-muted fw-bold mb-1">
                             {% if s.gambar %}Ganti Gambar Soal:{% else %}Upload Gambar Soal:{% endif %}
                         </label>
@@ -169,28 +165,28 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="fw-bold small text-secondary">Pertanyaan</label>
-                        <textarea name="pg_soal[]" class="form-control" rows="2" required>{{ s.soal }}</textarea>
+                        <label class="fw-bold small text-secondary">Pertanyaan (Opsional jika ada gambar)</label>
+                        <textarea name="pg_soal[]" class="form-control" rows="2">{{ s.soal }}</textarea>
                     </div>
-                    
+
                     <div class="mb-3">
                         <label class="fw-bold small text-secondary mb-2">Pilihan Jawaban</label>
                         {% for opt in ['a','b','c','d','e'] %}
                         <div class="option-row p-3 mb-3 position-relative">
-                            
+
                             <div class="d-flex align-items-center mb-2">
                                 <span class="badge bg-secondary me-2 fs-6" style="width: 35px;">{{ opt|upper }}</span>
                                 <input type="text" name="pg_{{ opt }}[]" value="{{ s[opt] }}" class="form-control" placeholder="Teks jawaban opsi {{ opt|upper }}...">
                             </div>
 
                             <div class="form-check form-switch indent-responsive mb-2">
-                                <input class="form-check-input" type="checkbox" role="switch" onchange="toggleOptImg(this)" 
+                                <input class="form-check-input" type="checkbox" role="switch" onchange="toggleOptImg(this)"
                                        {% if s[opt + '_gambar'] %}checked{% endif %}>
                                 <label class="form-check-label small fw-bold text-muted">Sertakan Gambar</label>
                             </div>
-                            
+
                             <div class="opt-img-container indent-responsive p-2 border rounded bg-white {% if not s[opt + '_gambar'] %}d-none{% endif %}">
-                                
+
                                 {% if s[opt + '_gambar'] %}
                                 <div class="img-preview-box">
                                     <label class="d-block small text-muted mb-1">Gambar Opsi {{ opt|upper }} Saat Ini:</label>
@@ -262,8 +258,8 @@
                                 <input type="hidden" name="essay_old_img[]" value="{{ e.gambar if e.gambar else '' }}">
                             </div>
 
-                            <label class="fw-bold small text-secondary">Pertanyaan Essay</label>
-                            <textarea name="essay_soal[]" class="form-control mb-2" rows="3" required>{{ e.soal }}</textarea>
+                            <label class="fw-bold small text-secondary">Pertanyaan Essay (Opsional jika ada gambar)</label>
+                            <textarea name="essay_soal[]" class="form-control mb-2" rows="3">{{ e.soal }}</textarea>
                         </div>
                         <div class="col-md-2 border-start">
                             <label class="fw-bold small text-secondary">Poin</label>
@@ -279,7 +275,6 @@
 </div>
 
 <script>
-    // 1. FUNGSI HAPUS ELEMEN
     function hapusElemen(btn) {
         if(confirm('Yakin ingin menghapus soal ini?')) {
             const item = btn.closest('.item-pg, .item-essay');
@@ -287,7 +282,6 @@
         }
     }
 
-    // 2. TOGGLE GAMBAR UTAMA (Soal PG / Essay)
     function toggleImg(checkbox) {
         const parent = checkbox.closest('.item-pg, .item-essay');
         const container = parent.querySelector('.img-container');
@@ -298,9 +292,7 @@
         }
     }
 
-    // 3. TOGGLE GAMBAR OPSI (Khusus Opsi A-E)
     function toggleOptImg(checkbox) {
-        // Cari container gambar terdekat dalam satu baris opsi
         const row = checkbox.closest('.option-row');
         const container = row.querySelector('.opt-img-container');
         if(checkbox.checked) {
@@ -310,11 +302,11 @@
         }
     }
 
-    // 4. TAMBAH SOAL PG BARU (Update: Struktur Responsif)
     function tambahPG() {
+        // UPDATE: Hapus required pada textarea
         const html = `
         <div class="border rounded p-3 mb-4 position-relative item-pg bg-white shadow-sm">
-            
+
             <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
                 <div class="badge bg-primary fs-6 nomor-soal-pg">Soal No.</div>
                 <div class="d-flex align-items-center gap-3">
@@ -336,9 +328,9 @@
 
             <div class="mb-3">
                 <label class="fw-bold small text-secondary">Pertanyaan Baru</label>
-                <textarea name="pg_soal[]" class="form-control" rows="2" required></textarea>
+                <textarea name="pg_soal[]" class="form-control" rows="2"></textarea>
             </div>
-            
+
             <div class="mb-3">
                 <label class="fw-bold small text-secondary mb-2">Pilihan Jawaban</label>
                 ${['a','b','c','d','e'].map(opt => `
@@ -352,7 +344,7 @@
                         <input class="form-check-input" type="checkbox" role="switch" onchange="toggleOptImg(this)">
                         <label class="form-check-label small fw-bold text-muted">Sertakan Gambar</label>
                     </div>
-                    
+
                     <div class="opt-img-container indent-responsive p-2 border rounded bg-white d-none">
                         <label class="small text-muted fw-bold mb-1">Upload Gambar Opsi ${opt.toUpperCase()}</label>
                         <input type="file" name="pg_img_${opt}[]" class="form-control form-control-sm" accept="image/*">
@@ -375,8 +367,8 @@
         document.getElementById('container-pg').insertAdjacentHTML('beforeend', html);
     }
 
-    // 5. TAMBAH SOAL ESSAY BARU
     function tambahEssay() {
+        // UPDATE: Hapus required pada textarea
         const html = `
         <div class="border rounded p-3 mb-4 position-relative item-essay bg-white shadow-sm">
             <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
@@ -401,7 +393,7 @@
                     </div>
 
                     <label class="fw-bold small text-secondary">Pertanyaan Essay Baru</label>
-                    <textarea name="essay_soal[]" class="form-control mb-2" rows="3" required></textarea>
+                    <textarea name="essay_soal[]" class="form-control mb-2" rows="3"></textarea>
                 </div>
                 <div class="col-md-2 border-start">
                     <label class="fw-bold small text-secondary">Poin</label>

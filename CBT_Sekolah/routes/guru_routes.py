@@ -16,24 +16,24 @@ from openpyxl.drawing.image import Image as ExcelImage
 
 bp = Blueprint('guru', __name__)
 
+
 # ==================== HELPER: PARSE PDF LINES ====================
 def parse_pdf_lines(lines):
     pg_list = []
     essay_list = []
     current_soal = None
-    last_state = 'soal'  # Melacak posisi: 'soal', 'a', 'b', 'c', 'd', 'e'
+    last_state = 'soal'
 
     # Regex Patterns
-    pola_nomor = re.compile(r'^(\d+)\.\s+(.*)')      # Tangkap angka dan isi
-    pola_opsi = re.compile(r'^([A-E])\.\s+(.*)')      # Tangkap Huruf A-E
+    pola_nomor = re.compile(r'^(\d+)\.\s+(.*)')
+    pola_opsi = re.compile(r'^([A-E])\.\s+(.*)')
     pola_kunci = re.compile(r'\(Jawaban:\s*([A-E])\)', re.IGNORECASE)
     pola_bobot = re.compile(r'\(Poin:\s*(\d+)\)', re.IGNORECASE)
 
     for line in lines:
-        # --- 1. CLEANING & EXTRACT METADATA ---
         temu_kunci = pola_kunci.search(line)
         temu_bobot = pola_bobot.search(line)
-        
+
         line_clean = line
         found_key_val = None
         found_bobot_val = None
@@ -41,19 +41,17 @@ def parse_pdf_lines(lines):
         if temu_kunci:
             found_key_val = temu_kunci.group(1).upper()
             line_clean = pola_kunci.sub('', line_clean).strip()
-        
+
         if temu_bobot:
             found_bobot_val = int(temu_bobot.group(1))
             line_clean = pola_bobot.sub('', line_clean).strip()
-        
-        if not line_clean and not found_key_val and not found_bobot_val:
-             continue
 
-        # --- 2. MATCHING STRUKTUR ---
+        if not line_clean and not found_key_val and not found_bobot_val:
+            continue
+
         match_nomor = pola_nomor.match(line_clean)
         match_opsi = pola_opsi.match(line_clean)
 
-        # A. JIKA NOMOR BARU (1. Soal...)
         if match_nomor:
             if current_soal:
                 if current_soal['tipe'] == 'pg':
@@ -62,7 +60,7 @@ def parse_pdf_lines(lines):
                     essay_list.append(current_soal['data'])
 
             isi_soal = match_nomor.group(2).strip()
-            
+
             if found_key_val:
                 current_soal = {
                     'tipe': 'pg',
@@ -74,7 +72,7 @@ def parse_pdf_lines(lines):
                     }
                 }
             elif found_bobot_val:
-                 current_soal = {
+                current_soal = {
                     'tipe': 'essay',
                     'data': {'soal': isi_soal, 'bobot': found_bobot_val, 'gambar': ''}
                 }
@@ -90,48 +88,45 @@ def parse_pdf_lines(lines):
                 }
             last_state = 'soal'
 
-        # B. JIKA UPDATE METADATA
         elif current_soal and (found_key_val or found_bobot_val):
-             if found_key_val and current_soal['tipe'] == 'pg':
-                 current_soal['data']['kunci'] = found_key_val
-             
-             if found_bobot_val:
-                 if current_soal['tipe'] == 'essay':
-                     current_soal['data']['bobot'] = found_bobot_val
-                 elif current_soal['tipe'] == 'pg':
-                     current_soal['tipe'] = 'essay'
-                     current_soal['data'] = {
-                         'soal': current_soal['data']['soal'], 
-                         'bobot': found_bobot_val,
-                         'gambar': ''
-                     }
+            if found_key_val and current_soal['tipe'] == 'pg':
+                current_soal['data']['kunci'] = found_key_val
 
-             if line_clean:
-                 if last_state == 'soal':
-                     current_soal['data']['soal'] += " " + line_clean
-                 elif last_state in ['a', 'b', 'c', 'd', 'e'] and current_soal['tipe'] == 'pg':
-                     current_soal['data'][last_state] += " " + line_clean
+            if found_bobot_val:
+                if current_soal['tipe'] == 'essay':
+                    current_soal['data']['bobot'] = found_bobot_val
+                elif current_soal['tipe'] == 'pg':
+                    current_soal['tipe'] = 'essay'
+                    current_soal['data'] = {
+                        'soal': current_soal['data']['soal'],
+                        'bobot': found_bobot_val,
+                        'gambar': ''
+                    }
 
-        # C. JIKA OPSI (A. Isi Opsi...)
+            if line_clean:
+                if last_state == 'soal':
+                    current_soal['data']['soal'] += " " + line_clean
+                elif last_state in ['a', 'b', 'c', 'd', 'e'] and current_soal['tipe'] == 'pg':
+                    current_soal['data'][last_state] += " " + line_clean
+
         elif current_soal and current_soal['tipe'] == 'pg' and match_opsi:
             opt_label = match_opsi.group(1).lower()
             opt_text = match_opsi.group(2).strip()
             current_soal['data'][opt_label] = opt_text
             last_state = opt_label
 
-        # D. JIKA LANJUTAN TEKS BIASA
         elif current_soal and line_clean:
             if last_state == 'soal':
-                 current_soal['data']['soal'] += " " + line_clean
+                current_soal['data']['soal'] += " " + line_clean
             elif last_state in ['a', 'b', 'c', 'd', 'e'] and current_soal['tipe'] == 'pg':
-                 current_soal['data'][last_state] += " " + line_clean
+                current_soal['data'][last_state] += " " + line_clean
 
     if current_soal:
         if current_soal['tipe'] == 'pg':
             pg_list.append(current_soal['data'])
         elif current_soal['tipe'] == 'essay':
             essay_list.append(current_soal['data'])
-            
+
     return pg_list, essay_list
 
 
@@ -139,17 +134,16 @@ def parse_pdf_lines(lines):
 @bp.route('/dashboard')
 @login_required
 def dashboard():
-    # UPDATE: Izinkan Guru ATAU Admin
     if current_user.role not in ['guru', 'admin']:
         return redirect('/')
 
-    # UPDATE: Jika Admin, tampilkan SEMUA data
     if current_user.role == 'admin':
         mapel = Mapel.query.all()
         ujian = Ujian.query.order_by(Ujian.waktu_mulai.desc()).all()
     else:
         mapel = Mapel.query.filter_by(guru_id=current_user.id).all()
-        ujian = Ujian.query.join(Mapel).filter(Mapel.guru_id == current_user.id).order_by(Ujian.waktu_mulai.desc()).all()
+        ujian = Ujian.query.join(Mapel).filter(Mapel.guru_id == current_user.id).order_by(
+            Ujian.waktu_mulai.desc()).all()
 
     return render_template('guru/dashboard.html', mapel=mapel, ujian=ujian, datetime=datetime)
 
@@ -162,8 +156,7 @@ def upload_soal(mapel_id):
         return redirect('/')
 
     mapel = Mapel.query.get_or_404(mapel_id)
-    
-    # Bypass cek pemilik jika Admin
+
     if current_user.role != 'admin' and mapel.guru_id != current_user.id:
         flash('Anda tidak berhak mengunggah soal untuk mapel ini!', 'danger')
         return redirect('/guru/dashboard')
@@ -212,7 +205,7 @@ def upload_soal(mapel_id):
             except Exception as e:
                 flash(f'Terjadi kesalahan sistem saat membaca PDF: {str(e)}', 'danger')
                 return redirect(request.url)
-        
+
         ujian = Ujian(
             mapel_id=mapel_id,
             judul=judul,
@@ -243,8 +236,13 @@ def edit_ujian(ujian_id):
         return redirect('/')
 
     ujian = Ujian.query.get_or_404(ujian_id)
-    
-    # Bypass cek pemilik jika Admin
+
+    # [FIX: CEGAH EDIT SAAT UJIAN BERLANGSUNG]
+    if datetime.now() >= ujian.waktu_mulai:
+        if JawabanSiswa.query.filter_by(ujian_id=ujian_id).first():
+            flash('PERINGATAN: Ujian tidak dapat diedit karena sudah dimulai/dikerjakan siswa.', 'danger')
+            return redirect(url_for('guru.dashboard'))
+
     if current_user.role != 'admin' and ujian.mapel.guru_id != current_user.id:
         flash('Akses ditolak!', 'danger')
         return redirect('/guru/dashboard')
@@ -302,44 +300,44 @@ def edit_ujian(ujian_id):
             # === PILIHAN GANDA ===
             soal_pg = request.form.getlist('pg_soal[]')
             kunci = request.form.getlist('pg_kunci[]')
-            
-            # Gambar Utama Soal
-            img_pg_files = request.files.getlist('pg_img[]') 
+
+            img_pg_files = request.files.getlist('pg_img[]')
             img_pg_old = request.form.getlist('pg_old_img[]')
 
-            # --- AMBIL DATA OPSI & GAMBAR OPSI ---
             opsi_data = {}
             opsi_img_files = {}
             opsi_img_old = {}
 
-            # Ambil semua input opsi A-E
             for kode in ['a', 'b', 'c', 'd', 'e']:
                 opsi_data[kode] = request.form.getlist(f'pg_{kode}[]')
                 opsi_img_files[kode] = request.files.getlist(f'pg_img_{kode}[]')
                 opsi_img_old[kode] = request.form.getlist(f'pg_old_img_{kode}[]')
 
             manual_pg_list = []
-            
-            # Folder Upload
             upload_folder = os.path.join(current_app.root_path, 'static', 'uploads', 'soal')
             if not os.path.exists(upload_folder):
                 os.makedirs(upload_folder)
 
             for i in range(len(soal_pg)):
-                # Cek jika soal tidak kosong ATAU ada opsi yg tidak kosong
-                has_content = soal_pg[i].strip() or any(opsi_data[k][i] for k in ['a','b','c','d','e'])
-                
+                # [UPDATE] Cek keberadaan gambar (Upload baru ATAU Gambar lama)
+                ada_gambar = (i < len(img_pg_files) and img_pg_files[i].filename) or \
+                             (i < len(img_pg_old) and img_pg_old[i])
+
+                # [UPDATE] Simpan jika ada teks ATAU ada opsi ATAU ada gambar
+                has_content = soal_pg[i].strip() or \
+                              any(opsi_data[k][i] for k in ['a', 'b', 'c', 'd', 'e']) or \
+                              ada_gambar
+
                 if has_content:
-                    # 1. Proses Gambar Soal Utama
                     gambar_soal = img_pg_old[i] if i < len(img_pg_old) else ""
                     if i < len(img_pg_files):
                         file_gbr = img_pg_files[i]
                         if file_gbr and file_gbr.filename:
-                            filename = secure_filename(f"PG_{ujian_id}_{i}_{int(datetime.now().timestamp())}_{file_gbr.filename}")
+                            filename = secure_filename(
+                                f"PG_{ujian_id}_{i}_{int(datetime.now().timestamp())}_{file_gbr.filename}")
                             file_gbr.save(os.path.join(upload_folder, filename))
                             gambar_soal = filename
 
-                    # 2. Proses Opsi A-E (Teks & Gambar)
                     item_soal = {
                         'soal': soal_pg[i],
                         'kunci': kunci[i],
@@ -347,19 +345,17 @@ def edit_ujian(ujian_id):
                     }
 
                     for kode in ['a', 'b', 'c', 'd', 'e']:
-                        # Simpan Teks
                         item_soal[kode] = opsi_data[kode][i]
 
-                        # Simpan Gambar Opsi
                         gambar_opsi = opsi_img_old[kode][i] if i < len(opsi_img_old[kode]) else ""
                         if i < len(opsi_img_files[kode]):
                             file_opsi = opsi_img_files[kode][i]
                             if file_opsi and file_opsi.filename:
-                                filename_opsi = secure_filename(f"OPT_{kode}_{ujian_id}_{i}_{int(datetime.now().timestamp())}_{file_opsi.filename}")
+                                filename_opsi = secure_filename(
+                                    f"OPT_{kode}_{ujian_id}_{i}_{int(datetime.now().timestamp())}_{file_opsi.filename}")
                                 file_opsi.save(os.path.join(upload_folder, filename_opsi))
                                 gambar_opsi = filename_opsi
-                        
-                        # Simpan ke JSON dengan key khusus (misal: a_gambar)
+
                         item_soal[f"{kode}_gambar"] = gambar_opsi
 
                     manual_pg_list.append(item_soal)
@@ -372,13 +368,19 @@ def edit_ujian(ujian_id):
 
             manual_essay_list = []
             for i in range(len(soal_essay)):
-                if soal_essay[i].strip():
+                # [UPDATE] Cek keberadaan gambar
+                ada_gambar = (i < len(img_essay_files) and img_essay_files[i].filename) or \
+                             (i < len(img_essay_old) and img_essay_old[i])
+
+                # [UPDATE] Simpan jika ada teks ATAU ada gambar
+                if soal_essay[i].strip() or ada_gambar:
                     gambar_final = img_essay_old[i] if i < len(img_essay_old) else ""
 
                     if i < len(img_essay_files):
                         file_gbr = img_essay_files[i]
                         if file_gbr and file_gbr.filename:
-                            filename = secure_filename(f"ES_{ujian_id}_{i}_{int(datetime.now().timestamp())}_{file_gbr.filename}")
+                            filename = secure_filename(
+                                f"ES_{ujian_id}_{i}_{int(datetime.now().timestamp())}_{file_gbr.filename}")
                             file_gbr.save(os.path.join(upload_folder, filename))
                             gambar_final = filename
 
@@ -405,12 +407,11 @@ def edit_ujian(ujian_id):
 @bp.route('/hapus_ujian/<int:ujian_id>', methods=['POST'])
 @login_required
 def hapus_ujian(ujian_id):
-    if current_user.role not in ['guru', 'admin']: 
+    if current_user.role not in ['guru', 'admin']:
         return redirect('/')
-    
+
     ujian = Ujian.query.get_or_404(ujian_id)
-    
-    # Bypass cek pemilik jika Admin
+
     if current_user.role != 'admin' and ujian.mapel.guru_id != current_user.id:
         flash('Akses ditolak!', 'danger')
         return redirect('/guru/dashboard')
@@ -431,15 +432,15 @@ def hapus_ujian(ujian_id):
 @bp.route('/preview/<int:ujian_id>')
 @login_required
 def preview(ujian_id):
-    if current_user.role not in ['guru', 'admin']: 
+    if current_user.role not in ['guru', 'admin']:
         return redirect('/')
-    
+
     ujian = Ujian.query.get_or_404(ujian_id)
-    
+
     if current_user.role != 'admin' and ujian.mapel.guru_id != current_user.id:
         flash('Akses ditolak!', 'danger')
         return redirect('/guru/dashboard')
-    
+
     pg = json.loads(ujian.soal_pg) if ujian.soal_pg else []
     essay = json.loads(ujian.soal_essay) if ujian.soal_essay else []
     return render_template('guru/preview_ujian.html', ujian=ujian, pg=pg, essay=essay)
@@ -459,7 +460,6 @@ def koreksi(jawaban_id):
         flash('Akses ditolak!', 'danger')
         return redirect('/guru/dashboard')
 
-    # DECODE SOAL & JAWABAN
     soal_pg = json.loads(ujian.soal_pg) if ujian.soal_pg else []
     soal_essay = json.loads(ujian.soal_essay) if ujian.soal_essay else []
     jawab_pg = json.loads(jawaban_siswa.jawaban_pg) if jawaban_siswa.jawaban_pg else {}
@@ -481,7 +481,6 @@ def koreksi(jawaban_id):
         flash(f'Nilai berhasil disimpan! Total Essay: {total_skor_essay}', 'success')
         return redirect(url_for('guru.lihat_nilai', ujian_id=ujian.id))
 
-    # KIRIM soal_pg & jawab_pg KE TEMPLATE!
     return render_template('guru/koreksi.html',
                            jawaban=jawaban_siswa,
                            soal_pg=soal_pg,
@@ -489,27 +488,29 @@ def koreksi(jawaban_id):
                            jawab_pg=jawab_pg,
                            jawab_essay=jawab_essay)
 
+
 # ==================== LIHAT NILAI ====================
 @bp.route('/lihat_nilai/<int:ujian_id>', methods=['GET', 'POST'])
 @login_required
 def lihat_nilai(ujian_id):
-    if current_user.role not in ['guru', 'admin']: 
+    if current_user.role not in ['guru', 'admin']:
         return redirect('/')
-    
+
     ujian = Ujian.query.get_or_404(ujian_id)
-    
+
     if current_user.role != 'admin' and ujian.mapel.guru_id != current_user.id:
         flash('Anda tidak memiliki akses ke data ini!', 'danger')
         return redirect('/guru/dashboard')
 
     data_nilai = JawabanSiswa.query.filter_by(ujian_id=ujian_id).all()
-    data_nilai.sort(key=lambda x: (x.siswa.kelas.nama_kelas if x.siswa and x.siswa.kelas else "", x.siswa.nama if x.siswa else ""))
+    data_nilai.sort(
+        key=lambda x: (x.siswa.kelas.nama_kelas if x.siswa and x.siswa.kelas else "", x.siswa.nama if x.siswa else ""))
 
     if request.method == 'POST' and 'download_excel' in request.form:
         if not data_nilai:
             flash('Belum ada siswa yang mengerjakan.', 'warning')
             return redirect(request.url)
-        
+
         try:
             list_data = []
             for j in data_nilai:
@@ -523,7 +524,7 @@ def lihat_nilai(ujian_id):
                     'Total Nilai': j.total_nilai,
                     'Waktu Submit': j.waktu_submit.strftime('%Y-%m-%d %H:%M') if j.waktu_submit else '-'
                 })
-            
+
             for idx, item in enumerate(list_data, 1):
                 item['No'] = idx
 
@@ -533,19 +534,19 @@ def lihat_nilai(ujian_id):
                 df.to_excel(writer, index=False, sheet_name='Nilai Ujian', startrow=5)
                 workbook = writer.book
                 worksheet = writer.sheets['Nilai Ujian']
-                
+
                 font_std = Font(name='Times New Roman', size=12)
                 font_bold = Font(name='Times New Roman', size=12, bold=True)
                 font_title = Font(name='Times New Roman', size=14, bold=True)
-                border_thin = Border(left=Side(style='thin'), right=Side(style='thin'), 
+                border_thin = Border(left=Side(style='thin'), right=Side(style='thin'),
                                      top=Side(style='thin'), bottom=Side(style='thin'))
-                border_bottom_thick = Border(bottom=Side(style='medium')) 
+                border_bottom_thick = Border(bottom=Side(style='medium'))
 
-                worksheet.merge_cells('A1:B3') 
+                worksheet.merge_cells('A1:B3')
                 logo_path = os.path.join(current_app.root_path, 'static', 'img', 'logo_sekolah.png')
                 if os.path.exists(logo_path):
                     img = ExcelImage(logo_path)
-                    img.height = 70 
+                    img.height = 70
                     img.width = 70
                     worksheet.add_image(img, 'A1')
                     worksheet['A1'].alignment = Alignment(horizontal='center', vertical='center')
@@ -554,8 +555,8 @@ def lihat_nilai(ujian_id):
                 cell_sekolah = worksheet['C1']
                 cell_sekolah.value = "SMA ISLAM PLUS BAITUSSALAM"
                 cell_sekolah.font = font_title
-                cell_sekolah.alignment = Alignment(horizontal="center", vertical="bottom") 
-                
+                cell_sekolah.alignment = Alignment(horizontal="center", vertical="bottom")
+
                 worksheet.merge_cells('C2:H2')
                 cell_judul = worksheet['C2']
                 cell_judul.value = f"LAPORAN HASIL UJIAN: {ujian.judul.upper()}"
@@ -585,10 +586,10 @@ def lihat_nilai(ujian_id):
                             cell.border = border_thin
                             if col in ['No', 'Kelas', 'Nilai PG', 'Nilai Essay', 'Total Nilai']:
                                 cell.alignment = Alignment(horizontal="center")
-                    
+
                     worksheet.column_dimensions[col_letter].width = max_len + 4
                     cell_header = worksheet.cell(row=header_row, column=col_idx)
-                    cell_header.value = col 
+                    cell_header.value = col
                     cell_header.font = font_bold
                     cell_header.alignment = Alignment(horizontal="center", vertical="center")
                     cell_header.border = border_thin
@@ -599,8 +600,9 @@ def lihat_nilai(ujian_id):
             if not safe_judul: safe_judul = f"Ujian_{ujian.id}"
             filename = f"Rekap_{safe_judul}.xlsx"
 
-            return send_file(output, as_attachment=True, download_name=filename, mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-            
+            return send_file(output, as_attachment=True, download_name=filename,
+                             mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+
         except Exception as e:
             flash(f"Gagal membuat Excel: {str(e)}", "danger")
             return redirect(request.url)
@@ -612,15 +614,16 @@ def lihat_nilai(ujian_id):
 @bp.route('/refresh_tabel_nilai/<int:ujian_id>')
 @login_required
 def refresh_tabel_nilai(ujian_id):
-    if current_user.role not in ['guru', 'admin']: 
+    if current_user.role not in ['guru', 'admin']:
         return ('', 403)
-    
+
     ujian = Ujian.query.get_or_404(ujian_id)
-    if current_user.role != 'admin' and ujian.mapel.guru_id != current_user.id: 
+    if current_user.role != 'admin' and ujian.mapel.guru_id != current_user.id:
         return ('', 403)
-    
+
     data_nilai = JawabanSiswa.query.filter_by(ujian_id=ujian_id).all()
-    data_nilai.sort(key=lambda x: (x.siswa.kelas.nama_kelas if x.siswa and x.siswa.kelas else "", x.siswa.nama if x.siswa else ""))
+    data_nilai.sort(
+        key=lambda x: (x.siswa.kelas.nama_kelas if x.siswa and x.siswa.kelas else "", x.siswa.nama if x.siswa else ""))
     return render_template('guru/partials/tabel_nilai_body.html', data_nilai=data_nilai)
 
 
@@ -628,13 +631,13 @@ def refresh_tabel_nilai(ujian_id):
 @bp.route('/reset_peserta/<int:jawaban_id>', methods=['POST'])
 @login_required
 def reset_peserta(jawaban_id):
-    if current_user.role not in ['guru', 'admin']: 
+    if current_user.role not in ['guru', 'admin']:
         return ('', 403)
-    
+
     jawaban = JawabanSiswa.query.get_or_404(jawaban_id)
-    if current_user.role != 'admin' and jawaban.ujian.mapel.guru_id != current_user.id: 
+    if current_user.role != 'admin' and jawaban.ujian.mapel.guru_id != current_user.id:
         return ('', 403)
-    
+
     db.session.delete(jawaban)
     db.session.commit()
     return ('', 204)
@@ -644,9 +647,9 @@ def reset_peserta(jawaban_id):
 @bp.route('/ganti_password', methods=['GET', 'POST'])
 @login_required
 def ganti_password():
-    if current_user.role not in ['guru', 'admin']: 
+    if current_user.role not in ['guru', 'admin']:
         return redirect('/')
-    
+
     if request.method == 'POST':
         old_pass = request.form['old_pass']
         new_pass = request.form['new_pass']
