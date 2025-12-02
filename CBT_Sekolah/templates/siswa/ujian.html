@@ -309,18 +309,45 @@
     const steps = document.querySelectorAll('.soal-step');
     let sisaDetik = parseInt("{{ sisa_waktu_detik }}");
 
+    // --- SCREEN WAKE LOCK (SCREEN ALWAYS ON) ---
+    let wakeLock = null;
+
+    async function requestWakeLock() {
+        try {
+            if ('wakeLock' in navigator) {
+                wakeLock = await navigator.wakeLock.request('screen');
+                console.log('Screen Wake Lock acquired');
+
+                wakeLock.addEventListener('release', () => {
+                    console.log('Screen Wake Lock released');
+                });
+            } else {
+                console.warn('Wake Lock API not supported in this browser.');
+            }
+        } catch (err) {
+            console.error(`${err.name}, ${err.message}`);
+        }
+    }
+
+    // Re-acquire lock when page is visible
+    document.addEventListener('visibilitychange', async () => {
+        if (wakeLock !== null && document.visibilityState === 'visible') {
+            await requestWakeLock();
+        }
+    });
+
     // --- SETTING PELANGGARAN ---
     let violationCount = 0;
     const MAX_VIOLATIONS = 5; // Batas Toleransi 5 Kali
     let isExamActive = false;
     let isWarningActive = false;
 
-    // --- FUNGSI SUARA PERINGATAN (GENERATED BEEP) ---
+    // --- FUNGSI SUARA PERINGATAN (LOUDER & REPETITIVE) ---
     function playWarningSound() {
         try {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             if (!AudioContext) return;
-            
+
             const ctx = new AudioContext();
             const osc = ctx.createOscillator();
             const gainNode = ctx.createGain();
@@ -328,22 +355,31 @@
             osc.connect(gainNode);
             gainNode.connect(ctx.destination);
 
-            // Tipe suara: Sawtooth (tajam seperti alarm)
-            osc.type = 'sawtooth'; 
-            
-            // Efek Sirine: Nada turun naik cepat
-            const now = ctx.currentTime;
-            osc.frequency.setValueAtTime(800, now); 
-            osc.frequency.linearRampToValueAtTime(600, now + 0.1);
-            osc.frequency.linearRampToValueAtTime(800, now + 0.2);
-            osc.frequency.linearRampToValueAtTime(600, now + 0.3);
+            // Ganti tipe suara jadi Square (lebih kasar & keras)
+            osc.type = 'square';
 
-            // Volume: Mulai 10% lalu fade out
-            gainNode.gain.setValueAtTime(0.1, now); 
-            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+            const now = ctx.currentTime;
+
+            // Loop 1 (Naik Turun Cepat)
+            osc.frequency.setValueAtTime(600, now);
+            osc.frequency.linearRampToValueAtTime(1200, now + 0.25);
+            osc.frequency.linearRampToValueAtTime(600, now + 0.5);
+
+            // Loop 2
+            osc.frequency.linearRampToValueAtTime(1200, now + 0.75);
+            osc.frequency.linearRampToValueAtTime(600, now + 1.0);
+
+            // Loop 3
+            osc.frequency.linearRampToValueAtTime(1200, now + 1.25);
+            osc.frequency.linearRampToValueAtTime(600, now + 1.5);
+
+            // Volume tetap tinggi
+            gainNode.gain.setValueAtTime(0.3, now);
+            gainNode.gain.linearRampToValueAtTime(0.3, now + 1.4);
+            gainNode.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
 
             osc.start();
-            osc.stop(now + 0.5); // Durasi bunyi 0.5 detik
+            osc.stop(now + 1.6); // Durasi total sekitar 1.6 detik
         } catch (e) {
             console.log("Audio warning error:", e);
         }
@@ -354,15 +390,15 @@
         const stepDiv = document.getElementById(`step-${idx}`);
         const navD = document.getElementById(`nav-d-${idx}`);
         const navM = document.getElementById(`nav-m-${idx}`);
-        
+
         if (!stepDiv) return;
 
         // [FIX] Ambil ID Asli Soal untuk cek status Ragu (bukan index tampilan)
         const originalIndex = stepDiv.getAttribute('data-original-index');
-        
+
         let isAnswered = false;
         const type = stepDiv.getAttribute('data-type');
-        
+
         if (type === 'pg') {
             const checked = stepDiv.querySelector('input[type="radio"]:checked');
             if (checked) isAnswered = true;
@@ -375,9 +411,9 @@
         const isRagu = localStorage.getItem(RAGU_PREFIX + originalIndex) === 'true';
 
         // Reset Class
-        if (navD) navD.className = 'btn btn-nomor'; 
+        if (navD) navD.className = 'btn btn-nomor';
         if (navM) navM.className = 'btn btn-nomor';
-        
+
         // Terapkan Class Baru
         if (idx === currentStep) {
             if(navD) navD.classList.add('active');
@@ -395,7 +431,7 @@
 
     // --- SAVE & RESTORE ---
     function saveToLocal(name, value) { localStorage.setItem(SAVE_PREFIX + name, value); }
-    
+
     function restoreAnswers() {
         const inputs = document.querySelectorAll('input[type="radio"], textarea');
         inputs.forEach(el => {
@@ -417,11 +453,11 @@
     // --- EVENT HANDLERS ---
     window.savePG = function(el) {
         saveToLocal(el.name, el.value);
-        
+
         // [FIX] Hapus status ragu menggunakan ID Asli saat dijawab
-        const originalIndex = el.name.replace('pg_', ''); 
+        const originalIndex = el.name.replace('pg_', '');
         localStorage.setItem(RAGU_PREFIX + originalIndex, 'false');
-        
+
         document.getElementById('check-ragu').checked = false;
         updateIndicatorStatus(parseInt(el.dataset.nomor));
     }
@@ -436,7 +472,7 @@
         const isChecked = this.checked;
         const currentStepDiv = document.getElementById(`step-${currentStep}`);
         const originalIndex = currentStepDiv.getAttribute('data-original-index');
-        
+
         localStorage.setItem(RAGU_PREFIX + originalIndex, isChecked);
         updateIndicatorStatus(currentStep);
     });
@@ -477,7 +513,7 @@
         currentStep += n;
         updateUI();
     }
-    
+
     function bukaSoal(n) {
         currentStep = n;
         updateUI();
@@ -494,9 +530,11 @@
     }
 
     // --- INITIALIZATION ---
-    restoreAnswers(); 
-    updateUI();       
-    if (localStorage.getItem(BAN_KEY) === "true") { forceSubmitNow(); }
+    restoreAnswers();
+    updateUI();
+
+    // [FIX RESET] Hapus status ban lama karena Server sudah mengizinkan masuk (Reset berhasil)
+    localStorage.removeItem(BAN_KEY);
 
     // --- TIMER & SECURITY ---
     const timerInterval = setInterval(() => {
@@ -510,7 +548,7 @@
         const h = Math.floor(sisaDetik / 3600);
         const m = Math.floor((sisaDetik % 3600) / 60);
         const s = Math.floor(sisaDetik % 60);
-        document.getElementById('countdown').innerText = 
+        document.getElementById('countdown').innerText =
             `${h < 10 ? '0'+h : h}:${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
     }, 1000);
 
@@ -523,16 +561,21 @@
         setTimeout(() => { document.getElementById('formUjian').submit(); }, 500);
     }
 
-    window.startExam = function() { 
-        // Pancing AudioContext agar aktif saat user klik tombol mulai
+    window.startExam = function() {
+        // 1. Pancing AudioContext (Browser Restriction)
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         if (AudioContext) {
             const ctx = new AudioContext();
             ctx.resume().then(() => {
-                ctx.close(); // Hanya untuk 'memanaskan' browser agar mengizinkan audio
+                ctx.close();
             });
         }
-        requestFullScreenAndRun(); 
+
+        // 2. Request Wake Lock (Always On Screen)
+        requestWakeLock();
+
+        // 3. Masuk Fullscreen
+        requestFullScreenAndRun();
     }
 
     window.resumeExam = function() {
@@ -540,6 +583,9 @@
         isWarningActive = false;
         document.getElementById('janjiSiswa').checked = false;
         toggleLanjutBtn();
+
+        // Re-acquire Wake Lock when resuming
+        requestWakeLock();
         requestFullScreenAndRun();
     }
 

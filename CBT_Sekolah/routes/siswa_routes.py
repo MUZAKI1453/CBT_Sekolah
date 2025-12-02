@@ -15,8 +15,12 @@ def dashboard():
     # UPDATE: Izinkan Siswa ATAU Admin (untuk preview)
     if current_user.role not in ['siswa', 'admin']: 
         return redirect('/')
-    
-    ujian = Ujian.query.filter(Ujian.waktu_selesai > datetime.now()).order_by(Ujian.waktu_mulai).all()
+
+    now = datetime.now()
+    ujian = Ujian.query.filter(
+        Ujian.waktu_mulai <= now,
+        Ujian.waktu_selesai >= now
+    ).order_by(Ujian.waktu_mulai).all()
 
     return render_template('siswa/dashboard.html', ujian=ujian, datetime=datetime)
 
