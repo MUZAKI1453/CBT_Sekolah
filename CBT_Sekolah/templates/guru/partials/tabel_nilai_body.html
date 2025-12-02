@@ -11,6 +11,11 @@
                 {{ n.siswa.kelas.nama_kelas if n.siswa.kelas else 'Tanpa Kelas' }}
             </span>
         </td>
+
+        <td class="text-center fw-bold text-success">
+            {{ n.jml_benar_pg }} <span class="text-muted fw-normal small">/ {{ n.total_soal_pg }}</span>
+        </td>
+
         <td class="text-center">{{ n.nilai_pg }}</td>
         <td class="text-center text-secondary">{{ n.nilai_essay }}</td>
         <td class="text-center fw-bold fs-5 text-primary">{{ n.total_nilai }}</td>
@@ -37,7 +42,7 @@
     {% endfor %}
 {% else %}
 <tr>
-    <td colspan="8" class="text-center py-5 text-muted">
+    <td colspan="9" class="text-center py-5 text-muted">
         Belum ada siswa yang mengerjakan ujian ini.
     </td>
 </tr>

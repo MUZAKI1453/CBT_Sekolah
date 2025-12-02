@@ -303,7 +303,7 @@
     }
 
     function tambahPG() {
-        // UPDATE: Hapus required pada textarea
+        // UPDATE: Hapus required pada textarea dan perjelas label
         const html = `
         <div class="border rounded p-3 mb-4 position-relative item-pg bg-white shadow-sm">
 
@@ -327,7 +327,7 @@
             </div>
 
             <div class="mb-3">
-                <label class="fw-bold small text-secondary">Pertanyaan Baru</label>
+                <label class="fw-bold small text-secondary">Pertanyaan Baru (Opsional jika ada gambar)</label>
                 <textarea name="pg_soal[]" class="form-control" rows="2"></textarea>
             </div>
 
@@ -368,7 +368,7 @@
     }
 
     function tambahEssay() {
-        // UPDATE: Hapus required pada textarea
+        // UPDATE: Hapus required pada textarea dan perjelas label
         const html = `
         <div class="border rounded p-3 mb-4 position-relative item-essay bg-white shadow-sm">
             <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
@@ -392,7 +392,7 @@
                         <input type="hidden" name="essay_old_img[]" value="">
                     </div>
 
-                    <label class="fw-bold small text-secondary">Pertanyaan Essay Baru</label>
+                    <label class="fw-bold small text-secondary">Pertanyaan Essay Baru (Opsional jika ada gambar)</label>
                     <textarea name="essay_soal[]" class="form-control mb-2" rows="3"></textarea>
                 </div>
                 <div class="col-md-2 border-start">

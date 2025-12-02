@@ -319,11 +319,9 @@ def edit_ujian(ujian_id):
                 os.makedirs(upload_folder)
 
             for i in range(len(soal_pg)):
-                # [UPDATE] Cek keberadaan gambar (Upload baru ATAU Gambar lama)
                 ada_gambar = (i < len(img_pg_files) and img_pg_files[i].filename) or \
                              (i < len(img_pg_old) and img_pg_old[i])
 
-                # [UPDATE] Simpan jika ada teks ATAU ada opsi ATAU ada gambar
                 has_content = soal_pg[i].strip() or \
                               any(opsi_data[k][i] for k in ['a', 'b', 'c', 'd', 'e']) or \
                               ada_gambar
@@ -368,11 +366,9 @@ def edit_ujian(ujian_id):
 
             manual_essay_list = []
             for i in range(len(soal_essay)):
-                # [UPDATE] Cek keberadaan gambar
                 ada_gambar = (i < len(img_essay_files) and img_essay_files[i].filename) or \
                              (i < len(img_essay_old) and img_essay_old[i])
 
-                # [UPDATE] Simpan jika ada teks ATAU ada gambar
                 if soal_essay[i].strip() or ada_gambar:
                     gambar_final = img_essay_old[i] if i < len(img_essay_old) else ""
 
@@ -465,6 +461,12 @@ def koreksi(jawaban_id):
     jawab_pg = json.loads(jawaban_siswa.jawaban_pg) if jawaban_siswa.jawaban_pg else {}
     jawab_essay = json.loads(jawaban_siswa.jawaban_essay) if jawaban_siswa.jawaban_essay else {}
 
+    # HITUNG JUMLAH BENAR PG
+    jml_benar = 0
+    for i, s in enumerate(soal_pg):
+        if jawab_pg.get(str(i)) == s.get('kunci'):
+            jml_benar += 1
+
     if request.method == 'POST':
         total_skor_essay = 0
         for i, soal in enumerate(soal_essay):
@@ -486,7 +488,9 @@ def koreksi(jawaban_id):
                            soal_pg=soal_pg,
                            soal_essay=soal_essay,
                            jawab_pg=jawab_pg,
-                           jawab_essay=jawab_essay)
+                           jawab_essay=jawab_essay,
+                           jml_benar_pg=jml_benar,  # PASS VARIABLE
+                           total_soal_pg=len(soal_pg))  # PASS VARIABLE
 
 
 # ==================== LIHAT NILAI ====================
@@ -503,6 +507,22 @@ def lihat_nilai(ujian_id):
         return redirect('/guru/dashboard')
 
     data_nilai = JawabanSiswa.query.filter_by(ujian_id=ujian_id).all()
+
+    # --- HITUNG JUMLAH BENAR UNTUK SETIAP SISWA ---
+    soal_pg_raw = json.loads(ujian.soal_pg) if ujian.soal_pg else []
+    total_pg = len(soal_pg_raw)
+
+    for n in data_nilai:
+        jw_pg = json.loads(n.jawaban_pg) if n.jawaban_pg else {}
+        benar = 0
+        for i, s in enumerate(soal_pg_raw):
+            if jw_pg.get(str(i)) == s.get('kunci'):
+                benar += 1
+
+        # Tempelkan atribut sementara ke object n (tidak disimpan ke DB)
+        n.jml_benar_pg = benar
+        n.total_soal_pg = total_pg
+
     data_nilai.sort(
         key=lambda x: (x.siswa.kelas.nama_kelas if x.siswa and x.siswa.kelas else "", x.siswa.nama if x.siswa else ""))
 
@@ -519,6 +539,7 @@ def lihat_nilai(ujian_id):
                     'NIS': j.siswa.username if j.siswa else '-',
                     'Nama Siswa': j.siswa.nama if j.siswa else '-',
                     'Kelas': j.siswa.kelas.nama_kelas if j.siswa and j.siswa.kelas else '-',
+                    'Jml Benar PG': getattr(j, 'jml_benar_pg', 0),  # Added Column
                     'Nilai PG': j.nilai_pg,
                     'Nilai Essay': j.nilai_essay,
                     'Total Nilai': j.total_nilai,
@@ -551,25 +572,26 @@ def lihat_nilai(ujian_id):
                     worksheet.add_image(img, 'A1')
                     worksheet['A1'].alignment = Alignment(horizontal='center', vertical='center')
 
-                worksheet.merge_cells('C1:H1')
+                worksheet.merge_cells('C1:I1')  # Expanded merge
                 cell_sekolah = worksheet['C1']
                 cell_sekolah.value = "SMA ISLAM PLUS BAITUSSALAM"
                 cell_sekolah.font = font_title
                 cell_sekolah.alignment = Alignment(horizontal="center", vertical="bottom")
 
-                worksheet.merge_cells('C2:H2')
+                worksheet.merge_cells('C2:I2')  # Expanded merge
                 cell_judul = worksheet['C2']
                 cell_judul.value = f"LAPORAN HASIL UJIAN: {ujian.judul.upper()}"
                 cell_judul.font = font_bold
                 cell_judul.alignment = Alignment(horizontal="center", vertical="center")
 
-                worksheet.merge_cells('C3:H3')
+                worksheet.merge_cells('C3:I3')  # Expanded merge
                 cell_info = worksheet['C3']
                 cell_info.value = f"Mapel: {ujian.mapel.nama} | Tanggal Cetak: {datetime.now().strftime('%d %B %Y')}"
                 cell_info.font = Font(name='Times New Roman', size=11, italic=True)
                 cell_info.alignment = Alignment(horizontal="center", vertical="top")
 
-                for col in range(1, 9):
+                # Adjusted range for border (Total 9 Columns A-I)
+                for col in range(1, 10):
                     cell = worksheet.cell(row=3, column=col)
                     cell.border = border_bottom_thick
 
@@ -584,7 +606,7 @@ def lihat_nilai(ujian_id):
                                 max_len = max(max_len, len(str(cell.value)))
                             cell.font = font_std
                             cell.border = border_thin
-                            if col in ['No', 'Kelas', 'Nilai PG', 'Nilai Essay', 'Total Nilai']:
+                            if col in ['No', 'Kelas', 'Jml Benar PG', 'Nilai PG', 'Nilai Essay', 'Total Nilai']:
                                 cell.alignment = Alignment(horizontal="center")
 
                     worksheet.column_dimensions[col_letter].width = max_len + 4
@@ -622,6 +644,20 @@ def refresh_tabel_nilai(ujian_id):
         return ('', 403)
 
     data_nilai = JawabanSiswa.query.filter_by(ujian_id=ujian_id).all()
+
+    # --- LOGIKA HITUNG BENAR (SAMA DENGAN LIHAT_NILAI) ---
+    soal_pg_raw = json.loads(ujian.soal_pg) if ujian.soal_pg else []
+    total_pg = len(soal_pg_raw)
+
+    for n in data_nilai:
+        jw_pg = json.loads(n.jawaban_pg) if n.jawaban_pg else {}
+        benar = 0
+        for i, s in enumerate(soal_pg_raw):
+            if jw_pg.get(str(i)) == s.get('kunci'):
+                benar += 1
+        n.jml_benar_pg = benar
+        n.total_soal_pg = total_pg
+
     data_nilai.sort(
         key=lambda x: (x.siswa.kelas.nama_kelas if x.siswa and x.siswa.kelas else "", x.siswa.nama if x.siswa else ""))
     return render_template('guru/partials/tabel_nilai_body.html', data_nilai=data_nilai)
