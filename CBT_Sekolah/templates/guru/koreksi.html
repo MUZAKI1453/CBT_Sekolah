@@ -2,7 +2,7 @@
 {% block content %}
 
 <style>
-    /* Styling Konsisten dengan Preview Ujian */
+    /* Styling Konsisten */
     .badge-nomor {
         width: 35px; 
         height: 35px; 
@@ -24,7 +24,6 @@
         object-fit: contain;
     }
 
-    /* Agar card info siswa terlihat rapi di HP */
     @media (max-width: 576px) {
         .card-info-siswa {
             flex-direction: column;
@@ -75,6 +74,10 @@
             </div>
             <div class="card-body">
                 {% for s in soal_pg %}
+                
+                {# === PERBAIKAN UTAMA: SIMPAN INDEX SOAL DARI LOOP LUAR === #}
+                {% set i_soal = loop.index0 %} 
+                
                 <div class="mb-4 border-bottom pb-4">
                     <div class="d-flex gap-3">
                         <div class="flex-shrink-0">
@@ -100,12 +103,13 @@
                                 {% for opt in ['a', 'b', 'c', 'd', 'e'] %}
                                     {% if s[opt] or s[opt + '_gambar'] %}
                                     <div class="col">
+                                        {# === GUNAKAN i_soal (Bukan loop.index0) UNTUK CEK JAWABAN === #}
                                         <div class="p-3 border rounded h-100 d-flex flex-column position-relative
                                             {% if s.kunci == opt|upper %} bg-success bg-opacity-10 border-success {% endif %}
-                                            {% if jawab_pg.get((loop.index0)|string) == opt|upper and s.kunci != opt|upper %} bg-danger bg-opacity-10 border-danger {% endif %}">
+                                            {% if jawab_pg.get(i_soal|string) == opt|upper and s.kunci != opt|upper %} bg-danger bg-opacity-10 border-danger {% endif %}">
                                             
                                             <div class="d-flex align-items-start gap-3 mb-2">
-                                                <span class="badge {% if s.kunci == opt|upper %}bg-success{% elif jawab_pg.get((loop.index0)|string) == opt|upper %}bg-danger{% else %}bg-secondary{% endif %} flex-shrink-0" style="width: 30px;">
+                                                <span class="badge {% if s.kunci == opt|upper %}bg-success{% elif jawab_pg.get(i_soal|string) == opt|upper %}bg-danger{% else %}bg-secondary{% endif %} flex-shrink-0" style="width: 30px;">
                                                     {{ opt|upper }}
                                                 </span>
                                                 
@@ -127,7 +131,8 @@
                                             </div>
 
                                             <div class="mt-auto d-flex flex-wrap gap-2 justify-content-end">
-                                                {% if jawab_pg.get((loop.index0)|string) == opt|upper %}
+                                                {# === GUNAKAN i_soal DI SINI JUGA === #}
+                                                {% if jawab_pg.get(i_soal|string) == opt|upper %}
                                                     <span class="badge bg-dark text-white shadow-sm">
                                                         <i class="bi bi-person-fill me-1"></i>Dijawab Siswa
                                                     </span>
@@ -159,6 +164,9 @@
             <div class="card-body">
                 {% if soal_essay %}
                     {% for s in soal_essay %}
+                    {# Simpan index untuk Essay juga (Good Practice) #}
+                    {% set i_essay = loop.index0 %}
+                    
                     <div class="card shadow-sm mb-4 border-0 bg-light">
                         <div class="card-body">
                             <div class="d-flex gap-3 mb-3">
@@ -183,7 +191,7 @@
 
                             <div class="p-3 bg-white border rounded mb-3 shadow-sm">
                                 <label class="small text-secondary fw-bold mb-2 text-uppercase ls-1">Jawaban Siswa:</label>
-                                <div class="text-dark fs-6" style="white-space: pre-wrap;">{{ jawab_essay[loop.index0|string] if jawab_essay[loop.index0|string] else '<span class="text-danger fst-italic"><i class="bi bi-x-circle me-1"></i>Tidak ada jawaban</span>' | safe }}</div>
+                                <div class="text-dark fs-6" style="white-space: pre-wrap;">{{ jawab_essay[i_essay|string] if jawab_essay[i_essay|string] else '<span class="text-danger fst-italic"><i class="bi bi-x-circle me-1"></i>Tidak ada jawaban</span>' | safe }}</div>
                             </div>
 
                             <div class="row align-items-center bg-white p-3 rounded border mx-0">
@@ -195,10 +203,10 @@
                                 <div class="col-md-4">
                                     <div class="input-group">
                                         <span class="input-group-text bg-success text-white fw-bold">Nilai</span>
-                                        <input type="number" name="nilai_{{ loop.index0 }}"
+                                        <input type="number" name="nilai_{{ i_essay }}"
                                                class="form-control fw-bold text-center fs-5 text-primary"
                                                min="0" max="{{ s.bobot }}"
-                                               value="{{ jawaban.nilai_essay_per_soal[loop.index0] if jawaban.nilai_essay_per_soal else 0 }}" 
+                                               value="{{ jawaban.nilai_essay_per_soal[i_essay] if jawaban.nilai_essay_per_soal else 0 }}" 
                                                required>
                                         <span class="input-group-text bg-light text-muted">/ {{ s.bobot }}</span>
                                     </div>
@@ -227,12 +235,10 @@
 </div>
 
 <script>
-    // Validasi Nilai agar tidak melebihi bobot
     document.querySelectorAll('input[type="number"]').forEach(input => {
         input.addEventListener('input', function() {
             let max = parseInt(this.getAttribute('max'));
             let val = parseInt(this.value) || 0;
-            
             if (val > max) {
                 alert('Nilai tidak boleh melebihi bobot soal (' + max + ')');
                 this.value = max;
