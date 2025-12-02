@@ -124,7 +124,7 @@ def ujian(ujian_id):
                     'teks': item.get(kode, ''),        # Teks opsi
                     'gambar': item.get(f'{kode}_gambar', '') # Gambar opsi (NEW)
                 })
-        random.shuffle(opsi_list)
+        # random.shuffle(opsi_list)
         
         pg_tampil.append({
             'original_index': idx,
