@@ -237,12 +237,6 @@ def edit_ujian(ujian_id):
 
     ujian = Ujian.query.get_or_404(ujian_id)
 
-    # [FIX: CEGAH EDIT SAAT UJIAN BERLANGSUNG]
-    if datetime.now() >= ujian.waktu_mulai:
-        if JawabanSiswa.query.filter_by(ujian_id=ujian_id).first():
-            flash('PERINGATAN: Ujian tidak dapat diedit karena sudah dimulai/dikerjakan siswa.', 'danger')
-            return redirect(url_for('guru.dashboard'))
-
     if current_user.role != 'admin' and ujian.mapel.guru_id != current_user.id:
         flash('Akses ditolak!', 'danger')
         return redirect('/guru/dashboard')
