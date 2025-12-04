@@ -4,6 +4,7 @@ import re
 import io
 import pandas as pd
 import pdfplumber
+import uuid 
 from datetime import datetime
 from werkzeug.utils import secure_filename
 from werkzeug.security import generate_password_hash, check_password_hash
@@ -16,7 +17,6 @@ from openpyxl.drawing.image import Image as ExcelImage
 from xhtml2pdf import pisa
 
 bp = Blueprint('guru', __name__)
-
 
 # ==================== HELPER: PARSE PDF LINES ====================
 def parse_pdf_lines(lines):
@@ -61,11 +61,15 @@ def parse_pdf_lines(lines):
                     essay_list.append(current_soal['data'])
 
             isi_soal = match_nomor.group(2).strip()
+            
+            # GENERATE ID UNIK UNTUK SOAL BARU DARI PDF
+            new_id = str(uuid.uuid4())
 
             if found_key_val:
                 current_soal = {
                     'tipe': 'pg',
                     'data': {
+                        'id': new_id,
                         'soal': isi_soal,
                         'a': '', 'b': '', 'c': '', 'd': '', 'e': '',
                         'kunci': found_key_val,
@@ -75,12 +79,13 @@ def parse_pdf_lines(lines):
             elif found_bobot_val:
                 current_soal = {
                     'tipe': 'essay',
-                    'data': {'soal': isi_soal, 'bobot': found_bobot_val, 'gambar': ''}
+                    'data': {'id': new_id, 'soal': isi_soal, 'bobot': found_bobot_val, 'gambar': ''}
                 }
             else:
                 current_soal = {
                     'tipe': 'pg',
                     'data': {
+                        'id': new_id,
                         'soal': isi_soal,
                         'a': '', 'b': '', 'c': '', 'd': '', 'e': '',
                         'kunci': 'A',
@@ -99,6 +104,7 @@ def parse_pdf_lines(lines):
                 elif current_soal['tipe'] == 'pg':
                     current_soal['tipe'] = 'essay'
                     current_soal['data'] = {
+                        'id': current_soal['data']['id'],
                         'soal': current_soal['data']['soal'],
                         'bobot': found_bobot_val,
                         'gambar': ''
@@ -229,7 +235,7 @@ def upload_soal(mapel_id):
     return render_template('guru/upload_soal.html', mapel=mapel)
 
 
-# ==================== EDIT UJIAN (MANUAL + UPLOAD GAMBAR SOAL & OPSI) ====================
+# ==================== EDIT UJIAN (FIX: ID UNIK + RECALCULATE) ====================
 @bp.route('/edit_ujian/<int:ujian_id>', methods=['GET', 'POST'])
 @login_required
 def edit_ujian(ujian_id):
@@ -245,6 +251,7 @@ def edit_ujian(ujian_id):
     try:
         pg_existing = json.loads(ujian.soal_pg) if ujian.soal_pg else []
         essay_existing = json.loads(ujian.soal_essay) if ujian.soal_essay else []
+
     except:
         pg_existing = []
         essay_existing = []
@@ -260,6 +267,10 @@ def edit_ujian(ujian_id):
             return redirect(request.url)
 
         file = request.files.get('file_pdf')
+        
+        # Variabel untuk menampung soal baru (agar bisa dipakai hitung ulang nilai)
+        final_pg_list = []
+        final_essay_list = []
 
         # --- A. EDIT DENGAN UPLOAD PDF BARU ---
         if file and file.filename != '':
@@ -284,106 +295,145 @@ def edit_ujian(ujian_id):
 
                 ujian.soal_pg = json.dumps(new_pg, ensure_ascii=False)
                 ujian.soal_essay = json.dumps(new_essay, ensure_ascii=False)
-                flash('Soal berhasil diperbarui dari file PDF baru! Gambar lama akan hilang.', 'success')
+                
+                final_pg_list = new_pg
+                final_essay_list = new_essay
+                
+                flash('Soal diperbarui dari PDF & Nilai siswa sedang dihitung ulang...', 'success')
 
             except Exception as e:
                 flash(f'Error membaca PDF: {str(e)}', 'danger')
                 return redirect(request.url)
 
-        # --- B. EDIT MANUAL DENGAN GAMBAR (SOAL & OPSI) ---
+        # --- B. EDIT MANUAL (DENGAN ID PERMANEN) ---
         else:
-            # === PILIHAN GANDA ===
-            soal_pg = request.form.getlist('pg_soal[]')
-            kunci = request.form.getlist('pg_kunci[]')
-
-            img_pg_files = request.files.getlist('pg_img[]')
-            img_pg_old = request.form.getlist('pg_old_img[]')
-
-            opsi_data = {}
-            opsi_img_files = {}
-            opsi_img_old = {}
-
-            for kode in ['a', 'b', 'c', 'd', 'e']:
-                opsi_data[kode] = request.form.getlist(f'pg_{kode}[]')
-                opsi_img_files[kode] = request.files.getlist(f'pg_img_{kode}[]')
-                opsi_img_old[kode] = request.form.getlist(f'pg_old_img_{kode}[]')
-
-            manual_pg_list = []
             upload_folder = os.path.join(current_app.root_path, 'static', 'uploads', 'soal')
             if not os.path.exists(upload_folder):
                 os.makedirs(upload_folder)
 
-            for i in range(len(soal_pg)):
-                ada_gambar = (i < len(img_pg_files) and img_pg_files[i].filename) or \
-                             (i < len(img_pg_old) and img_pg_old[i])
+            # === 1. PILIHAN GANDA ===
+            pg_ids = request.form.getlist('pg_id[]')
+            soal_pg_texts = request.form.getlist('pg_soal[]')
+            kunci_pg = request.form.getlist('pg_kunci[]')
+            
+            opsi_texts = {k: request.form.getlist(f'pg_{k}[]') for k in ['a','b','c','d','e']}
 
-                has_content = soal_pg[i].strip() or \
-                              any(opsi_data[k][i] for k in ['a', 'b', 'c', 'd', 'e']) or \
-                              ada_gambar
+            manual_pg_list = []
 
-                if has_content:
-                    gambar_soal = img_pg_old[i] if i < len(img_pg_old) else ""
-                    if i < len(img_pg_files):
-                        file_gbr = img_pg_files[i]
-                        if file_gbr and file_gbr.filename:
-                            filename = secure_filename(
-                                f"PG_{ujian_id}_{i}_{int(datetime.now().timestamp())}_{file_gbr.filename}")
-                            file_gbr.save(os.path.join(upload_folder, filename))
-                            gambar_soal = filename
+            for i, uid in enumerate(pg_ids):
+                status_img = request.form.get(f'pg_img_status_{uid}')
+                file_img = request.files.get(f'pg_img_{uid}')
+                old_img = request.form.get(f'pg_old_img_{uid}')
 
-                    item_soal = {
-                        'soal': soal_pg[i],
-                        'kunci': kunci[i],
-                        'gambar': gambar_soal
-                    }
+                gambar_final = ""
+                if status_img == '1':
+                    if file_img and file_img.filename:
+                        filename = secure_filename(f"PG_{ujian_id}_{uid}_{int(datetime.now().timestamp())}_{file_img.filename}")
+                        file_img.save(os.path.join(upload_folder, filename))
+                        gambar_final = filename
+                    else:
+                        gambar_final = old_img
+                
+                item_soal = {
+                    'id': uid, # SIMPAN ID (Bisa UUID baru atau Index "0" dari data lama)
+                    'soal': soal_pg_texts[i],
+                    'kunci': kunci_pg[i],
+                    'gambar': gambar_final
+                }
 
-                    for kode in ['a', 'b', 'c', 'd', 'e']:
-                        item_soal[kode] = opsi_data[kode][i]
+                for kode in ['a', 'b', 'c', 'd', 'e']:
+                    item_soal[kode] = opsi_texts[kode][i]
+                    
+                    opt_status = request.form.get(f'pg_img_status_{kode}_{uid}')
+                    opt_file = request.files.get(f'pg_img_{kode}_{uid}')
+                    opt_old = request.form.get(f'pg_old_img_{kode}_{uid}')
+                    
+                    opt_img_final = ""
+                    if opt_status == '1':
+                        if opt_file and opt_file.filename:
+                            fname = secure_filename(f"OPT_{kode}_{ujian_id}_{uid}_{int(datetime.now().timestamp())}_{opt_file.filename}")
+                            opt_file.save(os.path.join(upload_folder, fname))
+                            opt_img_final = fname
+                        else:
+                            opt_img_final = opt_old
+                    
+                    item_soal[f"{kode}_gambar"] = opt_img_final
 
-                        gambar_opsi = opsi_img_old[kode][i] if i < len(opsi_img_old[kode]) else ""
-                        if i < len(opsi_img_files[kode]):
-                            file_opsi = opsi_img_files[kode][i]
-                            if file_opsi and file_opsi.filename:
-                                filename_opsi = secure_filename(
-                                    f"OPT_{kode}_{ujian_id}_{i}_{int(datetime.now().timestamp())}_{file_opsi.filename}")
-                                file_opsi.save(os.path.join(upload_folder, filename_opsi))
-                                gambar_opsi = filename_opsi
+                manual_pg_list.append(item_soal)
 
-                        item_soal[f"{kode}_gambar"] = gambar_opsi
-
-                    manual_pg_list.append(item_soal)
-
-            # === ESSAY ===
-            soal_essay = request.form.getlist('essay_soal[]')
+            # === 2. ESSAY ===
+            essay_ids = request.form.getlist('essay_id[]')
+            soal_essay_texts = request.form.getlist('essay_soal[]')
             bobot_essay = request.form.getlist('essay_bobot[]')
-            img_essay_files = request.files.getlist('essay_img[]')
-            img_essay_old = request.form.getlist('essay_old_img[]')
 
             manual_essay_list = []
-            for i in range(len(soal_essay)):
-                ada_gambar = (i < len(img_essay_files) and img_essay_files[i].filename) or \
-                             (i < len(img_essay_old) and img_essay_old[i])
 
-                if soal_essay[i].strip() or ada_gambar:
-                    gambar_final = img_essay_old[i] if i < len(img_essay_old) else ""
+            for i, uid in enumerate(essay_ids):
+                status_img = request.form.get(f'essay_img_status_{uid}')
+                file_img = request.files.get(f'essay_img_{uid}')
+                old_img = request.form.get(f'essay_old_img_{uid}')
 
-                    if i < len(img_essay_files):
-                        file_gbr = img_essay_files[i]
-                        if file_gbr and file_gbr.filename:
-                            filename = secure_filename(
-                                f"ES_{ujian_id}_{i}_{int(datetime.now().timestamp())}_{file_gbr.filename}")
-                            file_gbr.save(os.path.join(upload_folder, filename))
-                            gambar_final = filename
-
-                    manual_essay_list.append({
-                        'soal': soal_essay[i],
-                        'bobot': int(bobot_essay[i]) if bobot_essay[i] else 0,
-                        'gambar': gambar_final
-                    })
+                gambar_final = ""
+                if status_img == '1':
+                    if file_img and file_img.filename:
+                        filename = secure_filename(f"ES_{ujian_id}_{uid}_{int(datetime.now().timestamp())}_{file_img.filename}")
+                        file_img.save(os.path.join(upload_folder, filename))
+                        gambar_final = filename
+                    else:
+                        gambar_final = old_img
+                
+                manual_essay_list.append({
+                    'id': uid, # SIMPAN ID
+                    'soal': soal_essay_texts[i],
+                    'bobot': int(bobot_essay[i]) if bobot_essay[i] else 0,
+                    'gambar': gambar_final
+                })
 
             ujian.soal_pg = json.dumps(manual_pg_list, ensure_ascii=False)
             ujian.soal_essay = json.dumps(manual_essay_list, ensure_ascii=False)
-            flash('Perubahan manual dan gambar berhasil disimpan!', 'success')
+            
+            final_pg_list = manual_pg_list
+            final_essay_list = manual_essay_list
+            
+            flash('Perubahan tersimpan!', 'success')
+
+        # ==================== HITUNG ULANG NILAI OTOMATIS ====================
+        # Hitung Max Score PG Baru
+        total_bobot_essay = sum(int(e.get('bobot', 0)) for e in final_essay_list)
+        max_pg = 100 - total_bobot_essay
+        if max_pg < 0: max_pg = 0
+        
+        all_jawaban = JawabanSiswa.query.filter_by(ujian_id=ujian_id).all()
+        count_updated = 0
+        
+        for jwb in all_jawaban:
+            user_pg_answers = json.loads(jwb.jawaban_pg) if jwb.jawaban_pg else {}
+            jml_benar = 0
+            
+            for idx, soal in enumerate(final_pg_list):
+                # 1. Coba ambil jawaban pakai ID (Prioritas Utama)
+                soal_id = soal.get('id')
+                jawaban_user = user_pg_answers.get(soal_id)
+                
+                # 2. Fallback: Jika ID tidak ketemu (Data lama), coba pakai Index Loop
+                if jawaban_user is None:
+                    # Cek apakah user menyimpan dengan key angka string "0", "1"
+                    jawaban_user = user_pg_answers.get(str(idx))
+
+                if jawaban_user == soal.get('kunci'):
+                    jml_benar += 1
+            
+            if final_pg_list:
+                nilai_pg_baru = (jml_benar / len(final_pg_list)) * max_pg
+            else:
+                nilai_pg_baru = 0
+            
+            jwb.nilai_pg = round(nilai_pg_baru, 2)
+            jwb.total_nilai = jwb.nilai_pg + jwb.nilai_essay
+            count_updated += 1
+            
+        if count_updated > 0:
+            flash(f'Sukses! Nilai {count_updated} siswa telah dihitung ulang otomatis.', 'info')
 
         db.session.commit()
         return redirect('/guru/dashboard')
@@ -437,7 +487,7 @@ def preview(ujian_id):
     return render_template('guru/preview_ujian.html', ujian=ujian, pg=pg, essay=essay)
 
 
-# ==================== KOREKSI ESSAY DAN PG ====================
+# ==================== KOREKSI (ROBUST ID LOOKUP) ====================
 @bp.route('/koreksi/<int:jawaban_id>', methods=['GET', 'POST'])
 @login_required
 def koreksi(jawaban_id):
@@ -453,13 +503,18 @@ def koreksi(jawaban_id):
 
     soal_pg = json.loads(ujian.soal_pg) if ujian.soal_pg else []
     soal_essay = json.loads(ujian.soal_essay) if ujian.soal_essay else []
+    
     jawab_pg = json.loads(jawaban_siswa.jawaban_pg) if jawaban_siswa.jawaban_pg else {}
     jawab_essay = json.loads(jawaban_siswa.jawaban_essay) if jawaban_siswa.jawaban_essay else {}
 
-    # HITUNG JUMLAH BENAR PG
+    # HITUNG JUMLAH BENAR PG (ROBUST)
     jml_benar = 0
-    for i, s in enumerate(soal_pg):
-        if jawab_pg.get(str(i)) == s.get('kunci'):
+    for idx, s in enumerate(soal_pg):
+        # Cek by ID -> Fallback by Index
+        ans = jawab_pg.get(s.get('id'))
+        if ans is None: ans = jawab_pg.get(str(idx))
+            
+        if ans == s.get('kunci'):
             jml_benar += 1
 
     if request.method == 'POST':
@@ -472,23 +527,47 @@ def koreksi(jawaban_id):
                 skor = 0
             total_skor_essay += skor
 
+        # Update PG Score juga (agar sinkron jika kunci berubah)
+        total_bobot_essay_soal = sum(int(s.get('bobot', 0)) for s in soal_essay)
+        max_pg_score = 100 - total_bobot_essay_soal
+        if max_pg_score < 0: max_pg_score = 0
+        
+        nilai_pg_baru = 0
+        if soal_pg:
+            nilai_pg_baru = (jml_benar / len(soal_pg)) * max_pg_score
+
+        jawaban_siswa.nilai_pg = round(nilai_pg_baru, 2)
         jawaban_siswa.nilai_essay = total_skor_essay
         jawaban_siswa.total_nilai = jawaban_siswa.nilai_pg + total_skor_essay
         db.session.commit()
-        flash(f'Nilai berhasil disimpan! Total Essay: {total_skor_essay}', 'success')
+        
+        flash(f'Nilai berhasil disimpan! (PG: {jawaban_siswa.nilai_pg}, Essay: {total_skor_essay})', 'success')
         return redirect(url_for('guru.lihat_nilai', ujian_id=ujian.id))
+
+    # MAPPING JAWABAN KE LIST (AGAR TEMPLATE MUDAH)
+    mapped_jawab_pg = {}
+    for i, s in enumerate(soal_pg):
+        ans = jawab_pg.get(s.get('id'))
+        if ans is None: ans = jawab_pg.get(str(i))
+        mapped_jawab_pg[str(i)] = ans
+        
+    mapped_jawab_essay = {}
+    for i, s in enumerate(soal_essay):
+        ans = jawab_essay.get(s.get('id'))
+        if ans is None: ans = jawab_essay.get(str(i))
+        mapped_jawab_essay[str(i)] = ans
 
     return render_template('guru/koreksi.html',
                            jawaban=jawaban_siswa,
                            soal_pg=soal_pg,
                            soal_essay=soal_essay,
-                           jawab_pg=jawab_pg,
-                           jawab_essay=jawab_essay,
-                           jml_benar_pg=jml_benar,  # PASS VARIABLE
-                           total_soal_pg=len(soal_pg))  # PASS VARIABLE
+                           jawab_pg=mapped_jawab_pg,
+                           jawab_essay=mapped_jawab_essay,
+                           jml_benar_pg=jml_benar, 
+                           total_soal_pg=len(soal_pg)) 
 
 
-# ==================== LIHAT NILAI ====================
+# ==================== LIHAT NILAI (ROBUST CALCULATION) ====================
 @bp.route('/lihat_nilai/<int:ujian_id>', methods=['GET', 'POST'])
 @login_required
 def lihat_nilai(ujian_id):
@@ -503,18 +582,20 @@ def lihat_nilai(ujian_id):
 
     data_nilai = JawabanSiswa.query.filter_by(ujian_id=ujian_id).all()
 
-    # --- HITUNG JUMLAH BENAR UNTUK SETIAP SISWA ---
     soal_pg_raw = json.loads(ujian.soal_pg) if ujian.soal_pg else []
     total_pg = len(soal_pg_raw)
 
     for n in data_nilai:
         jw_pg = json.loads(n.jawaban_pg) if n.jawaban_pg else {}
         benar = 0
-        for i, s in enumerate(soal_pg_raw):
-            if jw_pg.get(str(i)) == s.get('kunci'):
+        for idx, s in enumerate(soal_pg_raw):
+            # Cek by ID -> Fallback by Index
+            ans = jw_pg.get(s.get('id'))
+            if ans is None: ans = jw_pg.get(str(idx))
+            
+            if ans == s.get('kunci'):
                 benar += 1
 
-        # Tempelkan atribut sementara ke object n (tidak disimpan ke DB)
         n.jml_benar_pg = benar
         n.total_soal_pg = total_pg
 
@@ -534,7 +615,7 @@ def lihat_nilai(ujian_id):
                     'NIS': j.siswa.username if j.siswa else '-',
                     'Nama Siswa': j.siswa.nama if j.siswa else '-',
                     'Kelas': j.siswa.kelas.nama_kelas if j.siswa and j.siswa.kelas else '-',
-                    'Jml Benar PG': getattr(j, 'jml_benar_pg', 0),  # Added Column
+                    'Jml Benar PG': getattr(j, 'jml_benar_pg', 0),  
                     'Nilai PG': j.nilai_pg,
                     'Nilai Essay': j.nilai_essay,
                     'Total Nilai': j.total_nilai,
@@ -567,25 +648,24 @@ def lihat_nilai(ujian_id):
                     worksheet.add_image(img, 'A1')
                     worksheet['A1'].alignment = Alignment(horizontal='center', vertical='center')
 
-                worksheet.merge_cells('C1:I1')  # Expanded merge
+                worksheet.merge_cells('C1:I1')  
                 cell_sekolah = worksheet['C1']
                 cell_sekolah.value = "SMA ISLAM PLUS BAITUSSALAM"
                 cell_sekolah.font = font_title
                 cell_sekolah.alignment = Alignment(horizontal="center", vertical="bottom")
 
-                worksheet.merge_cells('C2:I2')  # Expanded merge
+                worksheet.merge_cells('C2:I2')  
                 cell_judul = worksheet['C2']
                 cell_judul.value = f"LAPORAN HASIL UJIAN: {ujian.judul.upper()}"
                 cell_judul.font = font_bold
                 cell_judul.alignment = Alignment(horizontal="center", vertical="center")
 
-                worksheet.merge_cells('C3:I3')  # Expanded merge
+                worksheet.merge_cells('C3:I3')  
                 cell_info = worksheet['C3']
                 cell_info.value = f"Mapel: {ujian.mapel.nama} | Tanggal Cetak: {datetime.now().strftime('%d %B %Y')}"
                 cell_info.font = Font(name='Times New Roman', size=11, italic=True)
                 cell_info.alignment = Alignment(horizontal="center", vertical="top")
 
-                # Adjusted range for border (Total 9 Columns A-I)
                 for col in range(1, 10):
                     cell = worksheet.cell(row=3, column=col)
                     cell.border = border_bottom_thick
@@ -640,15 +720,18 @@ def refresh_tabel_nilai(ujian_id):
 
     data_nilai = JawabanSiswa.query.filter_by(ujian_id=ujian_id).all()
 
-    # --- LOGIKA HITUNG BENAR (SAMA DENGAN LIHAT_NILAI) ---
     soal_pg_raw = json.loads(ujian.soal_pg) if ujian.soal_pg else []
     total_pg = len(soal_pg_raw)
 
     for n in data_nilai:
         jw_pg = json.loads(n.jawaban_pg) if n.jawaban_pg else {}
         benar = 0
-        for i, s in enumerate(soal_pg_raw):
-            if jw_pg.get(str(i)) == s.get('kunci'):
+        for idx, s in enumerate(soal_pg_raw):
+            # Cek by ID -> Fallback by Index
+            ans = jw_pg.get(s.get('id'))
+            if ans is None: ans = jw_pg.get(str(idx))
+            
+            if ans == s.get('kunci'):
                 benar += 1
         n.jml_benar_pg = benar
         n.total_soal_pg = total_pg
@@ -681,17 +764,14 @@ def download_hasil_pdf(jawaban_id):
         return redirect('/')
 
     try:
-        # Ambil Data
         jawaban = JawabanSiswa.query.get_or_404(jawaban_id)
         ujian = jawaban.ujian
         siswa = jawaban.siswa
 
-        # Validasi Akses Mapel
         if current_user.role != 'admin' and ujian.mapel.guru_id != current_user.id:
             flash('Anda tidak memiliki akses ke ujian ini.', 'danger')
             return redirect('/guru/dashboard')
 
-        # Load JSON Data dengan Aman
         try: soal_pg = json.loads(ujian.soal_pg) if ujian.soal_pg else []
         except: soal_pg = []
         
@@ -704,19 +784,18 @@ def download_hasil_pdf(jawaban_id):
         try: jawab_essay = json.loads(jawaban.jawaban_essay) if jawaban.jawaban_essay else {}
         except: jawab_essay = {}
 
-        # Hitung Jumlah Benar PG
         jml_benar_pg = 0
-        for i, s in enumerate(soal_pg):
-            # Menggunakan str(i) sebagai key karena JSON keys adalah string
-            if jawab_pg.get(str(i)) == s.get('kunci'):
+        for idx, s in enumerate(soal_pg):
+            # Cek by ID -> Fallback by Index
+            ans = jawab_pg.get(s.get('id'))
+            if ans is None: ans = jawab_pg.get(str(idx))
+            
+            if ans == s.get('kunci'):
                 jml_benar_pg += 1
 
-        # PATH GAMBAR ABSOLUT (Wajib untuk xhtml2pdf)
         image_folder = os.path.join(current_app.root_path, 'static', 'uploads', 'soal')
-        # Normalisasi path untuk menghindari error di Windows
         image_folder = image_folder.replace('\\', '/')
 
-        # Render Template
         html_content = render_template(
             'guru/pdf_hasil_siswa.html',
             siswa=siswa, ujian=ujian, jawaban=jawaban,
@@ -726,7 +805,6 @@ def download_hasil_pdf(jawaban_id):
             image_folder=image_folder
         )
 
-        # Generate PDF
         pdf_output = io.BytesIO()
         pisa_status = pisa.CreatePDF(src=html_content, dest=pdf_output)
 
@@ -745,7 +823,7 @@ def download_hasil_pdf(jawaban_id):
         )
 
     except Exception as e:
-        print(f"ERROR PDF: {e}") # Log error di terminal server
+        print(f"ERROR PDF: {e}") 
         flash("Terjadi kesalahan sistem saat membuat PDF.", "danger")
         return redirect('/guru/dashboard')
     

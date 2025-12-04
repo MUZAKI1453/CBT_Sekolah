@@ -81,7 +81,7 @@ def kelola_kelas():
     return render_template('admin/kelola_kelas.html', kelas=kelas)
 
 
-# ==================== KELOLA SISWA (UPDATED & REVISED) ====================
+# ==================== KELOLA SISWA (FIX IMPORT EXCEL) ====================
 @bp.route('/kelola_siswa', methods=['GET', 'POST'])
 @login_required
 def kelola_siswa():
@@ -91,46 +91,51 @@ def kelola_siswa():
 
     # 2. PROSES REQUEST POST (TAMBAH, EDIT, HAPUS, IMPORT)
     if request.method == 'POST':
-        # --- FITUR BARU: IMPORT EXCEL ---
+        # --- FITUR BARU: IMPORT EXCEL (PERBAIKAN TIPE DATA) ---
         if 'import_siswa' in request.form:
             file = request.files.get('file_excel')
             if file and file.filename.endswith(('.xlsx', '.xls')):
                 try:
-                    df = pd.read_excel(file)
+                    # [FIX] Tambahkan dtype=str agar NIS '00123' tidak terbaca '123'
+                    df = pd.read_excel(file, dtype=str) 
+                    
                     berhasil = 0
                     gagal = 0
 
                     for index, row in df.iterrows():
-                        # Ambil data & bersihkan format angka/kosong
-                        try:
-                            # Menggunakan int() untuk menghilangkan desimal, lalu str()
-                            # Tambahkan penanganan NaN dari pandas
-                            nis = str(int(row['NIS']))
-                        except ValueError:
-                            # Jika NIS tidak bisa diubah ke int (misal: NaN atau string non-angka)
+                        # Ambil data & bersihkan format
+                        # Karena dtype=str, NaN akan menjadi string 'nan', perlu dicek
+                        raw_nis = str(row.get('NIS', '')).strip()
+                        raw_nama = str(row.get('Nama', '')).strip()
+                        raw_kelas = str(row.get('Kelas', '')).strip()
+
+                        # Validasi Data Kosong / Header
+                        if not raw_nis or raw_nis.lower() == 'nan' or not raw_nama or raw_nama.lower() == 'nan':
                             gagal += 1
                             continue
 
-                        nama = str(row['Nama']).strip()
-                        nama_kelas = str(row['Kelas']).strip()
-
-                        # Pastikan semua data penting tidak kosong
-                        if not all([nis, nama, nama_kelas]):
-                            gagal += 1
-                            continue
+                        # Bersihkan Format Angka (misal 12345.0 menjadi 12345)
+                        if raw_nis.endswith('.0'):
+                            nis = raw_nis[:-2]
+                        else:
+                            nis = raw_nis
+                        
+                        nama = raw_nama
+                        nama_kelas = raw_kelas
 
                         # 1. Cek duplikat NIS
                         if User.query.filter_by(username=nis).first():
                             gagal += 1
                             continue
 
-                            # 2. Cari ID Kelas
+                        # 2. Cari ID Kelas
                         kelas_obj = Kelas.query.filter_by(nama_kelas=nama_kelas).first()
                         if not kelas_obj:
+                            # Jika kelas tidak ditemukan di DB, gagal import baris ini
                             gagal += 1
                             continue
 
-                            # 3. Tambahkan User Baru (Password Default = NIS)
+                        # 3. Tambahkan User Baru (Password Default = NIS)
                         db.session.add(User(
                             username=nis,
                             password=generate_password_hash(nis),
@@ -142,18 +147,15 @@ def kelola_siswa():
 
                     db.session.commit()
                     flash(
-                        f'Import Selesai! Berhasil: {berhasil}, Gagal: {gagal} (NIS duplikat / Nama Kelas salah / data kosong)',
+                        f'Import Selesai! Berhasil: {berhasil}, Gagal: {gagal} (NIS duplikat / Nama Kelas salah / Format Salah)',
                         'info')
 
                 except Exception as e:
-                    # Log error untuk debugging jika perlu
-                    # print(f"Error import: {e}")
-                    flash(f'Gagal memproses file: {str(e)}. Pastikan format kolom (NIS, Nama, Kelas) sudah benar.',
-                          'danger')
+                    flash(f'Gagal memproses file: {str(e)}. Pastikan format kolom (NIS, Nama, Kelas) sudah benar.', 'danger')
             else:
                 flash('File Excel tidak ditemukan atau format file salah!', 'warning')
 
-            return redirect(url_for('.kelola_siswa'))  # <--- REDIRECT setelah import
+            return redirect(url_for('.kelola_siswa'))
 
         # --- FITUR LAMA: TAMBAH MANUAL ---
         elif 'tambah' in request.form:
@@ -175,7 +177,7 @@ def kelola_siswa():
                 db.session.commit()
                 flash('Siswa berhasil ditambah!', 'success')
 
-            return redirect(url_for('.kelola_siswa'))  # <--- REDIRECT setelah tambah
+            return redirect(url_for('.kelola_siswa'))
 
         # --- FITUR LAMA: EDIT ---
         elif 'edit' in request.form:
@@ -190,7 +192,7 @@ def kelola_siswa():
             db.session.commit()
             flash('Data siswa berhasil diupdate!', 'success')
 
-            return redirect(url_for('.kelola_siswa'))  # <--- REDIRECT setelah edit
+            return redirect(url_for('.kelola_siswa'))
 
         # --- FITUR LAMA: HAPUS ---
         elif 'hapus' in request.form:
@@ -200,13 +202,13 @@ def kelola_siswa():
             db.session.commit()
             flash('Siswa berhasil dihapus!', 'success')
 
-            return redirect(url_for('.kelola_siswa'))  # <--- REDIRECT setelah hapus
+            return redirect(url_for('.kelola_siswa'))
 
     # 3. PROSES REQUEST GET (ATAU SETELAH REDIRECT DARI POST)
 
     # --- CARI & FILTER ---
     q = request.args.get('q', '').strip()
-    kelas_id_filter = request.args.get('kelas')  # Ganti nama variabel agar tidak ambigu
+    kelas_id_filter = request.args.get('kelas')
 
     # Query dasar untuk siswa
     siswa_query = User.query.filter_by(role='siswa').options(joinedload(User.kelas))
@@ -223,7 +225,6 @@ def kelola_siswa():
             kelas_id_filter = int(kelas_id_filter)
             siswa_query = siswa_query.filter(User.kelas_id == kelas_id_filter)
         except ValueError:
-            # Abaikan jika kelas_id_filter bukan angka yang valid
             pass
 
     # Ambil data siswa yang sudah difilter
@@ -232,30 +233,41 @@ def kelola_siswa():
     # Ambil data semua kelas untuk filter dan form
     kelas_list = Kelas.query.order_by(Kelas.nama_kelas).all()
 
-    # Kirim data ke template
-    # Gunakan 'kelas_list' untuk konsistensi
     return render_template('admin/kelola_siswa.html', siswa=siswa, kelas=kelas_list)
 
 
-# ==================== KELOLA GURU (UPDATED) ====================
+# ==================== KELOLA GURU (FIX IMPORT EXCEL) ====================
 @bp.route('/kelola_guru', methods=['GET', 'POST'])
 @login_required
 def kelola_guru():
     if current_user.role != 'admin': return redirect('/')
 
     if request.method == 'POST':
-        # --- FITUR BARU: IMPORT EXCEL ---
+        # --- FITUR BARU: IMPORT EXCEL (PERBAIKAN TIPE DATA) ---
         if 'import_guru' in request.form:
             file = request.files.get('file_excel')
             if file:
                 try:
-                    df = pd.read_excel(file)
+                    # [FIX] Tambahkan dtype=str agar NIP panjang tidak jadi notasi ilmiah
+                    df = pd.read_excel(file, dtype=str)
                     berhasil = 0
                     skip = 0
 
                     for _, row in df.iterrows():
-                        nip = str(row['NIP']).split('.')[0].strip()
-                        nama = str(row['Nama']).strip()
+                        raw_nip = str(row.get('NIP', '')).strip()
+                        raw_nama = str(row.get('Nama', '')).strip()
+
+                        if not raw_nip or raw_nip.lower() == 'nan' or not raw_nama:
+                            skip += 1
+                            continue
+
+                        # Bersihkan Format Angka (198501.0 -> 198501)
+                        if raw_nip.endswith('.0'):
+                            nip = raw_nip[:-2]
+                        else:
+                            nip = raw_nip
+                            
+                        nama = raw_nama
 
                         # Cek duplikat NIP
                         if User.query.filter_by(username=nip).first():
@@ -272,7 +284,7 @@ def kelola_guru():
                         berhasil += 1
 
                     db.session.commit()
-                    flash(f'Import Guru Selesai! Berhasil: {berhasil}, Skip (Duplikat): {skip}', 'info')
+                    flash(f'Import Guru Selesai! Berhasil: {berhasil}, Skip (Duplikat/Invalid): {skip}', 'info')
 
                 except Exception as e:
                     flash(f'Gagal memproses file: {str(e)}', 'danger')

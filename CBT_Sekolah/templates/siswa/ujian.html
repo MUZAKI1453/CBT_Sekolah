@@ -160,9 +160,12 @@
                     <div class="card-body p-4">
                         
                         {% for s in pg_tampil %}
+                        {% set q_key = s.id if s.id else s.original_index %}
                         <div class="soal-step" id="step-{{ loop.index0 }}" 
                              data-type="pg" 
-                             data-original-index="{{ s.original_index }}"> <div class="d-flex justify-content-between mb-3">
+                             data-key="{{ q_key }}"> 
+                             
+                            <div class="d-flex justify-content-between mb-3">
                                 <span class="badge bg-primary">No. {{ loop.index }}</span>
                                 <span class="badge bg-light text-dark border">Pilihan Ganda</span>
                             </div>
@@ -183,7 +186,7 @@
                                 <div class="mb-2 position-relative">
                                     <input type="radio" 
                                            class="input-hidden input-jawaban-pg" 
-                                           name="pg_{{ s.original_index }}" 
+                                           name="pg_{{ q_key }}" 
                                            id="opt_{{ s.original_index }}_{{ opt.kode }}" 
                                            value="{{ opt.kode }}" 
                                            data-nomor="{{ loop.index0 }}"
@@ -212,9 +215,13 @@
 
                         {% set start_essay = pg_tampil|length %}
                         {% for e in essay_tampil %}
+                        {% set q_key = e.id if e.id else e.original_index %}
+                        
                         <div class="soal-step" id="step-{{ start_essay + loop.index0 }}" 
                              data-type="essay" 
-                             data-original-index="{{ e.original_index }}"> <div class="d-flex justify-content-between mb-3">
+                             data-key="{{ q_key }}">
+                             
+                            <div class="d-flex justify-content-between mb-3">
                                 <span class="badge bg-success">No. {{ start_essay + loop.index }}</span>
                                 <span class="badge bg-warning text-dark">Essay (Bobot: {{ e.bobot }})</span>
                             </div>
@@ -229,7 +236,7 @@
                             
                             <div class="fs-5 mb-4 lh-base text-dark">{{ e.soal | safe }}</div>
 
-                            <textarea name="essay_{{ e.original_index }}" 
+                            <textarea name="essay_{{ q_key }}" 
                                       class="form-control bg-light input-jawaban-essay" rows="8" 
                                       placeholder="Ketik jawaban..." 
                                       data-nomor="{{ start_essay + loop.index0 }}"
@@ -355,31 +362,23 @@
             osc.connect(gainNode);
             gainNode.connect(ctx.destination);
 
-            // Ganti tipe suara jadi Square (lebih kasar & keras)
             osc.type = 'square';
 
             const now = ctx.currentTime;
-
-            // Loop 1 (Naik Turun Cepat)
             osc.frequency.setValueAtTime(600, now);
             osc.frequency.linearRampToValueAtTime(1200, now + 0.25);
             osc.frequency.linearRampToValueAtTime(600, now + 0.5);
-
-            // Loop 2
             osc.frequency.linearRampToValueAtTime(1200, now + 0.75);
             osc.frequency.linearRampToValueAtTime(600, now + 1.0);
-
-            // Loop 3
             osc.frequency.linearRampToValueAtTime(1200, now + 1.25);
             osc.frequency.linearRampToValueAtTime(600, now + 1.5);
 
-            // Volume tetap tinggi
             gainNode.gain.setValueAtTime(0.3, now);
             gainNode.gain.linearRampToValueAtTime(0.3, now + 1.4);
             gainNode.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
 
             osc.start();
-            osc.stop(now + 1.6); // Durasi total sekitar 1.6 detik
+            osc.stop(now + 1.6); 
         } catch (e) {
             console.log("Audio warning error:", e);
         }
@@ -393,8 +392,8 @@
 
         if (!stepDiv) return;
 
-        // [FIX] Ambil ID Asli Soal untuk cek status Ragu (bukan index tampilan)
-        const originalIndex = stepDiv.getAttribute('data-original-index');
+        // [FIX] Ambil Key (ID) dari data-key, bukan index
+        const questionKey = stepDiv.getAttribute('data-key');
 
         let isAnswered = false;
         const type = stepDiv.getAttribute('data-type');
@@ -407,14 +406,12 @@
             if (textVal.length > 0) isAnswered = true;
         }
 
-        // Gunakan originalIndex sebagai kunci
-        const isRagu = localStorage.getItem(RAGU_PREFIX + originalIndex) === 'true';
+        // Gunakan questionKey untuk status ragu
+        const isRagu = localStorage.getItem(RAGU_PREFIX + questionKey) === 'true';
 
-        // Reset Class
         if (navD) navD.className = 'btn btn-nomor';
         if (navM) navM.className = 'btn btn-nomor';
 
-        // Terapkan Class Baru
         if (idx === currentStep) {
             if(navD) navD.classList.add('active');
             if(navM) navM.classList.add('active');
@@ -454,9 +451,10 @@
     window.savePG = function(el) {
         saveToLocal(el.name, el.value);
 
-        // [FIX] Hapus status ragu menggunakan ID Asli saat dijawab
-        const originalIndex = el.name.replace('pg_', '');
-        localStorage.setItem(RAGU_PREFIX + originalIndex, 'false');
+        // [FIX] Hapus status ragu menggunakan ID Asli (diambil dari nama input)
+        // el.name format: pg_{ID}
+        const questionKey = el.name.replace('pg_', '');
+        localStorage.setItem(RAGU_PREFIX + questionKey, 'false');
 
         document.getElementById('check-ragu').checked = false;
         updateIndicatorStatus(parseInt(el.dataset.nomor));
@@ -467,13 +465,13 @@
         updateIndicatorStatus(parseInt(el.dataset.nomor));
     }
 
-    // [FIX] Handler Tombol Ragu menggunakan ID Asli
+    // [FIX] Handler Tombol Ragu menggunakan ID dari data-key
     document.getElementById('check-ragu').addEventListener('change', function() {
         const isChecked = this.checked;
         const currentStepDiv = document.getElementById(`step-${currentStep}`);
-        const originalIndex = currentStepDiv.getAttribute('data-original-index');
+        const questionKey = currentStepDiv.getAttribute('data-key');
 
-        localStorage.setItem(RAGU_PREFIX + originalIndex, isChecked);
+        localStorage.setItem(RAGU_PREFIX + questionKey, isChecked);
         updateIndicatorStatus(currentStep);
     });
 
@@ -495,10 +493,10 @@
             btnSubmit.classList.add('d-none');
         }
 
-        // [FIX] Sinkronkan Checkbox Ragu dengan ID Asli
+        // [FIX] Sinkronkan Checkbox Ragu dengan Key ID
         const currentStepDiv = document.getElementById(`step-${currentStep}`);
-        const originalIndex = currentStepDiv.getAttribute('data-original-index');
-        const isRagu = localStorage.getItem(RAGU_PREFIX + originalIndex) === 'true';
+        const questionKey = currentStepDiv.getAttribute('data-key');
+        const isRagu = localStorage.getItem(RAGU_PREFIX + questionKey) === 'true';
         document.getElementById('check-ragu').checked = isRagu;
 
         // Update indikator
@@ -533,7 +531,7 @@
     restoreAnswers();
     updateUI();
 
-    // [FIX RESET] Hapus status ban lama karena Server sudah mengizinkan masuk (Reset berhasil)
+    // Hapus status ban lama
     localStorage.removeItem(BAN_KEY);
 
     // --- TIMER & SECURITY ---
@@ -562,7 +560,6 @@
     }
 
     window.startExam = function() {
-        // 1. Pancing AudioContext (Browser Restriction)
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         if (AudioContext) {
             const ctx = new AudioContext();
@@ -570,11 +567,7 @@
                 ctx.close();
             });
         }
-
-        // 2. Request Wake Lock (Always On Screen)
         requestWakeLock();
-
-        // 3. Masuk Fullscreen
         requestFullScreenAndRun();
     }
 
@@ -583,8 +576,6 @@
         isWarningActive = false;
         document.getElementById('janjiSiswa').checked = false;
         toggleLanjutBtn();
-
-        // Re-acquire Wake Lock when resuming
         requestWakeLock();
         requestFullScreenAndRun();
     }
@@ -613,7 +604,6 @@
     function recordViolation() {
         if (isWarningActive || isSubmitting) return; 
         
-        // Mainkan Suara Peringatan
         playWarningSound();
         
         violationCount++;

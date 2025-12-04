@@ -132,13 +132,19 @@
             </div>
             <div class="card-body" id="container-pg">
                 {% for s in pg_list %}
+                {% set uid = s.id if s.id else loop.index0 %}
+                
                 <div class="border rounded p-3 mb-4 position-relative item-pg bg-white shadow-sm">
+                    <input type="hidden" name="pg_id[]" value="{{ uid }}">
 
                     <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
                         <div class="badge bg-primary fs-6 nomor-soal-pg">Soal No.</div>
                         <div class="d-flex align-items-center gap-3">
                             <div class="form-check form-switch mb-0">
-                                <input class="form-check-input" type="checkbox" role="switch" onchange="toggleImg(this)" {% if s.gambar %}checked{% endif %}>
+                                <input type="hidden" name="pg_img_status_{{ uid }}" id="status_pg_{{ uid }}" value="{{ '1' if s.gambar else '0' }}">
+                                <input class="form-check-input" type="checkbox" role="switch" 
+                                       onchange="toggleImg(this, 'status_pg_{{ uid }}')" 
+                                       {% if s.gambar %}checked{% endif %}>
                                 <label class="form-check-label small fw-bold text-muted">Gambar Soal</label>
                             </div>
                             <button type="button" class="btn btn-danger btn-sm px-3" onclick="hapusElemen(this)">
@@ -160,12 +166,12 @@
                         <label class="small text-muted fw-bold mb-1">
                             {% if s.gambar %}Ganti Gambar Soal:{% else %}Upload Gambar Soal:{% endif %}
                         </label>
-                        <input type="file" name="pg_img[]" class="form-control" accept="image/*">
-                        <input type="hidden" name="pg_old_img[]" value="{{ s.gambar if s.gambar else '' }}">
+                        <input type="file" name="pg_img_{{ uid }}" class="form-control" accept="image/*">
+                        <input type="hidden" name="pg_old_img_{{ uid }}" value="{{ s.gambar if s.gambar else '' }}">
                     </div>
 
                     <div class="mb-3">
-                        <label class="fw-bold small text-secondary">Pertanyaan (Opsional jika ada gambar)</label>
+                        <label class="fw-bold small text-secondary">Pertanyaan</label>
                         <textarea name="pg_soal[]" class="form-control" rows="2">{{ s.soal }}</textarea>
                     </div>
 
@@ -180,7 +186,9 @@
                             </div>
 
                             <div class="form-check form-switch indent-responsive mb-2">
-                                <input class="form-check-input" type="checkbox" role="switch" onchange="toggleOptImg(this)"
+                                <input type="hidden" name="pg_img_status_{{ opt }}_{{ uid }}" id="status_pg_{{ opt }}_{{ uid }}" value="{{ '1' if s[opt + '_gambar'] else '0' }}">
+                                <input class="form-check-input" type="checkbox" role="switch" 
+                                       onchange="toggleImg(this, 'status_pg_{{ opt }}_{{ uid }}')"
                                        {% if s[opt + '_gambar'] %}checked{% endif %}>
                                 <label class="form-check-label small fw-bold text-muted">Sertakan Gambar</label>
                             </div>
@@ -197,8 +205,8 @@
                                 {% endif %}
 
                                 <label class="small text-muted fw-bold mb-1">Upload / Ganti Gambar Opsi {{ opt|upper }}</label>
-                                <input type="file" name="pg_img_{{ opt }}[]" class="form-control form-control-sm" accept="image/*">
-                                <input type="hidden" name="pg_old_img_{{ opt }}[]" value="{{ s[opt + '_gambar'] if s[opt + '_gambar'] else '' }}">
+                                <input type="file" name="pg_img_{{ opt }}_{{ uid }}" class="form-control form-control-sm" accept="image/*">
+                                <input type="hidden" name="pg_old_img_{{ opt }}_{{ uid }}" value="{{ s[opt + '_gambar'] if s[opt + '_gambar'] else '' }}">
                             </div>
 
                         </div>
@@ -227,12 +235,19 @@
             </div>
             <div class="card-body" id="container-essay">
                 {% for e in essay_list %}
+                {% set uid = e.id if e.id else loop.index0 %}
+                
                 <div class="border rounded p-3 mb-4 position-relative item-essay bg-white shadow-sm">
+                    <input type="hidden" name="essay_id[]" value="{{ uid }}">
+                    
                     <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
                         <div class="badge bg-warning text-dark fs-6 nomor-soal-essay">Essay No.</div>
                         <div class="d-flex align-items-center gap-3">
                             <div class="form-check form-switch mb-0">
-                                <input class="form-check-input" type="checkbox" role="switch" onchange="toggleImg(this)" {% if e.gambar %}checked{% endif %}>
+                                <input type="hidden" name="essay_img_status_{{ uid }}" id="status_essay_{{ uid }}" value="{{ '1' if e.gambar else '0' }}">
+                                <input class="form-check-input" type="checkbox" role="switch" 
+                                       onchange="toggleImg(this, 'status_essay_{{ uid }}')" 
+                                       {% if e.gambar %}checked{% endif %}>
                                 <label class="form-check-label small fw-bold text-muted">Gambar Soal</label>
                             </div>
                             <button type="button" class="btn btn-danger btn-sm px-3" onclick="hapusElemen(this)">
@@ -254,11 +269,11 @@
                                 {% endif %}
 
                                 <label class="small text-muted fw-bold mb-1">Upload / Ganti Gambar</label>
-                                <input type="file" name="essay_img[]" class="form-control" accept="image/*">
-                                <input type="hidden" name="essay_old_img[]" value="{{ e.gambar if e.gambar else '' }}">
+                                <input type="file" name="essay_img_{{ uid }}" class="form-control" accept="image/*">
+                                <input type="hidden" name="essay_old_img_{{ uid }}" value="{{ e.gambar if e.gambar else '' }}">
                             </div>
 
-                            <label class="fw-bold small text-secondary">Pertanyaan Essay (Opsional jika ada gambar)</label>
+                            <label class="fw-bold small text-secondary">Pertanyaan Essay</label>
                             <textarea name="essay_soal[]" class="form-control mb-2" rows="3">{{ e.soal }}</textarea>
                         </div>
                         <div class="col-md-2 border-start">
@@ -282,36 +297,47 @@
         }
     }
 
-    function toggleImg(checkbox) {
-        const parent = checkbox.closest('.item-pg, .item-essay');
-        const container = parent.querySelector('.img-container');
-        if(checkbox.checked) {
-            container.classList.remove('d-none');
+    // Fungsi Toggle Gambar yang Lebih Kuat
+    function toggleImg(checkbox, statusInputId) {
+        const statusInput = document.getElementById(statusInputId);
+        
+        // Cari container gambar terdekat
+        let container = null;
+        if (checkbox.closest('.option-row')) {
+            // Ini Opsi
+            container = checkbox.closest('.option-row').querySelector('.opt-img-container');
         } else {
-            container.classList.add('d-none');
+            // Ini Soal Utama (PG / Essay)
+            container = checkbox.closest('.item-pg, .item-essay').querySelector('.img-container');
+        }
+        
+        if(checkbox.checked) {
+            if(container) container.classList.remove('d-none');
+            if(statusInput) statusInput.value = '1'; // Set AKTIF
+        } else {
+            if(container) container.classList.add('d-none');
+            if(statusInput) statusInput.value = '0'; // Set HAPUS
         }
     }
 
-    function toggleOptImg(checkbox) {
-        const row = checkbox.closest('.option-row');
-        const container = row.querySelector('.opt-img-container');
-        if(checkbox.checked) {
-            container.classList.remove('d-none');
-        } else {
-            container.classList.add('d-none');
-        }
+    // Helper: ID Unik Generator
+    function generateUID() {
+        return 'new_' + Date.now() + '_' + Math.floor(Math.random() * 1000);
     }
 
+    // TAMBAH SOAL PG BARU
     function tambahPG() {
-        // UPDATE: Hapus required pada textarea dan perjelas label
+        const uid = generateUID();
         const html = `
         <div class="border rounded p-3 mb-4 position-relative item-pg bg-white shadow-sm">
+            <input type="hidden" name="pg_id[]" value="${uid}">
 
             <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
                 <div class="badge bg-primary fs-6 nomor-soal-pg">Soal No.</div>
                 <div class="d-flex align-items-center gap-3">
                     <div class="form-check form-switch mb-0">
-                        <input class="form-check-input" type="checkbox" role="switch" onchange="toggleImg(this)">
+                        <input type="hidden" name="pg_img_status_${uid}" id="status_pg_${uid}" value="0">
+                        <input class="form-check-input" type="checkbox" role="switch" onchange="toggleImg(this, 'status_pg_${uid}')">
                         <label class="form-check-label small fw-bold text-muted">Gambar Soal</label>
                     </div>
                     <button type="button" class="btn btn-danger btn-sm px-3" onclick="hapusElemen(this)">
@@ -322,12 +348,12 @@
 
             <div class="img-container mb-3 p-3 border rounded bg-light d-none">
                 <label class="small text-muted fw-bold mb-1">Upload Gambar Soal Baru</label>
-                <input type="file" name="pg_img[]" class="form-control" accept="image/*">
-                <input type="hidden" name="pg_old_img[]" value="">
+                <input type="file" name="pg_img_${uid}" class="form-control" accept="image/*">
+                <input type="hidden" name="pg_old_img_${uid}" value="">
             </div>
 
             <div class="mb-3">
-                <label class="fw-bold small text-secondary">Pertanyaan Baru (Opsional jika ada gambar)</label>
+                <label class="fw-bold small text-secondary">Pertanyaan Baru</label>
                 <textarea name="pg_soal[]" class="form-control" rows="2"></textarea>
             </div>
 
@@ -341,14 +367,15 @@
                     </div>
 
                     <div class="form-check form-switch indent-responsive mb-2">
-                        <input class="form-check-input" type="checkbox" role="switch" onchange="toggleOptImg(this)">
+                        <input type="hidden" name="pg_img_status_${opt}_${uid}" id="status_pg_${opt}_${uid}" value="0">
+                        <input class="form-check-input" type="checkbox" role="switch" onchange="toggleImg(this, 'status_pg_${opt}_${uid}')">
                         <label class="form-check-label small fw-bold text-muted">Sertakan Gambar</label>
                     </div>
 
                     <div class="opt-img-container indent-responsive p-2 border rounded bg-white d-none">
                         <label class="small text-muted fw-bold mb-1">Upload Gambar Opsi ${opt.toUpperCase()}</label>
-                        <input type="file" name="pg_img_${opt}[]" class="form-control form-control-sm" accept="image/*">
-                        <input type="hidden" name="pg_old_img_${opt}[]" value="">
+                        <input type="file" name="pg_img_${opt}_${uid}" class="form-control form-control-sm" accept="image/*">
+                        <input type="hidden" name="pg_old_img_${opt}_${uid}" value="">
                     </div>
                 </div>`).join('')}
             </div>
@@ -367,15 +394,19 @@
         document.getElementById('container-pg').insertAdjacentHTML('beforeend', html);
     }
 
+    // TAMBAH SOAL ESSAY BARU
     function tambahEssay() {
-        // UPDATE: Hapus required pada textarea dan perjelas label
+        const uid = generateUID();
         const html = `
         <div class="border rounded p-3 mb-4 position-relative item-essay bg-white shadow-sm">
+            <input type="hidden" name="essay_id[]" value="${uid}">
+
             <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
                 <div class="badge bg-warning text-dark fs-6 nomor-soal-essay">Essay No.</div>
                 <div class="d-flex align-items-center gap-3">
                     <div class="form-check form-switch mb-0">
-                        <input class="form-check-input" type="checkbox" role="switch" onchange="toggleImg(this)">
+                        <input type="hidden" name="essay_img_status_${uid}" id="status_essay_${uid}" value="0">
+                        <input class="form-check-input" type="checkbox" role="switch" onchange="toggleImg(this, 'status_essay_${uid}')">
                         <label class="form-check-label small fw-bold text-muted">Gambar Soal</label>
                     </div>
                     <button type="button" class="btn btn-danger btn-sm px-3" onclick="hapusElemen(this)">
@@ -388,11 +419,11 @@
                 <div class="col-md-10">
                     <div class="img-container mb-3 p-3 border rounded bg-light d-none">
                         <label class="small text-muted fw-bold mb-1">Upload Gambar Baru</label>
-                        <input type="file" name="essay_img[]" class="form-control" accept="image/*">
-                        <input type="hidden" name="essay_old_img[]" value="">
+                        <input type="file" name="essay_img_${uid}" class="form-control" accept="image/*">
+                        <input type="hidden" name="essay_old_img_${uid}" value="">
                     </div>
 
-                    <label class="fw-bold small text-secondary">Pertanyaan Essay Baru (Opsional jika ada gambar)</label>
+                    <label class="fw-bold small text-secondary">Pertanyaan Essay Baru</label>
                     <textarea name="essay_soal[]" class="form-control mb-2" rows="3"></textarea>
                 </div>
                 <div class="col-md-2 border-start">
