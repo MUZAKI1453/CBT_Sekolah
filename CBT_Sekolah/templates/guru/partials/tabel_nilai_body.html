@@ -27,15 +27,29 @@
                 -
             {% endif %}
         </td>
-        <td class="text-center">
-            <div class="btn-group" role="group">
-                <a href="/guru/koreksi/{{ n.id }}" class="btn btn-warning btn-sm" title="Koreksi Jawaban Essay">Koreksi</a>
+        
+        <td class="text-center" style="min-width: 160px;">
+            <div class="d-flex flex-column gap-2">
+                
+                <a href="{{ url_for('guru.download_hasil_pdf', jawaban_id=n.id) }}" 
+                   class="btn btn-danger btn-sm w-100 text-start ps-3 shadow-sm" 
+                   target="_blank"
+                   style="border-radius: 6px;">
+                    <i class="bi bi-file-earmark-pdf me-2"></i> Download
+                </a>
 
-                <button type="button" class="btn btn-danger btn-sm"
-                        onclick="openReset({{ n.id }}, '{{ n.siswa.nama|escape }}', '{{ (n.siswa.kelas.nama_kelas if n.siswa.kelas else '')|escape }}')"
-                        title="Reset Jawaban">
-                    Reset
+                <a href="/guru/koreksi/{{ n.id }}" 
+                   class="btn btn-warning btn-sm w-100 text-start ps-3 shadow-sm"
+                   style="border-radius: 6px;">
+                    <i class="bi bi-pencil-square me-2"></i> Koreksi
+                </a>
+
+                <button type="button" class="btn btn-secondary btn-sm w-100 text-start ps-3 shadow-sm"
+                        style="border-radius: 6px;"
+                        onclick="openReset({{ n.id }}, '{{ n.siswa.nama|escape }}', '{{ (n.siswa.kelas.nama_kelas if n.siswa.kelas else '')|escape }}')">
+                    <i class="bi bi-arrow-counterclockwise me-2"></i> Reset
                 </button>
+
             </div>
         </td>
     </tr>

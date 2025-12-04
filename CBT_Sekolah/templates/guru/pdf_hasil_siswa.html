@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="utf-8">
+    <title>Hasil Ujian {{ siswa.nama }}</title>
+    <style>
+        @page { 
+            size: A4; 
+            margin: 2cm 1.5cm; 
+        }
+        body { 
+            font-family: "Times New Roman", Times, serif; /* FONT TIMES NEW ROMAN */
+            font-size: 12pt; /* UKURAN 12pt */
+            color: #000; 
+            line-height: 1.3; 
+        }
+        
+        /* === HEADER === */
+        .header-container {
+            width: 100%;
+            border-bottom: 3px double #000;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        .header-title { 
+            font-size: 16pt; 
+            font-weight: bold; 
+            text-transform: uppercase; 
+            text-align: center;
+            margin-bottom: 5px;
+        }
+        .header-subtitle { 
+            font-size: 12pt; 
+            text-align: center;
+        }
+
+        /* === TABEL INFO === */
+        .info-wrapper { width: 100%; margin-bottom: 20px; }
+        .info-table td { 
+            padding: 2px 0; 
+            vertical-align: middle; /* Info siswa rata tengah */
+        }
+        .label { font-weight: bold; width: 120px; }
+        .sep { width: 15px; text-align: center; }
+
+        .score-card {
+            border: 2px solid #000;
+            padding: 5px;
+            text-align: center;
+            border-radius: 4px;
+        }
+        .score-val { font-size: 24pt; font-weight: bold; display: block; line-height: 1; }
+        .score-txt { font-size: 10pt; font-weight: bold; text-transform: uppercase; margin-top: 5px; display: block; }
+
+        /* === SECTION HEADER === */
+        .section-header { 
+            background-color: #f0f0f0; 
+            border-top: 1px solid #000;
+            border-bottom: 1px solid #000;
+            padding: 8px 5px; 
+            font-weight: bold; 
+            font-size: 12pt; 
+            margin-top: 15px;
+            margin-bottom: 15px;
+            text-transform: uppercase;
+        }
+
+        /* === CONTAINER SOAL === */
+        .soal-container { 
+            width: 100%; 
+            margin-bottom: 15px; 
+            page-break-inside: avoid; 
+            border-bottom: 1px dotted #999;
+            padding-bottom: 10px;
+        }
+        
+        /* PENGATURAN POSISI (ALIGNMENT) */
+        .col-no { 
+            width: 35px; 
+            font-weight: bold; 
+            vertical-align: top; /* KECUALI NOMOR: TETAP DI ATAS */
+            text-align: left;
+        }
+        .col-content { 
+            vertical-align: middle; /* TEKS LAINNYA: TENGAH (MIDDLE) */
+        }
+
+        .soal-text { margin-bottom: 8px; text-align: justify; display: block; }
+        .img-soal { max-width: 400px; max-height: 250px; border: 1px solid #000; margin-bottom: 8px; }
+
+        /* === TABEL OPSI === */
+        .opsi-table { width: 100%; border-collapse: collapse; margin-top: 5px; }
+        .opsi-table td {
+            padding: 5px;
+            vertical-align: middle; /* Opsi juga rata tengah */
+            border: 1px solid #999;
+        }
+        
+        .opsi-char { 
+            width: 30px; 
+            font-weight: bold; 
+            text-align: center; 
+            background-color: #e9ecef; 
+            border-right: 2px solid #999;
+        }
+        .opsi-img { max-height: 80px; display: block; margin: 2px 0; }
+
+        /* WARNA STATUS */
+        .bg-benar { background-color: #d1e7dd; }
+        .bg-salah { background-color: #f8d7da; }
+        .bg-kunci { background-color: #fff3cd; }
+
+        .status-text { font-weight: bold; font-size: 10pt; float: right; }
+
+        /* === ESSAY === */
+        .essay-box {
+            background-color: #f8f9fa;
+            border: 1px solid #000;
+            padding: 10px;
+            font-family: "Courier New", Courier, monospace; /* Pembeda font jawaban */
+            font-size: 11pt;
+            min-height: 20px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="header-container">
+        <div class="header-title">Laporan Hasil Evaluasi</div>
+        <div class="header-subtitle">
+            {{ ujian.mapel.nama }} | {{ ujian.judul }}
+        </div>
+    </div>
+
+    <table class="info-wrapper">
+        <tr>
+            <td width="75%">
+                <table class="info-table">
+                    <tr>
+                        <td class="label">Nama Siswa</td>
+                        <td class="sep">:</td>
+                        <td>{{ siswa.nama }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">NIS / Kelas</td>
+                        <td class="sep">:</td>
+                        <td>{{ siswa.username }} / {{ siswa.kelas.nama_kelas if siswa.kelas else '-' }}</td>
+                    </tr>
+                    <tr>
+                        <td class="label">Waktu</td>
+                        <td class="sep">:</td>
+                        <td>{{ jawaban.waktu_submit.strftime('%d/%m/%Y %H:%M') if jawaban.waktu_submit else '-' }}</td>
+                    </tr>
+                </table>
+            </td>
+            <td width="25%" style="vertical-align: middle; padding-left: 10px;">
+                <div class="score-card">
+                    <span class="score-val">{{ "%.2f"|format(jawaban.total_nilai) }}</span>
+                    <span class="score-txt">NILAI AKHIR</span>
+                </div>
+            </td>
+        </tr>
+    </table>
+
+    <div class="section-header">
+        I. Pilihan Ganda (Total Poin: {{ "%.2f"|format(jawaban.nilai_pg) }})
+    </div>
+
+    {% if soal_pg %}
+        {% for s in soal_pg %}
+        {% set idx = loop.index0|string %}
+        {% set jwb_siswa = jawab_pg.get(idx, '')|upper %}
+        {% set kunci = s.kunci|upper %}
+        {% set is_benar = (jwb_siswa == kunci) %}
+
+        <table class="soal-container">
+            <tr>
+                <td class="col-no">{{ loop.index }}.</td>
+                
+                <td class="col-content">
+                    
+                    {% if s.gambar %}
+                        <img src="{{ image_folder }}/{{ s.gambar }}" class="img-soal"><br>
+                    {% endif %}
+
+                    <div class="soal-text">{{ s.soal }}</div>
+
+                    <table class="opsi-table">
+                        {% for opt in ['a', 'b', 'c', 'd', 'e'] %}
+                            {% set opt_upper = opt|upper %}
+                            {% set opt_text = s.get(opt, '') %}
+                            {% set opt_img = s.get(opt + '_gambar', '') %}
+                            
+                            {% set row_class = '' %}
+                            {% set status_label = '' %}
+
+                            {% if jwb_siswa == opt_upper %}
+                                {% if is_benar %}
+                                    {% set row_class = 'bg-benar' %}
+                                    {% set status_label = '[BENAR]' %}
+                                {% else %}
+                                    {% set row_class = 'bg-salah' %}
+                                    {% set status_label = '[SALAH]' %}
+                                {% endif %}
+                            {% elif not is_benar and kunci == opt_upper %}
+                                {% set row_class = 'bg-kunci' %}
+                                {% set status_label = '[KUNCI]' %}
+                            {% endif %}
+
+                            {% if opt_text or opt_img %}
+                            <tr class="{{ row_class }}">
+                                <td class="opsi-char">{{ opt_upper }}</td>
+                                <td>
+                                    {% if opt_img %}
+                                        <img src="{{ image_folder }}/{{ opt_img }}" class="opsi-img">
+                                    {% endif %}
+                                    
+                                    {{ opt_text }}
+
+                                    {% if status_label %}
+                                        <span class="status-text">{{ status_label }}</span>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% endif %}
+                        {% endfor %}
+                    </table>
+
+                    {% if not jwb_siswa %}
+                        <div style="margin-top: 5px; color: #dc3545; font-weight: bold; font-size: 10pt;">
+                            * Tidak dijawab (Kunci: {{ kunci }})
+                        </div>
+                    {% endif %}
+                </td>
+            </tr>
+        </table>
+        {% endfor %}
+    {% else %}
+        <div style="text-align: center; padding: 20px;">- Tidak ada soal PG -</div>
+    {% endif %}
+
+    <div class="section-header">
+        II. Soal Essay (Total Poin: {{ "%.2f"|format(jawaban.nilai_essay) }})
+    </div>
+
+    {% if soal_essay %}
+        {% for s in soal_essay %}
+        {% set idx = loop.index0|string %}
+        
+        <table class="soal-container">
+            <tr>
+                <td class="col-no">{{ loop.index }}.</td>
+                <td class="col-content">
+                    {% if s.gambar %}
+                        <img src="{{ image_folder }}/{{ s.gambar }}" class="img-soal"><br>
+                    {% endif %}
+                    
+                    <div class="soal-text">{{ s.soal }}</div>
+
+                    <div style="font-weight: bold; margin-bottom: 2px;">Jawaban Siswa:</div>
+                    <div class="essay-box">
+                        {{ jawab_essay.get(idx, '-') }}
+                    </div>
+                </td>
+            </tr>
+        </table>
+        {% endfor %}
+    {% else %}
+        <div style="text-align: center; padding: 20px;">- Tidak ada soal Essay -</div>
+    {% endif %}
+
+</body>
+</html>

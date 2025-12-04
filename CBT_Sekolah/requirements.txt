@@ -7,3 +7,4 @@ pdfplumber
 python-dotenv
 waitress
 werkzeug
+xhtml2pdf

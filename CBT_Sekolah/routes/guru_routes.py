@@ -13,6 +13,7 @@ from models import db, Mapel, Ujian, JawabanSiswa, User
 from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils import get_column_letter
 from openpyxl.drawing.image import Image as ExcelImage
+from xhtml2pdf import pisa
 
 bp = Blueprint('guru', __name__)
 
@@ -672,7 +673,82 @@ def reset_peserta(jawaban_id):
     db.session.commit()
     return ('', 204)
 
+# ==================== DOWNLOAD PDF HASIL (FINAL) ====================
+@bp.route('/download_hasil_pdf/<int:jawaban_id>')
+@login_required
+def download_hasil_pdf(jawaban_id):
+    if current_user.role not in ['guru', 'admin']:
+        return redirect('/')
 
+    try:
+        # Ambil Data
+        jawaban = JawabanSiswa.query.get_or_404(jawaban_id)
+        ujian = jawaban.ujian
+        siswa = jawaban.siswa
+
+        # Validasi Akses Mapel
+        if current_user.role != 'admin' and ujian.mapel.guru_id != current_user.id:
+            flash('Anda tidak memiliki akses ke ujian ini.', 'danger')
+            return redirect('/guru/dashboard')
+
+        # Load JSON Data dengan Aman
+        try: soal_pg = json.loads(ujian.soal_pg) if ujian.soal_pg else []
+        except: soal_pg = []
+        
+        try: soal_essay = json.loads(ujian.soal_essay) if ujian.soal_essay else []
+        except: soal_essay = []
+
+        try: jawab_pg = json.loads(jawaban.jawaban_pg) if jawaban.jawaban_pg else {}
+        except: jawab_pg = {}
+
+        try: jawab_essay = json.loads(jawaban.jawaban_essay) if jawaban.jawaban_essay else {}
+        except: jawab_essay = {}
+
+        # Hitung Jumlah Benar PG
+        jml_benar_pg = 0
+        for i, s in enumerate(soal_pg):
+            # Menggunakan str(i) sebagai key karena JSON keys adalah string
+            if jawab_pg.get(str(i)) == s.get('kunci'):
+                jml_benar_pg += 1
+
+        # PATH GAMBAR ABSOLUT (Wajib untuk xhtml2pdf)
+        image_folder = os.path.join(current_app.root_path, 'static', 'uploads', 'soal')
+        # Normalisasi path untuk menghindari error di Windows
+        image_folder = image_folder.replace('\\', '/')
+
+        # Render Template
+        html_content = render_template(
+            'guru/pdf_hasil_siswa.html',
+            siswa=siswa, ujian=ujian, jawaban=jawaban,
+            soal_pg=soal_pg, soal_essay=soal_essay,
+            jawab_pg=jawab_pg, jawab_essay=jawab_essay,
+            jml_benar_pg=jml_benar_pg, total_soal_pg=len(soal_pg),
+            image_folder=image_folder
+        )
+
+        # Generate PDF
+        pdf_output = io.BytesIO()
+        pisa_status = pisa.CreatePDF(src=html_content, dest=pdf_output)
+
+        if pisa_status.err:
+            flash(f'Gagal membuat PDF: {pisa_status.err}', 'danger')
+            return redirect(url_for('guru.lihat_nilai', ujian_id=ujian.id))
+
+        pdf_output.seek(0)
+        filename = secure_filename(f"Hasil_{siswa.nama}_{ujian.judul}.pdf")
+        
+        return send_file(
+            pdf_output, 
+            as_attachment=True, 
+            download_name=filename, 
+            mimetype='application/pdf'
+        )
+
+    except Exception as e:
+        print(f"ERROR PDF: {e}") # Log error di terminal server
+        flash("Terjadi kesalahan sistem saat membuat PDF.", "danger")
+        return redirect('/guru/dashboard')
+    
 # ==================== GANTI PASSWORD ====================
 @bp.route('/ganti_password', methods=['GET', 'POST'])
 @login_required
