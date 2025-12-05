@@ -2,16 +2,20 @@
 {% block content %}
 
 <style>
-    /* 1. LAYOUT DASAR & SECURITY */
-    nav.navbar { display: none !important; }
+    /* =========================================
+       1. LAYOUT & SECURITY BASE
+       ========================================= */
+    nav.navbar { display: none !important; } /* Sembunyikan Navbar Utama */
+    
     body { 
         padding-top: 0 !important; 
         background-color: #f4f6f9; 
-        user-select: none; -webkit-user-select: none;
+        user-select: none; -webkit-user-select: none; /* Anti Blok Teks */
         overflow-x: hidden;
+        overscroll-behavior: none; /* Mencegah refresh tarik layar di HP */
     }
 
-    /* 2. HEADER UJIAN (Fixed Top) */
+    /* Header Ujian Fixed di Atas */
     .exam-header {
         height: 60px; background: white;
         box-shadow: 0 2px 4px rgba(0,0,0,0.1);
@@ -21,8 +25,11 @@
 
     .exam-container { margin-top: 80px; margin-bottom: 100px; position: relative; z-index: 1; }
 
-    /* 3. BOX JAWABAN */
+    /* =========================================
+       2. STYLING SOAL & OPSI
+       ========================================= */
     .input-hidden { position: absolute; left: -9999px; opacity: 0; }
+    
     .pilihan-box {
         display: flex; align-items: center; padding: 15px 20px;
         border: 2px solid #e9ecef; border-radius: 12px;
@@ -39,36 +46,21 @@
         font-weight: bold;
     }
 
-    /* 4. TOMBOL NAVIGASI */
+    /* =========================================
+       3. NAVIGASI NOMOR
+       ========================================= */
     .btn-nomor {
         width: 100%; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
         font-weight: bold; border: 1px solid #dee2e6; background: white; border-radius: 8px;
-        font-size: 1.1rem; color: #6c757d; transition: all 0.2s;
-        position: relative;
+        font-size: 1.1rem; color: #6c757d; transition: all 0.2s; position: relative;
     }
-    
-    /* Border Aktif (Posisi Sekarang) */
-    .btn-nomor.active { 
-        border: 3px solid #0d6efd !important; 
-        color: #0d6efd !important; 
-        z-index: 2;
-    }
+    .btn-nomor.active { border: 3px solid #0d6efd !important; color: #0d6efd !important; z-index: 2; }
+    .btn-nomor.dijawab { background-color: #198754 !important; color: white !important; border-color: #198754 !important; }
+    .btn-nomor.ragu { background-color: #ffc107 !important; color: #212529 !important; border-color: #ffc107 !important; }
 
-    /* Status: Dijawab (Hijau) */
-    .btn-nomor.dijawab { 
-        background-color: #198754 !important; 
-        color: white !important; 
-        border-color: #198754 !important; 
-    }
-
-    /* Status: Ragu (Kuning) - Override Hijau */
-    .btn-nomor.ragu { 
-        background-color: #ffc107 !important; 
-        color: #212529 !important; 
-        border-color: #ffc107 !important; 
-    }
-
-    /* 5. OVERLAY SECURITY */
+    /* =========================================
+       4. OVERLAYS SECURITY (LAYAR PENUTUP)
+       ========================================= */
     .watermark-container {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         z-index: 0; pointer-events: none; overflow: hidden; opacity: 0.04;
@@ -78,15 +70,26 @@
         width: 300px; height: 200px; display: flex; align-items: center; justify-content: center;
         transform: rotate(-15deg); font-weight: 900; font-size: 1.2rem; color: #000; text-align: center;
     }
+
     .overlay-screen {
         position: fixed; top: 0; left: 0; width: 100%; height: 100%;
         z-index: 9999; display: flex; flex-direction: column;
         align-items: center; justify-content: center; text-align: center;
         backdrop-filter: blur(15px); padding: 20px;
     }
-    #security-overlay { background: rgba(13, 110, 253, 0.98); color: white; }
-    #warning-overlay { background: rgba(255, 193, 7, 0.98); color: #333; display: none; }
-    #kick-overlay { background: rgba(220, 53, 69, 1); color: white; display: none; }
+
+    /* Warna Overlay Berdasarkan Jenis */
+    #security-overlay { background: rgba(13, 110, 253, 0.98); color: white; } /* BIRU (Intro) */
+    #warning-overlay { background: rgba(255, 193, 7, 0.98); color: #333; display: none; } /* KUNING (Peringatan) */
+    #kick-overlay { background: rgba(220, 53, 69, 1); color: white; display: none; } /* MERAH (Diskualifikasi) */
+    
+    /* OVERLAY SPLIT SCREEN (HITAM PEKAT & Z-INDEX TERTINGGI) */
+    #split-overlay { 
+        display: none; 
+        background: #000 !important; 
+        z-index: 2147483647 !important; /* Max Integer CSS */
+        position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    }
 </style>
 
 <div class="watermark-container">
@@ -118,7 +121,7 @@
     <h2 class="fw-bold">Mode Ujian Aman</h2>
     <p class="px-4" style="max-width: 500px;">
         Sistem mendeteksi aktivitas layar.<br>
-        <strong>JANGAN REFRESH HALAMAN ATAU KELUAR DARI APLIKASI!</strong>
+        <strong>JANGAN KELUAR APLIKASI, SPLIT SCREEN, ATAU MEMBUKA POP-UP!</strong>
     </p>
     <button onclick="startExam()" class="btn btn-light btn-lg text-primary fw-bold rounded-pill px-5 shadow mt-3">
         <i class="bi bi-play-fill"></i> MULAI UJIAN
@@ -146,8 +149,17 @@
 <div id="kick-overlay" class="overlay-screen">
     <div class="spinner-border text-light mb-4" style="width: 3rem; height: 3rem;"></div>
     <h1 class="fw-bold display-5">DISKUALIFIKASI</h1>
-    <p class="fs-4">Anda telah melewati batas toleransi pelanggaran (5x).</p>
+    <p class="fs-4">Anda telah melewati batas toleransi pelanggaran (3x).</p>
     <p class="text-white-50 small">Sistem sedang mengirim jawaban Anda...</p>
+</div>
+
+<div id="split-overlay" class="overlay-screen">
+    <i class="bi bi-arrows-angle-contract text-danger display-1 mb-3"></i>
+    <h2 class="fw-bold text-danger">DILARANG SPLIT SCREEN!</h2>
+    <p class="text-white fs-5 px-3">
+        Sistem mendeteksi ukuran layar tidak standar.<br>
+        Kembalikan browser ke mode <strong>Layar Penuh (Full Screen)</strong> untuk melanjutkan.
+    </p>
 </div>
 
 <div class="container exam-container">
@@ -161,9 +173,7 @@
                         
                         {% for s in pg_tampil %}
                         {% set q_key = s.id if s.id else s.original_index %}
-                        <div class="soal-step" id="step-{{ loop.index0 }}" 
-                             data-type="pg" 
-                             data-key="{{ q_key }}"> 
+                        <div class="soal-step" id="step-{{ loop.index0 }}" data-type="pg" data-key="{{ q_key }}"> 
                              
                             <div class="d-flex justify-content-between mb-3">
                                 <span class="badge bg-primary">No. {{ loop.index }}</span>
@@ -173,9 +183,7 @@
                             {% if s.gambar %}
                             <div class="mb-4 text-center">
                                 <img src="{{ url_for('static', filename='uploads/soal/' + s.gambar) }}" 
-                                     class="img-fluid rounded border shadow-sm" 
-                                     style="max-height: 400px; width: auto;" 
-                                     alt="Gambar Soal">
+                                     class="img-fluid rounded border shadow-sm" style="max-height: 400px;" alt="Gambar Soal">
                             </div>
                             {% endif %}
 
@@ -184,28 +192,18 @@
                             <div class="opsi-wrapper">
                                 {% for opt in s.opsi_acak %}
                                 <div class="mb-2 position-relative">
-                                    <input type="radio" 
-                                           class="input-hidden input-jawaban-pg" 
-                                           name="pg_{{ q_key }}" 
-                                           id="opt_{{ s.original_index }}_{{ opt.kode }}" 
-                                           value="{{ opt.kode }}" 
-                                           data-nomor="{{ loop.index0 }}"
-                                           onchange="savePG(this)">
+                                    <input type="radio" class="input-hidden input-jawaban-pg" 
+                                           name="pg_{{ q_key }}" id="opt_{{ s.original_index }}_{{ opt.kode }}" 
+                                           value="{{ opt.kode }}" data-nomor="{{ loop.index0 }}" onchange="savePG(this)">
                                         
                                     <label class="pilihan-box d-block" for="opt_{{ s.original_index }}_{{ opt.kode }}">
-                                        
                                         {% if opt.gambar %}
                                         <div class="mb-2">
                                             <img src="{{ url_for('static', filename='uploads/soal/' + opt.gambar) }}" 
-                                                 class="img-fluid rounded border" 
-                                                 style="max-height: 150px; object-fit: contain;">
+                                                 class="img-fluid rounded border" style="max-height: 150px;">
                                         </div>
                                         {% endif %}
-
-                                        <span class="d-flex">
-                                            <span class="fw-bold me-2">{{ opt.kode }}.</span>
-                                            <span>{{ opt.teks }}</span>
-                                        </span>
+                                        <span class="d-flex"><span class="fw-bold me-2">{{ opt.kode }}.</span><span>{{ opt.teks }}</span></span>
                                     </label>
                                 </div>
                                 {% endfor %}
@@ -216,10 +214,7 @@
                         {% set start_essay = pg_tampil|length %}
                         {% for e in essay_tampil %}
                         {% set q_key = e.id if e.id else e.original_index %}
-                        
-                        <div class="soal-step" id="step-{{ start_essay + loop.index0 }}" 
-                             data-type="essay" 
-                             data-key="{{ q_key }}">
+                        <div class="soal-step" id="step-{{ start_essay + loop.index0 }}" data-type="essay" data-key="{{ q_key }}">
                              
                             <div class="d-flex justify-content-between mb-3">
                                 <span class="badge bg-success">No. {{ start_essay + loop.index }}</span>
@@ -229,17 +224,13 @@
                             {% if e.gambar %}
                             <div class="mb-4 text-center">
                                 <img src="{{ url_for('static', filename='uploads/soal/' + e.gambar) }}" 
-                                     class="img-fluid rounded border shadow-sm" 
-                                     style="max-height: 400px; width: auto;">
+                                     class="img-fluid rounded border shadow-sm" style="max-height: 400px;">
                             </div>
                             {% endif %}
                             
                             <div class="fs-5 mb-4 lh-base text-dark">{{ e.soal | safe }}</div>
-
-                            <textarea name="essay_{{ q_key }}" 
-                                      class="form-control bg-light input-jawaban-essay" rows="8" 
-                                      placeholder="Ketik jawaban..." 
-                                      data-nomor="{{ start_essay + loop.index0 }}"
+                            <textarea name="essay_{{ q_key }}" class="form-control bg-light input-jawaban-essay" 
+                                      rows="8" placeholder="Ketik jawaban..." data-nomor="{{ start_essay + loop.index0 }}"
                                       oninput="saveEssay(this)"></textarea>
                         </div>
                         {% endfor %}
@@ -303,110 +294,118 @@
 </div>
 
 <script>
-    // --- SETUP VARIABLES ---
+    // --- KONFIGURASI UTAMA ---
     const UJIAN_ID = "{{ ujian.id }}";
     const USER_ID = "{{ current_user.id }}";
     const BAN_KEY = `banned_${USER_ID}_${UJIAN_ID}`;
     const SAVE_PREFIX = `ans_${USER_ID}_${UJIAN_ID}_`;
     const RAGU_PREFIX = `ragu_${USER_ID}_${UJIAN_ID}_`; 
-
+    
+    // BATAS PELANGGARAN STRICT (3 KALI)
+    const MAX_VIOLATIONS = 3; 
+    let violationCount = 0;
+    
+    let isExamActive = false;
+    let isWarningActive = false;
     let isSubmitting = false;
+    
     let currentStep = 0;
     const totalStep = parseInt("{{ pg_tampil|length + essay_tampil|length }}");
     const steps = document.querySelectorAll('.soal-step');
     let sisaDetik = parseInt("{{ sisa_waktu_detik }}");
 
-    // --- SCREEN WAKE LOCK (SCREEN ALWAYS ON) ---
+    // --- 1. WAKE LOCK (AGAR LAYAR TIDAK MATI) ---
     let wakeLock = null;
-
     async function requestWakeLock() {
         try {
             if ('wakeLock' in navigator) {
                 wakeLock = await navigator.wakeLock.request('screen');
-                console.log('Screen Wake Lock acquired');
-
-                wakeLock.addEventListener('release', () => {
-                    console.log('Screen Wake Lock released');
-                });
-            } else {
-                console.warn('Wake Lock API not supported in this browser.');
             }
-        } catch (err) {
-            console.error(`${err.name}, ${err.message}`);
-        }
+        } catch (err) { console.error("Wake Lock Error:", err); }
     }
 
-    // Re-acquire lock when page is visible
-    document.addEventListener('visibilitychange', async () => {
-        if (wakeLock !== null && document.visibilityState === 'visible') {
-            await requestWakeLock();
+    // --- 2. ANTI SPLIT SCREEN (SMART KEYBOARD + BLACKOUT) ---
+    function checkScreenDimension() {
+        if (!isExamActive) return;
+
+        // Ambil Ukuran Layar Fisik & Jendela Browser
+        const screenW = window.screen.width;
+        const screenH = window.screen.height;
+        const winW = window.innerWidth;
+        const winH = window.innerHeight;
+
+        // 1. Deteksi Lebar: Browser harus hampir Fullscreen (Toleransi 10%)
+        // Jika lebar browser < 90% lebar layar, berarti Split Screen Kiri-Kanan
+        const isNarrowWidth = winW < (screenW * 0.90);
+
+        // 2. Deteksi Tinggi: Keyboard biasanya makan 30-40% layar. 
+        // Jika sisa tinggi < 45%, itu mencurigakan (Split Screen Atas-Bawah)
+        let isShortHeight = winH < (screenH * 0.45);
+
+        // LOGIKA PENYELAMAT: Jika sedang ngetik, perubahan tinggi diizinkan
+        const activeEl = document.activeElement;
+        const isTyping = (activeEl.tagName === 'TEXTAREA' || activeEl.tagName === 'INPUT');
+        if (isShortHeight && isTyping) {
+            isShortHeight = false; // Batalkan deteksi split screen
         }
-    });
 
-    // --- SETTING PELANGGARAN ---
-    let violationCount = 0;
-    const MAX_VIOLATIONS = 3; 
-    let isExamActive = false;
-    let isWarningActive = false;
+        const splitOverlay = document.getElementById('split-overlay');
 
-    // --- FUNGSI SUARA PERINGATAN (LOUDER & REPETITIVE) ---
+        // EKSEKUSI BLOKIR: Jika terdeteksi sempit, tutup layar dengan hitam
+        if (isNarrowWidth || isShortHeight) {
+            if(splitOverlay.style.display === 'none') {
+                splitOverlay.style.display = 'flex';
+                document.body.style.overflow = 'hidden'; // Matikan scroll
+            }
+        } else {
+            // JIKA AMAN: Buka kembali
+            if(splitOverlay.style.display !== 'none') {
+                splitOverlay.style.display = 'none';
+                document.body.style.overflow = 'auto'; // Hidupkan scroll
+            }
+        }
+    }
+    window.addEventListener('resize', checkScreenDimension);
+    setInterval(checkScreenDimension, 1000); // Cek rutin
+
+    // --- 3. FUNGSI SUARA PERINGATAN ---
     function playWarningSound() {
         try {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             if (!AudioContext) return;
-
             const ctx = new AudioContext();
             const osc = ctx.createOscillator();
             const gainNode = ctx.createGain();
-
             osc.connect(gainNode);
             gainNode.connect(ctx.destination);
-
             osc.type = 'square';
-
             const now = ctx.currentTime;
             osc.frequency.setValueAtTime(600, now);
             osc.frequency.linearRampToValueAtTime(1200, now + 0.25);
-            osc.frequency.linearRampToValueAtTime(600, now + 0.5);
-            osc.frequency.linearRampToValueAtTime(1200, now + 0.75);
-            osc.frequency.linearRampToValueAtTime(600, now + 1.0);
-            osc.frequency.linearRampToValueAtTime(1200, now + 1.25);
-            osc.frequency.linearRampToValueAtTime(600, now + 1.5);
-
             gainNode.gain.setValueAtTime(0.3, now);
-            gainNode.gain.linearRampToValueAtTime(0.3, now + 1.4);
             gainNode.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
-
             osc.start();
             osc.stop(now + 1.6); 
-        } catch (e) {
-            console.log("Audio warning error:", e);
-        }
+        } catch (e) { console.log("Audio Error"); }
     }
 
-    // --- FUNGSI UTAMA: CEK STATUS JAWABAN & PEWARNAAN ---
+    // --- 4. NAVIGASI SOAL & LOCAL STORAGE ---
     function updateIndicatorStatus(idx) {
         const stepDiv = document.getElementById(`step-${idx}`);
         const navD = document.getElementById(`nav-d-${idx}`);
         const navM = document.getElementById(`nav-m-${idx}`);
-
         if (!stepDiv) return;
 
-        // [FIX] Ambil Key (ID) dari data-key, bukan index
         const questionKey = stepDiv.getAttribute('data-key');
-
         let isAnswered = false;
         const type = stepDiv.getAttribute('data-type');
 
         if (type === 'pg') {
-            const checked = stepDiv.querySelector('input[type="radio"]:checked');
-            if (checked) isAnswered = true;
+            if (stepDiv.querySelector('input[type="radio"]:checked')) isAnswered = true;
         } else if (type === 'essay') {
-            const textVal = stepDiv.querySelector('textarea').value.trim();
-            if (textVal.length > 0) isAnswered = true;
+            if (stepDiv.querySelector('textarea').value.trim().length > 0) isAnswered = true;
         }
 
-        // Gunakan questionKey untuk status ragu
         const isRagu = localStorage.getItem(RAGU_PREFIX + questionKey) === 'true';
 
         if (navD) navD.className = 'btn btn-nomor';
@@ -426,7 +425,6 @@
         }
     }
 
-    // --- SAVE & RESTORE ---
     function saveToLocal(name, value) { localStorage.setItem(SAVE_PREFIX + name, value); }
 
     function restoreAnswers() {
@@ -441,21 +439,13 @@
                 }
             }
         });
-
-        for (let i = 0; i < totalStep; i++) {
-            updateIndicatorStatus(i);
-        }
+        for (let i = 0; i < totalStep; i++) updateIndicatorStatus(i);
     }
 
-    // --- EVENT HANDLERS ---
     window.savePG = function(el) {
         saveToLocal(el.name, el.value);
-
-        // [FIX] Hapus status ragu menggunakan ID Asli (diambil dari nama input)
-        // el.name format: pg_{ID}
         const questionKey = el.name.replace('pg_', '');
         localStorage.setItem(RAGU_PREFIX + questionKey, 'false');
-
         document.getElementById('check-ragu').checked = false;
         updateIndicatorStatus(parseInt(el.dataset.nomor));
     }
@@ -465,17 +455,13 @@
         updateIndicatorStatus(parseInt(el.dataset.nomor));
     }
 
-    // [FIX] Handler Tombol Ragu menggunakan ID dari data-key
     document.getElementById('check-ragu').addEventListener('change', function() {
-        const isChecked = this.checked;
         const currentStepDiv = document.getElementById(`step-${currentStep}`);
         const questionKey = currentStepDiv.getAttribute('data-key');
-
-        localStorage.setItem(RAGU_PREFIX + questionKey, isChecked);
+        localStorage.setItem(RAGU_PREFIX + questionKey, this.checked);
         updateIndicatorStatus(currentStep);
     });
 
-    // --- NAVIGATION LOGIC ---
     function updateUI() {
         steps.forEach(el => el.style.display = 'none');
         steps[currentStep].style.display = 'block';
@@ -493,16 +479,10 @@
             btnSubmit.classList.add('d-none');
         }
 
-        // [FIX] Sinkronkan Checkbox Ragu dengan Key ID
         const currentStepDiv = document.getElementById(`step-${currentStep}`);
         const questionKey = currentStepDiv.getAttribute('data-key');
-        const isRagu = localStorage.getItem(RAGU_PREFIX + questionKey) === 'true';
-        document.getElementById('check-ragu').checked = isRagu;
-
-        // Update indikator
-        for (let i = 0; i < totalStep; i++) {
-            updateIndicatorStatus(i);
-        }
+        document.getElementById('check-ragu').checked = (localStorage.getItem(RAGU_PREFIX + questionKey) === 'true');
+        for (let i = 0; i < totalStep; i++) updateIndicatorStatus(i);
     }
 
     function gantiSoal(n) {
@@ -519,22 +499,7 @@
         if (bsOffcanvas) bsOffcanvas.hide();
     }
 
-    // --- SUBMIT HANDLING ---
-    const formUjian = document.getElementById('formUjian');
-    if (formUjian) {
-        formUjian.addEventListener('submit', function() {
-            isSubmitting = true;
-        });
-    }
-
-    // --- INITIALIZATION ---
-    restoreAnswers();
-    updateUI();
-
-    // Hapus status ban lama
-    localStorage.removeItem(BAN_KEY);
-
-    // --- TIMER & SECURITY ---
+    // --- 5. TIMER & SUBMIT ---
     const timerInterval = setInterval(() => {
         sisaDetik--;
         if (sisaDetik < 0) {
@@ -546,67 +511,63 @@
         const h = Math.floor(sisaDetik / 3600);
         const m = Math.floor((sisaDetik % 3600) / 60);
         const s = Math.floor(sisaDetik % 60);
-        document.getElementById('countdown').innerText =
-            `${h < 10 ? '0'+h : h}:${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
+        document.getElementById('countdown').innerText = `${h < 10 ? '0'+h : h}:${m < 10 ? '0'+m : m}:${s < 10 ? '0'+s : s}`;
     }, 1000);
 
     function forceSubmitNow() {
         document.getElementById('security-overlay').style.display = 'none';
         document.getElementById('warning-overlay').style.display = 'none';
         document.getElementById('kick-overlay').style.display = 'flex';
+        document.getElementById('split-overlay').style.display = 'none'; // Matikan split overlay agar pesan DQ terlihat
         localStorage.setItem(BAN_KEY, "true");
         isSubmitting = true;
         setTimeout(() => { document.getElementById('formUjian').submit(); }, 500);
     }
 
+    // --- 6. SECURITY LOGIC START/RESUME (THE CRITICAL FIX) ---
+
+    // Fungsi Mulai Ujian (Awal)
     window.startExam = function() {
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        if (AudioContext) {
-            const ctx = new AudioContext();
-            ctx.resume().then(() => {
-                ctx.close();
-            });
+        if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().catch((e) => console.log(e));
         }
+        document.getElementById('security-overlay').style.display = 'none';
+        isExamActive = true;
         requestWakeLock();
-        requestFullScreenAndRun();
     }
 
+    // Fungsi Lanjutkan Ujian (Setelah Pelanggaran)
     window.resumeExam = function() {
+        // [INSTANT FULLSCREEN FIX] Eksekusi Fullscreen di baris pertama
+        if (document.documentElement.requestFullscreen) {
+            document.documentElement.requestFullscreen().catch((err) => {
+                console.log("Fullscreen Error:", err);
+            });
+        }
+        
+        // Reset Status
         document.getElementById('warning-overlay').style.display = 'none';
         isWarningActive = false;
         document.getElementById('janjiSiswa').checked = false;
         toggleLanjutBtn();
+        isExamActive = true;
         requestWakeLock();
-        requestFullScreenAndRun();
+        
+        // Cek lagi layar (jika masih split, langsung tutup lagi)
+        setTimeout(checkScreenDimension, 500);
     }
 
     window.toggleLanjutBtn = function() {
         document.getElementById('btnLanjutWarning').disabled = !document.getElementById('janjiSiswa').checked;
     }
 
-    function requestFullScreenAndRun() {
-        const elem = document.documentElement;
-        if (elem.requestFullscreen) {
-            elem.requestFullscreen().then(() => {
-                document.getElementById('security-overlay').style.display = 'none';
-                isExamActive = true;
-            }).catch(() => {
-                document.getElementById('security-overlay').style.display = 'none';
-                isExamActive = true;
-            });
-        } else {
-            document.getElementById('security-overlay').style.display = 'none';
-            isExamActive = true;
-        }
-    }
-
-    // --- LOGIKA PELANGGARAN + SUARA ---
+    // --- 7. DETEKTOR PELANGGARAN ---
     function recordViolation() {
         if (isWarningActive || isSubmitting) return; 
         
         playWarningSound();
-        
         violationCount++;
+        
         if (violationCount >= MAX_VIOLATIONS) {
             forceSubmitNow();
         } else {
@@ -616,21 +577,45 @@
         }
     }
 
-    document.addEventListener('visibilitychange', () => { if (document.hidden && isExamActive) recordViolation(); });
+    // EVENT LISTENER: BLUR (POP-UP/ALT-TAB)
     window.addEventListener('blur', () => { 
-        if (isExamActive && document.activeElement.tagName !== "IFRAME") {
-             setTimeout(() => { if(!document.hasFocus()) recordViolation(); }, 500);
+        if (document.activeElement.tagName === "IFRAME") return;
+        
+        if (isExamActive && !isWarningActive) {
+             setTimeout(() => { 
+                 if(!document.hasFocus()) {
+                     console.log("Pelanggaran: Kehilangan Fokus (Blur)");
+                     recordViolation(); 
+                 }
+             }, 500); // 500ms toleransi
         }
     });
-    document.addEventListener('fullscreenchange', () => {
-        if (!document.fullscreenElement && isExamActive && !isWarningActive) recordViolation();
+
+    // EVENT LISTENER: VISIBILITY (TAB PINDAH)
+    document.addEventListener('visibilitychange', () => { 
+        if (document.hidden && isExamActive) recordViolation(); 
     });
+    
+    // EVENT LISTENER: KELUAR FULLSCREEN
+    document.addEventListener('fullscreenchange', () => {
+        if (!document.fullscreenElement && isExamActive && !isWarningActive) {
+            console.log("Pelanggaran: Keluar Fullscreen");
+            recordViolation();
+        }
+    });
+
+    // BLOKIR TOMBOL
     document.addEventListener('contextmenu', e => e.preventDefault());
     document.addEventListener('keydown', e => {
         if(e.keyCode == 123 || (e.ctrlKey && ['u','c','v','p','a','s'].includes(e.key)) || e.key === "PrintScreen") {
             e.preventDefault(); e.stopPropagation(); return false;
         }
     });
+
+    // INITIALIZATION
+    restoreAnswers();
+    updateUI();
+    localStorage.removeItem(BAN_KEY);
 </script>
 
 {% endblock %}
